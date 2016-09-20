@@ -1,0 +1,6 @@
+[package]
+name = "rusty_the_rendering_engine"
+version = "0.1.0"
+authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
+
+[dependencies]
