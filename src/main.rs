@@ -32,8 +32,9 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"));
+    //let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"));
     //let scene = common::load_scene(&root_path.join("scenes/cornell-box/CornellBox-Original.obj"));
+    let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"));
     let vertex_buffer = VertexBuffer::new(&display, &scene.vertices).expect("Failed to unwrap vertex buffer.");
     let index_buffer = IndexBuffer::new(&display, PrimitiveType::TrianglesList,
                                         &scene.indices).expect("Failed to unwrap index buffer.");

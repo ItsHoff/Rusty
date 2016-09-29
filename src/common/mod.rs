@@ -18,18 +18,20 @@ pub struct Scene {
 }
 
 pub fn load_scene(scene_path: &Path) -> Scene {
-    let mut scene = Scene { vertices: vec!(), indices: vec!() };
+    let scene = Scene { vertices: vec!(), indices: vec!() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
-    for (i, pos) in obj.positions.iter().enumerate() {
-        let mut normal = [1.0, 0.0, 0.0];
-        if obj.normals.len() != 0 {
-            normal = obj.normals[i];
-        }
-        let vertex = Vertex { position: *pos, normal: normal };
-        scene.vertices.push(vertex);
-    }
-    for mut p in obj.polygons {
-        scene.indices.append(&mut p.indices);
-    }
+    obj_load::print_obj(&obj);
+    // TODO: This should iterate polygons since pos and normals dont always match
+    //for (i, pos) in obj.positions.iter().enumerate() {
+        //let mut normal = [1.0, 0.0, 0.0];
+        //if obj.normals.len() != 0 {
+            //normal = obj.normals[i];
+        //}
+        //let vertex = Vertex { position: *pos, normal: normal };
+        //scene.vertices.push(vertex);
+    //}
+    //for mut p in obj.polygons {
+        //scene.indices.append(&mut p.indices);
+    //}
     scene
 }
