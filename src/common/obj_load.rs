@@ -8,9 +8,10 @@ use std::vec::Vec;
 
 #[derive(Debug, Default)]
 pub struct Polygon {
-    pub positions_i: Vec<u32>,
-    pub normals_i: Vec<u32>,
-    pub tex_coords_i: Vec<u32>,
+    pub index_vertices: Vec<[usize; 3]>,
+    //pub positions_i: Vec<usize>,
+    //pub normals_i: Vec<usize>,
+    //pub tex_coords_i: Vec<usize>,
     pub group: Option<String>,
     pub smoothing_group: Option<u32>,
     pub material: Option<String>,
@@ -19,19 +20,44 @@ pub struct Polygon {
 impl Polygon {
     fn new(state: &ParseState) -> Polygon {
         Polygon {
-            group: state.current_group.clone(),
+            group: {
+                if let Some(ref range) = state.current_group {
+                    Some(range.name.clone())
+                } else {
+                    None
+                }
+            },
             smoothing_group: state.current_smoothing_group.clone(),
-            material: state.current_material.clone(),
+            material: {
+                if let Some(ref range) = state.current_material {
+                    Some(range.name.clone())
+                } else {
+                    None
+                }
+            },
             ..Default::default()
         }
     }
 }
 
-pub struct Group {
+#[derive(Clone, Debug)]
+pub struct Range {
     pub name: String,
+    /// [start_i, end_i)
+    pub start_i: usize,
+    pub end_i: usize
 }
 
-#[derive(Debug, Default)]
+impl Range {
+    fn new(name: &str, start: usize) -> Range {
+        Range { name: name.to_string(),
+                start_i: start,
+                end_i: start
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 #[allow(non_snake_case)]
 pub struct Material {
     pub name: String,
@@ -69,7 +95,8 @@ pub struct Object {
     pub normals: Vec<[f32; 3]>,
     pub tex_coords: Vec<[f32; 2]>,
     pub polygons: Vec<Polygon>,
-    pub groups: Vec<Group>,
+    pub group_ranges: Vec<Range>,
+    pub material_ranges: Vec<Range>,
     pub materials: Vec<Material>
 }
 
@@ -82,9 +109,9 @@ impl Object {
 #[derive(Default)]
 struct ParseState {
     mat_libs: Vec<PathBuf>,
-    current_group: Option<String>,
+    current_group: Option<Range>,
     current_smoothing_group: Option<u32>,
-    current_material: Option<String>,
+    current_material: Option<Range>,
 }
 
 impl ParseState {
@@ -130,54 +157,37 @@ fn parse_face(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState
               -> Result<Polygon, Box<Error>> {
     let mut polygon = Polygon::new(state);
     for item in split_line {
-        let index_values = try!(parse_face_values(&mut item.split('/')));
-        if let Some(pos_i) = index_values[0] {
-            if pos_i < 0 {
-                let pos_i = obj.positions.len() as i32 + pos_i;
-                polygon.positions_i.push(pos_i as u32);
+        let mut index_vertex = [0usize; 3];
+        for (i, num) in item.split('/').enumerate() {
+            if i >= 3 {
+                break;
+            }
+            if num == "" {
+                // Obj files indexing starts from 1
+                index_vertex[i] = 0;
             } else {
-                polygon.positions_i.push(pos_i as u32 - 1);
+                let num: isize = try!(num.parse());
+                if num < 0 {
+                    match i {
+                        0 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
+                        1 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
+                        2 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
+                        _ => unreachable!()
+                    }
+                } else {
+                    index_vertex[i] = num as usize;
+                }
             }
         }
-        if let Some(tex_i) = index_values[1] {
-            if tex_i < 0 {
-                let tex_i = obj.positions.len() as i32 + tex_i;
-                polygon.tex_coords_i.push(tex_i as u32);
-            } else {
-                polygon.tex_coords_i.push(tex_i as u32 - 1);
-            }
-        }
-        if let Some(norm_i) = index_values[2] {
-            if norm_i < 0 {
-                let norm_i = obj.positions.len() as i32 + norm_i;
-                polygon.normals_i.push(norm_i as u32);
-            } else {
-                polygon.normals_i.push(norm_i as u32 - 1);
-            }
-        }
+        polygon.index_vertices.push(index_vertex);
     }
     // TODO: Sanity check
     Ok(polygon)
 }
 
-fn parse_face_values(split_face: &mut Split<char>) -> Result<[Option<i32>; 3], Box<Error>> {
-    let mut result = [None; 3];
-    for (i, num) in split_face.enumerate() {
-        if i >= 3 {
-            break;
-        }
-        if num == "" {
-            result[i] = None;
-        } else {
-            result[i] = Some(try!(num.parse()));
-        }
-    }
-    Ok(result)
-}
-
 pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
-    let mut state = ParseState::new();
     let mut obj = Object::new();
+    let mut state = ParseState::new();
     let obj_dir = try!(obj_path.parent().ok_or("Couldn't get object directory"));
     let obj_file = try!(File::open(obj_path));
     let obj_reader = BufReader::new(obj_file);
@@ -191,9 +201,12 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                     obj.polygons.push(polygon);
                 },
                 "g" | "o" => {
+                    if let Some(mut range) = state.current_group {
+                        range.end_i = obj.polygons.len();
+                        obj.group_ranges.push(range);
+                    };
                     let group_name = try!(parse_string(&mut split_line));
-                    obj.groups.push(Group { name: group_name.clone() });
-                    state.current_group = Some(group_name);
+                    state.current_group = Some(Range::new(&group_name, obj.polygons.len()));
                 },
                 "mtllib" => state.mat_libs.push(obj_dir.join(try!(parse_string(&mut split_line)))),
                 "s" => {
@@ -204,7 +217,14 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                         state.current_smoothing_group = Some(try!(val.parse()));
                     }
                 }
-                "usemtl" => state.current_material = Some(try!(parse_string(&mut split_line))),
+                "usemtl" => {
+                    if let Some(mut range) = state.current_material {
+                        range.end_i = obj.polygons.len();
+                        obj.material_ranges.push(range);
+                    };
+                    let material_name = try!(parse_string(&mut split_line));
+                    state.current_material = Some(Range::new(&material_name, obj.polygons.len()));
+                },
                 "v" => obj.positions.push(try!(parse_float3(&mut split_line))),
                 "vn" => obj.normals.push(try!(parse_float3(&mut split_line))),
                 "vt" => obj.tex_coords.push(try!(parse_float2(&mut split_line))),
@@ -217,6 +237,14 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
             None => {}
         }
     }
+    if let Some(mut range) = state.current_group {
+        range.end_i = obj.polygons.len();
+        obj.group_ranges.push(range);
+    };
+    if let Some(mut range) = state.current_material {
+        range.end_i = obj.polygons.len();
+        obj.material_ranges.push(range);
+    };
     for matlib in state.mat_libs {
         obj.materials = try!(load_matlib(&obj_dir.join(matlib)));
     }

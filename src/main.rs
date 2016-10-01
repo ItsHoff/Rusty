@@ -32,12 +32,9 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    //let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"));
+    let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"));
     //let scene = common::load_scene(&root_path.join("scenes/cornell-box/CornellBox-Original.obj"));
-    let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"));
-    let vertex_buffer = VertexBuffer::new(&display, &scene.vertices).expect("Failed to unwrap vertex buffer.");
-    let index_buffer = IndexBuffer::new(&display, PrimitiveType::TrianglesList,
-                                        &scene.indices).expect("Failed to unwrap index buffer.");
+    //let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"));
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -54,6 +51,10 @@ fn main() {
     };
 
     let mut camera_pos = cgmath::Point3::new(-2.0, 0.0, 0.0);
+    for mesh in &scene.meshes {
+        let color = mesh.material.Kd.expect("No diffuse color!");
+        println!("{:?}", color);
+    }
 
     loop {
 
@@ -65,20 +66,27 @@ fn main() {
         let camera = cgmath::Matrix4::look_at(camera_pos,
                                               cgmath::Point3::new(1.0, 0.0, 0.0),
                                               cgmath::vec3(0.0, 1.0, 0.0f32));
-        let uniforms = uniform! {
-            matrix: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0, 1.0f32]
-            ],
-            camera: array4x4(camera),
-            perspective: array4x4(perspective),
-            u_light: [-1.0, 0.4, 0.9f32]
-        };
 
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-        target.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &params).unwrap();
+        for mesh in &scene.meshes {
+            let mesh_uniform = uniform! {
+                matrix: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0f32]
+                ],
+                camera: array4x4(camera),
+                perspective: array4x4(perspective),
+                u_light: [-1.0, 0.4, 0.9f32],
+                u_color: mesh.material.Kd.expect("No diffuse color!")
+            };
+            let vertex_buffer = VertexBuffer::new(&display, &mesh.vertices)
+                .expect("Failed to unwrap vertex buffer.");
+            let index_buffer = IndexBuffer::new(&display, PrimitiveType::TrianglesList, &mesh.indices)
+                .expect("Failed to unwrap index buffer.");
+            target.draw(&vertex_buffer, &index_buffer, &program, &mesh_uniform, &params).unwrap();
+        }
         target.finish().unwrap();
 
         for event in display.poll_events() {
