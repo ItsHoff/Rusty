@@ -35,8 +35,9 @@ pub fn load_scene(scene_path: &Path) -> Scene {
     let mut scene = Scene { meshes: vec!() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
     for range in obj.material_ranges {
-        // TODO: find the proper material
-        let mut mesh = Mesh::new(obj.materials[1].clone());
+        let material = obj.materials.get(&range.name)
+            .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
+        let mut mesh = Mesh::new(material.clone());
         let mut vertex_map = HashMap::new();
         for polygon in obj.polygons[range.start_i..range.end_i].iter() {
             let planar_normal = [0.0; 3];

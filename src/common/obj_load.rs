@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
@@ -97,7 +98,7 @@ pub struct Object {
     pub polygons: Vec<Polygon>,
     pub group_ranges: Vec<Range>,
     pub material_ranges: Vec<Range>,
-    pub materials: Vec<Material>
+    pub materials: HashMap<String, Material>
 }
 
 impl Object {
@@ -251,8 +252,9 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
     Ok(obj)
 }
 
-pub fn load_matlib(matlib_path: &Path) ->  Result<Vec<Material>, Box<Error>> {
-    let mut materials = Vec::<Material>::new();
+pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<Error>> {
+    let mut materials = HashMap::new();
+    let mut current_material: Option<Material> = None;
     let matlib_dir = try!(matlib_path.parent().ok_or("Couldn't get material directory"));
     let matlib_file = try!(File::open(matlib_path));
     let matlib_reader = BufReader::new(matlib_file);
@@ -261,77 +263,100 @@ pub fn load_matlib(matlib_path: &Path) ->  Result<Vec<Material>, Box<Error>> {
         let mut split_line = line.split_whitespace();
         match split_line.next() {
             Some(key) => match key {
-                "newmtl" => materials.push(Material::new(&try!(parse_string(&mut split_line)))),
+                "newmtl" => {
+                    if let Some(material) = current_material {
+                        materials.insert(material.name.clone(), material);
+                    }
+                    current_material = Some(Material::new(&try!(parse_string(&mut split_line))));
+                }
                 "Ka" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Ka = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Kd" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Kd = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Ks" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Ks = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Tf" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Tf = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Ke" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Ke = Some(try!(parse_float3(&mut split_line)));
                 },
                 "illum" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.illum = Some(try!(parse_int(&mut split_line)));
                 },
                 "d" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.d = Some(try!(parse_float(&mut split_line)));
                 },
                 "Ns" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Ns = Some(try!(parse_float(&mut split_line)));
                 },
                 "sharpness" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.sharpness = Some(try!(parse_float(&mut split_line)));
                 },
                 "Ni" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.Ni = Some(try!(parse_float(&mut split_line)));
                 },
                 "map_Ka" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.map_Ka = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_Kd" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.map_Kd = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_Ks" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.map_Ks = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_Ns" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.map_Ns = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_d" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.map_d = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "disp" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.disp = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "decal" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.decal = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "bump" | "map_Bump" | "map_bump" => {
-                    let material = try!(materials.last_mut().ok_or("Found material properties before newmtl!"));
+                    let material = try!(current_material.as_mut()
+                                        .ok_or("Found material properties before newmtl!"));
                     material.bump = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 _ => {
@@ -343,6 +368,8 @@ pub fn load_matlib(matlib_path: &Path) ->  Result<Vec<Material>, Box<Error>> {
             None => {}
         }
     }
+    let material = try!(current_material.ok_or("Didn't find any material definitions!"));
+    materials.insert(material.name.clone(), material);
     Ok(materials)
 }
 
