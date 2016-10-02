@@ -8,6 +8,7 @@ use glium::{IndexBuffer, VertexBuffer, Program, Surface, DrawParameters};
 use glium::backend::Facade;
 use glium::index::PrimitiveType;
 
+use cgmath::prelude::*;
 use cgmath::Matrix4;
 use cgmath::conv::*;
 
@@ -21,18 +22,25 @@ pub struct Vertex {
 
 implement_vertex!(Vertex, position, normal);
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
     pub material: Material,
+    pub local_to_world: Matrix4<f32>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     pub index_buffer: Option<IndexBuffer<u32>>
 }
 
 impl Mesh {
     fn new(material: Material) -> Mesh {
-        Mesh { material: material, ..Default::default() }
+        Mesh { vertices: Vec::new(),
+               indices: Vec::new(),
+               material: material,
+               local_to_world: Matrix4::identity(),
+               vertex_buffer: None,
+               index_buffer: None
+        }
     }
 
     fn create_buffers<F: Facade>(&mut self, facade: &F) {
@@ -45,12 +53,7 @@ impl Mesh {
     pub fn draw<S: Surface>(&self, target: &mut S, program: &Program, draw_parameters: &DrawParameters,
                             world_to_clip: Matrix4<f32>) {
         let uniforms = uniform! {
-            matrix: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0, 1.0f32]
-            ],
+            local_to_world: array4x4(self.local_to_world),
             world_to_clip: array4x4(world_to_clip),
             u_light: [-1.0, 0.4, 0.9f32],
             u_color: self.material.Kd.expect("No diffuse color!")

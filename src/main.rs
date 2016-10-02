@@ -30,14 +30,15 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"), &display);
+    //let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"), &display);
     //let scene = common::load_scene(&root_path.join("scenes/cornell-box/CornellBox-Original.obj"), &display);
-    //let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
+    let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
     let fragment_shader_src = read_shader_from_file(&src_path.join("fragment.glsl"));
-    let program = glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None).unwrap();
+    let program = glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None)
+        .expect("Failed to create program!");
 
     let params = glium::DrawParameters {
         depth: glium::Depth {
@@ -49,10 +50,6 @@ fn main() {
     };
 
     let mut camera_pos = cgmath::Point3::new(-2.0, 0.0, 0.0);
-    for mesh in &scene.meshes {
-        let color = mesh.material.Kd.expect("No diffuse color!");
-        println!("{:?}", color);
-    }
 
     loop {
         let mut target = display.draw();

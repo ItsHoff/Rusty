@@ -10,9 +10,6 @@ use std::vec::Vec;
 #[derive(Debug, Default)]
 pub struct Polygon {
     pub index_vertices: Vec<[usize; 3]>,
-    //pub positions_i: Vec<usize>,
-    //pub normals_i: Vec<usize>,
-    //pub tex_coords_i: Vec<usize>,
     pub group: Option<String>,
     pub smoothing_group: Option<u32>,
     pub material: Option<String>,
