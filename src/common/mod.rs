@@ -4,6 +4,13 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
+use glium::{IndexBuffer, VertexBuffer, Program, Surface, DrawParameters};
+use glium::backend::Facade;
+use glium::index::PrimitiveType;
+
+use cgmath::Matrix4;
+use cgmath::conv::*;
+
 use self::obj_load::Material;
 
 #[derive(Copy, Clone, Debug)]
@@ -18,12 +25,39 @@ implement_vertex!(Vertex, position, normal);
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
-    pub material: Material
+    pub material: Material,
+    pub vertex_buffer: Option<VertexBuffer<Vertex>>,
+    pub index_buffer: Option<IndexBuffer<u32>>
 }
 
 impl Mesh {
     fn new(material: Material) -> Mesh {
         Mesh { material: material, ..Default::default() }
+    }
+
+    fn create_buffers<F: Facade>(&mut self, facade: &F) {
+        self.vertex_buffer = Some(VertexBuffer::new(facade, &self.vertices)
+                                  .expect("Failed to create vertex buffer!"));
+        self.index_buffer = Some(IndexBuffer::new(facade, PrimitiveType::TrianglesList, &self.indices)
+                                 .expect("Failed to create index buffer!"));
+    }
+
+    pub fn draw<S: Surface>(&self, target: &mut S, program: &Program, draw_parameters: &DrawParameters,
+                            world_to_clip: Matrix4<f32>) {
+        let uniforms = uniform! {
+            matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0f32]
+            ],
+            world_to_clip: array4x4(world_to_clip),
+            u_light: [-1.0, 0.4, 0.9f32],
+            u_color: self.material.Kd.expect("No diffuse color!")
+        };
+        target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer!"),
+                    self.index_buffer.as_ref().expect("No index buffer!"),
+                    &program, &uniforms, &draw_parameters).unwrap();
     }
 }
 
@@ -31,7 +65,7 @@ pub struct Scene {
     pub meshes: Vec<Mesh>
 }
 
-pub fn load_scene(scene_path: &Path) -> Scene {
+pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     let mut scene = Scene { meshes: vec!() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
     for range in obj.material_ranges {
@@ -60,6 +94,7 @@ pub fn load_scene(scene_path: &Path) -> Scene {
                 }
             }
         }
+        mesh.create_buffers(facade);
         scene.meshes.push(mesh);
     }
     scene
