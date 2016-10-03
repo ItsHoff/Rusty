@@ -12,8 +12,6 @@ use cgmath::prelude::*;
 use cgmath::Matrix4;
 use cgmath::conv::*;
 
-use self::obj_load::Material;
-
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pub position: [f32; 3],
@@ -21,6 +19,17 @@ pub struct Vertex {
 }
 
 implement_vertex!(Vertex, position, normal);
+
+#[derive(Debug)]
+pub struct Material {
+    pub diffuse: Option<[f32; 3]>
+}
+
+impl Material {
+    fn new(obj_mat: obj_load::Material) -> Material {
+        Material { diffuse: obj_mat.Kd }
+    }
+}
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -33,10 +42,10 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    fn new(material: Material) -> Mesh {
+    fn new(obj_mat: obj_load::Material) -> Mesh {
         Mesh { vertices: Vec::new(),
                indices: Vec::new(),
-               material: material,
+               material: Material::new(obj_mat),
                local_to_world: Matrix4::identity(),
                vertex_buffer: None,
                index_buffer: None
@@ -56,7 +65,7 @@ impl Mesh {
             local_to_world: array4x4(self.local_to_world),
             world_to_clip: array4x4(world_to_clip),
             u_light: [-1.0, 0.4, 0.9f32],
-            u_color: self.material.Kd.expect("No diffuse color!")
+            u_color: self.material.diffuse.expect("No diffuse color!")
         };
         target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer!"),
                     self.index_buffer.as_ref().expect("No index buffer!"),
@@ -72,9 +81,9 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     let mut scene = Scene { meshes: vec!() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
     for range in obj.material_ranges {
-        let material = obj.materials.get(&range.name)
+        let obj_mat = obj.materials.get(&range.name)
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
-        let mut mesh = Mesh::new(material.clone());
+        let mut mesh = Mesh::new(obj_mat.clone());
         let mut vertex_map = HashMap::new();
         for polygon in obj.polygons[range.start_i..range.end_i].iter() {
             let planar_normal = [0.0; 3];
