@@ -168,8 +168,8 @@ fn parse_face(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState
                 if num < 0 {
                     match i {
                         0 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
-                        1 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
-                        2 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
+                        1 => index_vertex[i] = (obj.tex_coords.len() as isize + num) as usize,
+                        2 => index_vertex[i] = (obj.normals.len() as isize + num) as usize,
                         _ => unreachable!()
                     }
                 } else {

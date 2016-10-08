@@ -6,3 +6,4 @@ authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 [dependencies]
 cgmath = "*"
 glium = "*"
+image = "*"

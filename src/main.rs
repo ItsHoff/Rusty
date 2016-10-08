@@ -30,9 +30,9 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    let scene = common::load_scene(&root_path.join("scenes/cornell/cornell.obj"), &display);
+    //let scene = common::load_scene(&root_path.join("scenes/cornell/cornell_chesterfield.obj"), &display);
     //let scene = common::load_scene(&root_path.join("scenes/cornell-box/CornellBox-Original.obj"), &display);
-    //let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
+    let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -49,14 +49,14 @@ fn main() {
         .. Default::default()
     };
 
-    let mut camera_pos = cgmath::Point3::new(-2.0, 0.0, 0.0);
+    let mut camera_pos = cgmath::Point3::new(0.0, 0.0, 80.0);
 
     loop {
         let mut target = display.draw();
 
         let (width, height) = target.get_dimensions();
         let perspective = cgmath::perspective(cgmath::Rad(std::f32::consts::PI / 3.0),
-                                              width as f32 / height as f32, 0.01, 100.0f32);
+                                              width as f32 / height as f32, 0.01, 1000.0f32);
         let camera = cgmath::Matrix4::look_at(camera_pos,
                                               cgmath::Point3::new(1.0, 0.0, 0.0),
                                               cgmath::vec3(0.0, 1.0, 0.0f32));
@@ -71,7 +71,7 @@ fn main() {
             match event {
                 glium::glutin::Event::Closed => return,
                 glium::glutin::Event::KeyboardInput(_, _, _) => {
-                    camera_pos.x = camera_pos.x + 0.01;
+                    camera_pos.z -= 0.5;
                 }
                 _ => ()
             }

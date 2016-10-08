@@ -15,7 +15,6 @@ TODO
 - Lights
 
 ###GL Backend
-- Textures
 - Normal mapping
 - Blinn Phong
 - Shadows
