@@ -7,8 +7,12 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use glium::{DisplayBuild, Surface};
+use glium::glutin::Event;
+
+use cgmath::{Vector3, Point3};
 
 mod common;
+use common::Camera;
 
 fn get_project_root() -> PathBuf {
     let exe_dir = std::env::current_exe().unwrap();
@@ -30,9 +34,9 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    //let scene = common::load_scene(&root_path.join("scenes/cornell/cornell_chesterfield.obj"), &display);
+    let scene = common::load_scene(&root_path.join("scenes/cornell/cornell_chesterfield.obj"), &display);
     //let scene = common::load_scene(&root_path.join("scenes/cornell-box/CornellBox-Original.obj"), &display);
-    let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
+    //let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -49,30 +53,26 @@ fn main() {
         .. Default::default()
     };
 
-    let mut camera_pos = cgmath::Point3::new(0.0, 0.0, 80.0);
+    let mut camera = Camera::new(Point3::new(0.0, 0.0, -2.0), Vector3::new(0.0, 0.0, 1.0));
 
     loop {
         let mut target = display.draw();
 
         let (width, height) = target.get_dimensions();
-        let perspective = cgmath::perspective(cgmath::Rad(std::f32::consts::PI / 3.0),
+        let camera_to_clip = cgmath::perspective(cgmath::Rad(std::f32::consts::PI / 3.0),
                                               width as f32 / height as f32, 0.01, 1000.0f32);
-        let camera = cgmath::Matrix4::look_at(camera_pos,
-                                              cgmath::Point3::new(1.0, 0.0, 0.0),
-                                              cgmath::vec3(0.0, 1.0, 0.0f32));
+        let world_to_camera = camera.get_world_to_camera();
 
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
         for mesh in &scene.meshes {
-            mesh.draw(&mut target, &program, &params, perspective*camera);
+            mesh.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
         }
         target.finish().unwrap();
 
         for event in display.poll_events() {
+            camera.handle_event(&event);
             match event {
-                glium::glutin::Event::Closed => return,
-                glium::glutin::Event::KeyboardInput(_, _, _) => {
-                    camera_pos.z -= 0.5;
-                }
+                Event::Closed => return,
                 _ => ()
             }
         }
