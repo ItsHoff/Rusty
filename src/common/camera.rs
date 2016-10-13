@@ -1,5 +1,5 @@
 use cgmath::prelude::*;
-use cgmath::{Point3, Vector3, Matrix4, Matrix3, Euler, Rad};
+use cgmath::{Point3, Vector3, Matrix4, Matrix3, Rad};
 
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
@@ -58,10 +58,10 @@ impl Camera {
             }
 
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Up)) => {
-                self.dir = rotate(self.dir, -Vector3::unit_x()).normalize()
+                self.dir = rotate(self.dir, Vector3::unit_x()).normalize()
             }
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Down)) => {
-                self.dir = rotate(self.dir, Vector3::unit_x()).normalize()
+                self.dir = rotate(self.dir, -Vector3::unit_x()).normalize()
             }
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Left)) => {
                 self.dir = rotate(self.dir, Vector3::unit_y()).normalize()

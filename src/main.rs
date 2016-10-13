@@ -7,7 +7,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use glium::{DisplayBuild, Surface};
-use glium::glutin::Event;
+use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
 use cgmath::{Vector3, Point3};
 
@@ -34,9 +34,10 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    let scene = common::load_scene(&root_path.join("scenes/cornell/cornell_chesterfield.obj"), &display);
-    //let scene = common::load_scene(&root_path.join("scenes/cornell-box/CornellBox-Original.obj"), &display);
-    //let scene = common::load_scene(&root_path.join("scenes/nanosuit/nanosuit.obj"), &display);
+    let scenes = vec!("scenes/cornell/cornell_chesterfield.obj",
+                      "scenes/cornell-box/CornellBox-Original.obj",
+                      "scenes/nanosuit/nanosuit.obj");
+    let mut scene = common::load_scene(&root_path.join(scenes[0]), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -72,6 +73,12 @@ fn main() {
         for event in display.poll_events() {
             camera.handle_event(&event);
             match event {
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key1))
+                    => scene = common::load_scene(&root_path.join(scenes[0]), &display),
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key2))
+                    => scene = common::load_scene(&root_path.join(scenes[1]), &display),
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key3))
+                    => scene = common::load_scene(&root_path.join(scenes[2]), &display),
                 Event::Closed => return,
                 _ => ()
             }

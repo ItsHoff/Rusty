@@ -55,6 +55,7 @@ impl Material {
         let tex_reader = BufReader::new(File::open(tex_path).expect("Failed to open texture!"));
         let image = image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba();
         let image_dim = image.dimensions();
+        println!("texture {:?} loaded", tex_path);
         RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dim)
     }
 }
