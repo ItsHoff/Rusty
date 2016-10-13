@@ -34,10 +34,14 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
-    let scenes = vec!("scenes/cornell/cornell_chesterfield.obj",
+    let scenes = vec!("scenes/cornell/cornell.obj",
+                      "scenes/cornell/cornell_chesterfield.obj",
                       "scenes/cornell-box/CornellBox-Original.obj",
+                      "scenes/cornell-box/CornellBox-Glossy.obj",
+                      "scenes/cornell-box/CornellBox-Water.obj",
+                      "scenes/sibenik/sibenik.obj",
                       "scenes/nanosuit/nanosuit.obj");
-    let mut scene = common::load_scene(&root_path.join(scenes[1]), &display);
+    let mut scene = common::load_scene(&root_path.join(scenes[0]), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -79,6 +83,14 @@ fn main() {
                     => scene = common::load_scene(&root_path.join(scenes[1]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key3))
                     => scene = common::load_scene(&root_path.join(scenes[2]), &display),
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key4))
+                    => scene = common::load_scene(&root_path.join(scenes[3]), &display),
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key5))
+                    => scene = common::load_scene(&root_path.join(scenes[4]), &display),
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key6))
+                    => scene = common::load_scene(&root_path.join(scenes[5]), &display),
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key7))
+                    => scene = common::load_scene(&root_path.join(scenes[6]), &display),
                 Event::Closed => return,
                 _ => ()
             }

@@ -7,17 +7,14 @@ TODO
 ----
 
 ###General
-- Proper camera movement
-- Runtime scene loading
-- Support non-triangle models
-- Auto generate normals
-- Handle model scale
+- UI
+- Handle model scaling and positioning
 - Lights
 
-###GL Backend
+###OpenGL Renderer
 - Normal mapping
 - Blinn Phong
 - Shadows
 
-###Pathtrace Backend
+###Pathtrace Renderer
 - Everything
