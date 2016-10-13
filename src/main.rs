@@ -37,7 +37,7 @@ fn main() {
     let scenes = vec!("scenes/cornell/cornell_chesterfield.obj",
                       "scenes/cornell-box/CornellBox-Original.obj",
                       "scenes/nanosuit/nanosuit.obj");
-    let mut scene = common::load_scene(&root_path.join(scenes[0]), &display);
+    let mut scene = common::load_scene(&root_path.join(scenes[1]), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));

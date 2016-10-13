@@ -110,35 +110,54 @@ pub struct Scene {
 pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     let mut scene = Scene { meshes: vec!() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
-    for range in obj.material_ranges {
+
+    let calculate_normal = |polygon: &obj_load::Polygon| -> [f32; 3] {
+        let pos_i1 = polygon.index_vertices[0][0].expect("No vertex positions!");
+        let pos_i2 = polygon.index_vertices[1][0].expect("No vertex positions!");
+        let pos_i3 = polygon.index_vertices[2][0].expect("No vertex positions!");
+        let pos_1 = obj.positions[pos_i1];
+        let pos_2 = obj.positions[pos_i2];
+        let pos_3 = obj.positions[pos_i3];
+        let u = [pos_2[0] - pos_1[0],
+                 pos_2[1] - pos_1[1],
+                 pos_2[2] - pos_1[2]];
+        let v = [pos_3[0] - pos_1[0],
+                 pos_3[1] - pos_1[1],
+                 pos_3[2] - pos_1[2]];
+        [u[1]*v[2] - u[2]*v[1],
+         u[2]*v[0] - u[0]*v[2],
+         u[0]*v[1] - u[1]*v[0]]
+    };
+
+    for range in &obj.material_ranges {
         let obj_mat = obj.materials.get(&range.name)
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
         let mut mesh = Mesh::new(facade, obj_mat.clone());
         let mut vertex_map = HashMap::new();
-        for polygon in obj.polygons[range.start_i..range.end_i].iter() {
-            let default_normal = [0.0; 3];
+        for tri in &obj.polygons[range.start_i..range.end_i] {
             let default_tex_coords= [0.0; 2];
-            for index_vertex in &polygon.index_vertices {
+            for index_vertex in &tri.index_vertices {
                 match vertex_map.get(index_vertex) {
+                    // Vertex has already been added
                     Some(&i) => mesh.indices.push(i),
                     None => {
+                        // Add vertex to map
                         vertex_map.insert(index_vertex, mesh.vertices.len() as u32);
-                        let pos = obj.positions[index_vertex[0] - 1];
+                        // Panic if there is no positions
+                        let pos_i = index_vertex[0].expect("No vertex positions!");
+                        let pos = obj.positions[pos_i];
 
                         let tex_coords;
-                        let tex_coords_i = index_vertex[1];
-                        if tex_coords_i > 0 {
-                            tex_coords = obj.tex_coords[tex_coords_i - 1];
+                        if let Some(tex_coords_i) = index_vertex[1] {
+                            tex_coords = obj.tex_coords[tex_coords_i];
                         } else {
                             tex_coords = default_tex_coords;
                         }
-
                         let normal;
-                        let normal_i = index_vertex[2];
-                        if normal_i > 0 {
-                            normal = obj.normals[normal_i - 1];
+                        if let Some(normal_i) = index_vertex[2] {
+                            normal = obj.normals[normal_i];
                         } else {
-                            normal = default_normal;
+                            normal = calculate_normal(tri);
                         }
 
                         mesh.indices.push(mesh.vertices.len() as u32);
@@ -147,8 +166,10 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
                 }
             }
         }
-        mesh.create_buffers(facade);
-        scene.meshes.push(mesh);
+        if !mesh.vertices.is_empty() {
+            mesh.create_buffers(facade);
+            scene.meshes.push(mesh);
+        }
     }
     scene
 }

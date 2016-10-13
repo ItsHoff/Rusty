@@ -9,7 +9,7 @@ use std::vec::Vec;
 
 #[derive(Debug, Default)]
 pub struct Polygon {
-    pub index_vertices: Vec<[usize; 3]>,
+    pub index_vertices: Vec<[Option<usize>; 3]>,
     pub group: Option<String>,
     pub smoothing_group: Option<u32>,
     pub material: Option<String>,
@@ -34,6 +34,27 @@ impl Polygon {
                 }
             },
             ..Default::default()
+        }
+    }
+
+    pub fn to_triangles(self) -> Vec<Polygon> {
+        if self.index_vertices.len() <= 3 {
+            vec!(self)
+        } else {
+            let mut tris = Vec::new();
+            let tip = self.index_vertices[0];
+            let mut v1 = self.index_vertices[1];
+            for vertex in &self.index_vertices[2..] {
+                let tri = Polygon {
+                    index_vertices: vec!(tip, v1, *vertex),
+                    group: self.group.clone(),
+                    smoothing_group: self.smoothing_group,
+                    material: self.material.clone()
+                };
+                tris.push(tri);
+                v1 = *vertex;
+            }
+            tris
         }
     }
 }
@@ -155,25 +176,22 @@ fn parse_face(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState
               -> Result<Polygon, Box<Error>> {
     let mut polygon = Polygon::new(state);
     for item in split_line {
-        let mut index_vertex = [0usize; 3];
+        let mut index_vertex = [None; 3];
         for (i, num) in item.split('/').enumerate() {
             if i >= 3 {
                 break;
             }
-            if num == "" {
-                // Obj files indexing starts from 1
-                index_vertex[i] = 0;
-            } else {
+            if num != "" {
                 let num: isize = try!(num.parse());
                 if num < 0 {
                     match i {
-                        0 => index_vertex[i] = (obj.positions.len() as isize + num) as usize,
-                        1 => index_vertex[i] = (obj.tex_coords.len() as isize + num) as usize,
-                        2 => index_vertex[i] = (obj.normals.len() as isize + num) as usize,
+                        0 => index_vertex[i] = Some((obj.positions.len() as isize + num) as usize),
+                        1 => index_vertex[i] = Some((obj.tex_coords.len() as isize + num) as usize),
+                        2 => index_vertex[i] = Some((obj.normals.len() as isize + num) as usize),
                         _ => unreachable!()
                     }
                 } else {
-                    index_vertex[i] = num as usize;
+                    index_vertex[i] = Some((num - 1) as usize);
                 }
             }
         }
@@ -196,7 +214,7 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
             Some(key) => match key {
                 "f" => {
                     let polygon = try!(parse_face(&mut split_line, &obj, &state));
-                    obj.polygons.push(polygon);
+                    obj.polygons.append(&mut polygon.to_triangles());
                 },
                 "g" | "o" => {
                     if let Some(mut range) = state.current_group {
