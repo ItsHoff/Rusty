@@ -13,7 +13,7 @@ use std::vec::Vec;
 use glium::{IndexBuffer, VertexBuffer, Program, Surface, DrawParameters};
 use glium::backend::Facade;
 use glium::index::PrimitiveType;
-use glium::texture::{RawImage2d, Texture2d};
+use glium::texture::{RawImage2d, SrgbTexture2d};
 
 use cgmath::prelude::*;
 use cgmath::Matrix4;
@@ -32,7 +32,7 @@ implement_vertex!(Vertex, position, normal, tex_coords);
 pub struct Material {
     pub diffuse: Option<[f32; 3]>,
     pub has_diffuse: bool,
-    pub diffuse_texture: Texture2d
+    pub diffuse_texture: SrgbTexture2d
 }
 
 impl Material {
@@ -40,9 +40,9 @@ impl Material {
         let (diffuse_texture, has_diffuse)  = match obj_mat.map_Kd {
             Some(tex_path) => {
                 let tex_image = Material::load_texture(&tex_path);
-                (Texture2d::new(facade, tex_image).expect("Failed to create texture!"), true)
+                (SrgbTexture2d::new(facade, tex_image).expect("Failed to create texture!"), true)
             }
-            None => (Texture2d::empty(facade, 0, 0).expect("Failed to create empty texture!"), false)
+            None => (SrgbTexture2d::empty(facade, 0, 0).expect("Failed to create empty texture!"), false)
         };
         Material {
             diffuse: obj_mat.Kd,
@@ -55,7 +55,6 @@ impl Material {
         let tex_reader = BufReader::new(File::open(tex_path).expect("Failed to open texture!"));
         let image = image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba();
         let image_dim = image.dimensions();
-        println!("texture {:?} loaded", tex_path);
         RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dim)
     }
 }
@@ -96,7 +95,7 @@ impl Mesh {
             u_light: [-1.0, 0.4, 0.9f32],
             u_color: self.material.diffuse.expect("No diffuse color!"),
             u_has_diffuse: self.material.has_diffuse,
-            diffuse_texture: &self.material.diffuse_texture
+            tex_diffuse: &self.material.diffuse_texture
         };
         target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer!"),
                     self.index_buffer.as_ref().expect("No index buffer!"),
