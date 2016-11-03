@@ -1,3 +1,5 @@
+/// Simple module for loading wavefront object files
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -7,36 +9,41 @@ use std::path::{Path, PathBuf};
 use std::str::SplitWhitespace;
 use std::vec::Vec;
 
+/// Representation of loaded polygon
 #[derive(Debug, Default)]
 pub struct Polygon {
+    /// Indices of vertex attributes in attribute vectors
+    /// Ordered: pos, tex_coords, normal
     pub index_vertices: Vec<[Option<usize>; 3]>,
+    /// Name of polygons group
     pub group: Option<String>,
+    /// Number of polygons smoothing group
     pub smoothing_group: Option<u32>,
-    pub material: Option<String>,
+    /// Name of polygons material
+    pub material: Option<String>
 }
 
 impl Polygon {
     fn new(state: &ParseState) -> Polygon {
         Polygon {
             group: {
-                if let Some(ref range) = state.current_group {
-                    Some(range.name.clone())
-                } else {
-                    None
+                match state.current_group {
+                    Some(ref range) => Some(range.name.clone()),
+                    None => None
                 }
             },
             smoothing_group: state.current_smoothing_group.clone(),
             material: {
-                if let Some(ref range) = state.current_material {
-                    Some(range.name.clone())
-                } else {
-                    None
+                match state.current_material {
+                    Some(ref range) => Some(range.name.clone()),
+                    None => None
                 }
             },
             ..Default::default()
         }
     }
 
+    /// Convert polygon to triangles
     pub fn to_triangles(self) -> Vec<Polygon> {
         if self.index_vertices.len() <= 3 {
             vec!(self)
@@ -44,6 +51,7 @@ impl Polygon {
             let mut tris = Vec::new();
             let tip = self.index_vertices[0];
             let mut v1 = self.index_vertices[1];
+            // Go round the polygon and attach current two vertices to the central vertex
             for vertex in &self.index_vertices[2..] {
                 let tri = Polygon {
                     index_vertices: vec!(tip, v1, *vertex),
@@ -59,15 +67,19 @@ impl Polygon {
     }
 }
 
+/// Named range that represents ranges of certain properties
 #[derive(Clone, Debug)]
 pub struct Range {
     pub name: String,
-    /// [start_i, end_i)
+    /// Inclusive start [start_i, end_i)
     pub start_i: usize,
+    /// Exclusive end [start_i, end_i)
     pub end_i: usize
 }
 
 impl Range {
+    /// Create a new named range [start, start)
+    /// End should be set when whole range has been processed
     fn new(name: &str, start: usize) -> Range {
         Range { name: name.to_string(),
                 start_i: start,
@@ -76,6 +88,7 @@ impl Range {
     }
 }
 
+// TODO: Comment and rename
 #[derive(Debug, Default, Clone)]
 #[allow(non_snake_case)]
 pub struct Material {
@@ -108,14 +121,27 @@ impl Material {
     }
 }
 
+/// Struct containing the loaded object file properties
 #[derive(Default)]
 pub struct Object {
+    /// List of loaded vertex positions
+    /// Indexed by index_vertices in polygons
     pub positions: Vec<[f32; 3]>,
+    /// List of loaded vertex normals
+    /// Indexed by index_vertices in polygons
     pub normals: Vec<[f32; 3]>,
+    /// List of loaded vertex texture coordinates
+    /// Indexed by index_vertices in polygons
     pub tex_coords: Vec<[f32; 2]>,
+    /// List of loaded polygons
     pub polygons: Vec<Polygon>,
+    /// Ranges of loaded groups
+    /// Ranges index the polygons list
     pub group_ranges: Vec<Range>,
+    /// Ranges of loaded materials
+    /// Ranges index the polygons list
     pub material_ranges: Vec<Range>,
+    /// Map of loaded materials
     pub materials: HashMap<String, Material>
 }
 
@@ -125,11 +151,16 @@ impl Object {
     }
 }
 
+/// Internal representation of the parse state
 #[derive(Default)]
 struct ParseState {
+    /// Paths to the material libraries defined in the object file
     mat_libs: Vec<PathBuf>,
+    /// Group that is currently active
     current_group: Option<Range>,
+    /// Smoothing group that is currently active
     current_smoothing_group: Option<u32>,
+    /// Material that is currently active
     current_material: Option<Range>,
 }
 
@@ -139,16 +170,19 @@ impl ParseState {
     }
 }
 
+/// Parse a single integer from the split input line
 fn parse_int(split_line: &mut SplitWhitespace) -> Result<u32, Box<Error>> {
     let item = try!(split_line.next().ok_or("Expected value after key"));
     Ok(try!(item.parse()))
 }
 
+/// Parse a single float from the split input line
 fn parse_float(split_line: &mut SplitWhitespace) -> Result<f32, Box<Error>> {
     let item = try!(split_line.next().ok_or("Expected value after key"));
     Ok(try!(item.parse()))
 }
 
+/// Parse two floats from the split input line
 fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>> {
     let mut float2 = [0.0f32; 2];
     for i in 0..2 {
@@ -158,6 +192,7 @@ fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>
     Ok(float2)
 }
 
+/// Parse three floats from the split input line
 fn parse_float3(split_line: &mut SplitWhitespace) -> Result<[f32; 3], Box<Error>> {
     let mut float3 = [0.0f32; 3];
     for i in 0..3 {
@@ -167,12 +202,14 @@ fn parse_float3(split_line: &mut SplitWhitespace) -> Result<[f32; 3], Box<Error>
     Ok(float3)
 }
 
+/// Parse a string from the split input line
 fn parse_string(split_line: &mut SplitWhitespace) -> Result<String, Box<Error>> {
     let string = try!(split_line.next().ok_or("Couldnt not find string."));
     Ok(string.to_string())
 }
 
-fn parse_face(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState)
+/// Parse a polygon from the split input line
+fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState)
               -> Result<Polygon, Box<Error>> {
     let mut polygon = Polygon::new(state);
     for item in split_line {
@@ -201,6 +238,7 @@ fn parse_face(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState
     Ok(polygon)
 }
 
+/// Load an object found at the given path
 pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
     let mut obj = Object::new();
     let mut state = ParseState::new();
@@ -210,10 +248,13 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
     for line in obj_reader.lines() {
         let line = line.expect("Failed to unwrap line");
         let mut split_line = line.split_whitespace();
+        // Find the keyword of the line
         match split_line.next() {
             Some(key) => match key {
                 "f" => {
-                    let polygon = try!(parse_face(&mut split_line, &obj, &state));
+                    let polygon = try!(parse_polygon(&mut split_line, &obj, &state));
+                    // Auto convert to triangles
+                    // TODO: Make triangle conversion optional
                     obj.polygons.append(&mut polygon.to_triangles());
                 },
                 "g" | "o" => {
@@ -253,6 +294,7 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
             None => {}
         }
     }
+    // Close the open ranges
     if let Some(mut range) = state.current_group {
         range.end_i = obj.polygons.len();
         obj.group_ranges.push(range);
@@ -261,12 +303,14 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
         range.end_i = obj.polygons.len();
         obj.material_ranges.push(range);
     };
+    // Load materials
     for matlib in state.mat_libs {
         obj.materials = try!(load_matlib(&obj_dir.join(matlib)));
     }
     Ok(obj)
 }
 
+/// Load materials from the material library to a map
 pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<Error>> {
     let mut materials = HashMap::new();
     let mut current_material: Option<Material> = None;
@@ -276,6 +320,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
     for line in matlib_reader.lines() {
         let line = line.expect("Failed to unwrap line");
         let mut split_line = line.split_whitespace();
+        // Find the keyword of the line
         match split_line.next() {
             Some(key) => match key {
                 "newmtl" => {
@@ -388,6 +433,8 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
     Ok(materials)
 }
 
+/// Print an object
+// TODO: Improve or remove this
 #[allow(dead_code)]
 pub fn print_obj(object: &Object) {
     println!("Polygons");

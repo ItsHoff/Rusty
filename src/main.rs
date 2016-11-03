@@ -14,15 +14,18 @@ use cgmath::{Vector3, Point3};
 mod common;
 use common::Camera;
 
+/// Get the root directory of the project
 fn get_project_root() -> PathBuf {
     let exe_dir = std::env::current_exe().unwrap();
     let mut parent_dir = exe_dir.parent().unwrap();
+    // This fails if the executable is not in the project tree
     while !parent_dir.ends_with("rusty") {
         parent_dir = parent_dir.parent().unwrap();
     }
     parent_dir.to_path_buf()
 }
 
+/// Read a shader found at path
 fn read_shader_from_file(shader_path: &Path) -> String {
     let mut file = File::open(shader_path).unwrap();
     let mut shader_src = String::new();
@@ -34,6 +37,7 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
 
     let root_path = get_project_root();
+    // TODO: Enable use of arbitrary scene
     let scenes = vec!("scenes/cornell/cornell.obj",
                       "scenes/cornell/cornell_chesterfield.obj",
                       "scenes/cornell-box/CornellBox-Original.obj",
@@ -64,11 +68,13 @@ fn main() {
         let mut target = display.draw();
 
         let (width, height) = target.get_dimensions();
+        // TODO: Move this to camera
         let camera_to_clip = cgmath::perspective(cgmath::Rad(std::f32::consts::PI / 3.0),
                                               width as f32 / height as f32, 0.01, 1000.0f32);
         let world_to_camera = camera.get_world_to_camera();
 
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
+        // Draw meshes one at a time
         for mesh in &scene.meshes {
             mesh.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
         }

@@ -1,3 +1,5 @@
+/// Common functionality for all the rendering backends
+
 extern crate image;
 
 mod obj_load;
@@ -19,6 +21,7 @@ use cgmath::prelude::*;
 use cgmath::Matrix4;
 use cgmath::conv::*;
 
+/// Renderer representation of a vertex
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     pub position: [f32; 3],
@@ -28,6 +31,7 @@ pub struct Vertex {
 
 implement_vertex!(Vertex, position, normal, tex_coords);
 
+/// Renderer representation of a material
 #[derive(Debug)]
 pub struct Material {
     pub diffuse: Option<[f32; 3]>,
@@ -36,7 +40,9 @@ pub struct Material {
 }
 
 impl Material {
+    /// Create a new material based on a material loaded from the scene file
     fn new<F: Facade>(facade: &F, obj_mat: obj_load::Material) -> Material {
+        // Create diffuse texture and load it to the GPU
         let (diffuse_texture, has_diffuse)  = match obj_mat.map_Kd {
             Some(tex_path) => {
                 let tex_image = Material::load_texture(&tex_path);
@@ -51,6 +57,7 @@ impl Material {
         }
     }
 
+    /// Load a texture at the given path and return it as raw image
     fn load_texture(tex_path: &Path) -> RawImage2d<u8> {
         let tex_reader = BufReader::new(File::open(tex_path).expect("Failed to open texture!"));
         let image = image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba();
@@ -59,6 +66,7 @@ impl Material {
     }
 }
 
+/// Renderer representation of mesh with a common material
 #[derive(Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
@@ -80,6 +88,7 @@ impl Mesh {
         }
     }
 
+    /// Load the vertex and index buffers to the GPU
     fn create_buffers<F: Facade>(&mut self, facade: &F) {
         self.vertex_buffer = Some(VertexBuffer::new(facade, &self.vertices)
                                   .expect("Failed to create vertex buffer!"));
@@ -87,6 +96,7 @@ impl Mesh {
                                  .expect("Failed to create index buffer!"));
     }
 
+    /// Draw this mesh to the target
     pub fn draw<S: Surface>(&self, target: &mut S, program: &Program, draw_parameters: &DrawParameters,
                             world_to_clip: Matrix4<f32>) {
         let uniforms = uniform! {
@@ -103,14 +113,17 @@ impl Mesh {
     }
 }
 
+/// Renderer representation of a scene
 pub struct Scene {
     pub meshes: Vec<Mesh>
 }
 
+/// Load a scene from the given path bind resources to given facade
 pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     let mut scene = Scene { meshes: vec!() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
 
+    // Closure to calculate planar normal for a polygon
     let calculate_normal = |polygon: &obj_load::Polygon| -> [f32; 3] {
         let pos_i1 = polygon.index_vertices[0][0].expect("No vertex positions!");
         let pos_i2 = polygon.index_vertices[1][0].expect("No vertex positions!");
@@ -129,6 +142,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
          u[0]*v[1] - u[1]*v[0]]
     };
 
+    // Group the polygons by materials for easy rendering
     for range in &obj.material_ranges {
         let obj_mat = obj.materials.get(&range.name)
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
@@ -147,18 +161,14 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
                         let pos_i = index_vertex[0].expect("No vertex positions!");
                         let pos = obj.positions[pos_i];
 
-                        let tex_coords;
-                        if let Some(tex_coords_i) = index_vertex[1] {
-                            tex_coords = obj.tex_coords[tex_coords_i];
-                        } else {
-                            tex_coords = default_tex_coords;
-                        }
-                        let normal;
-                        if let Some(normal_i) = index_vertex[2] {
-                            normal = obj.normals[normal_i];
-                        } else {
-                            normal = calculate_normal(tri);
-                        }
+                        let tex_coords = match index_vertex[1] {
+                            Some(tex_coords_i) => obj.tex_coords[tex_coords_i],
+                            None => default_tex_coords
+                        };
+                        let normal = match index_vertex[2] {
+                            Some(normal_i) => obj.normals[normal_i],
+                            None => calculate_normal(tri)
+                        };
 
                         mesh.indices.push(mesh.vertices.len() as u32);
                         mesh.vertices.push(Vertex { position: pos, normal: normal, tex_coords: tex_coords });
