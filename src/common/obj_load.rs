@@ -88,29 +88,48 @@ impl Range {
     }
 }
 
-// TODO: Comment and rename
+/// Representation of a loaded material
 #[derive(Debug, Default, Clone)]
 #[allow(non_snake_case)]
 pub struct Material {
+    /// Name of the material
     pub name: String,
-    pub Ka: Option<[f32; 3]>,
-    pub Kd: Option<[f32; 3]>,
-    pub Ks: Option<[f32; 3]>,
-    pub Tf: Option<[f32; 3]>,
-    pub Ke: Option<[f32; 3]>,
-    pub illum: Option<u32>,
-    pub d: Option<f32>,
-    pub Ns: Option<f32>,
+    /// Ambient color
+    pub c_ambient: Option<[f32; 3]>,
+    /// Diffuse color
+    pub c_diffuse: Option<[f32; 3]>,
+    /// Specular color
+    pub c_specular: Option<[f32; 3]>,
+    /// Translucent color
+    pub c_translucency: Option<[f32; 3]>,
+    /// Emissive color
+    pub c_emissive: Option<[f32; 3]>,
+    /// Illumination model
+    pub illumination_model: Option<u32>,
+    /// Opacity
+    pub opacity: Option<f32>,
+    /// Specular shininess
+    pub shininess: Option<f32>,
+    /// Sharpness of reflections
     pub sharpness: Option<f32>,
-    pub Ni: Option<f32>,
-    pub map_Ka: Option<PathBuf>,
-    pub map_Kd: Option<PathBuf>,
-    pub map_Ks: Option<PathBuf>,
-    pub map_Ns: Option<PathBuf>,
-    pub map_d: Option<PathBuf>,
-    pub disp: Option<PathBuf>,
-    pub decal: Option<PathBuf>,
-    pub bump: Option<PathBuf>,
+    /// Index of refraction
+    pub refraction_i: Option<f32>,
+    /// Ambient color texture
+    pub tex_ambient: Option<PathBuf>,
+    /// Diffuse color texture
+    pub tex_diffuse: Option<PathBuf>,
+    /// Specular color texture
+    pub tex_specular: Option<PathBuf>,
+    /// Specular shininess texture
+    pub tex_shininess: Option<PathBuf>,
+    /// Opacity texture
+    pub tex_opacity: Option<PathBuf>,
+    /// Displacement texture
+    pub tex_disp: Option<PathBuf>,
+    /// Decal texture
+    pub tex_decal: Option<PathBuf>,
+    /// Bump texture
+    pub tex_bump: Option<PathBuf>,
 }
 
 impl Material {
@@ -332,42 +351,42 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                 "Ka" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Ka = Some(try!(parse_float3(&mut split_line)));
+                    material.c_ambient = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Kd" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Kd = Some(try!(parse_float3(&mut split_line)));
+                    material.c_diffuse = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Ks" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Ks = Some(try!(parse_float3(&mut split_line)));
+                    material.c_specular = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Tf" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Tf = Some(try!(parse_float3(&mut split_line)));
+                    material.c_translucency = Some(try!(parse_float3(&mut split_line)));
                 },
                 "Ke" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Ke = Some(try!(parse_float3(&mut split_line)));
+                    material.c_emissive = Some(try!(parse_float3(&mut split_line)));
                 },
                 "illum" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.illum = Some(try!(parse_int(&mut split_line)));
+                    material.illumination_model = Some(try!(parse_int(&mut split_line)));
                 },
                 "d" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.d = Some(try!(parse_float(&mut split_line)));
+                    material.opacity = Some(try!(parse_float(&mut split_line)));
                 },
                 "Ns" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Ns = Some(try!(parse_float(&mut split_line)));
+                    material.shininess = Some(try!(parse_float(&mut split_line)));
                 },
                 "sharpness" => {
                     let material = try!(current_material.as_mut()
@@ -377,47 +396,47 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                 "Ni" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.Ni = Some(try!(parse_float(&mut split_line)));
+                    material.refraction_i = Some(try!(parse_float(&mut split_line)));
                 },
                 "map_Ka" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.map_Ka = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_ambient = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_Kd" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.map_Kd = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_diffuse = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_Ks" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.map_Ks = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_specular = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_Ns" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.map_Ns = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_shininess = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "map_d" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.map_d = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_opacity = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "disp" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.disp = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_disp = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "decal" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.decal = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_decal = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 "bump" | "map_Bump" | "map_bump" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.bump = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_bump = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 _ => {
                     if !key.starts_with("#") {

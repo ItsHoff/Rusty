@@ -43,7 +43,7 @@ impl Material {
     /// Create a new material based on a material loaded from the scene file
     fn new<F: Facade>(facade: &F, obj_mat: obj_load::Material) -> Material {
         // Create diffuse texture and load it to the GPU
-        let (diffuse_texture, has_diffuse)  = match obj_mat.map_Kd {
+        let (diffuse_texture, has_diffuse)  = match obj_mat.tex_diffuse {
             Some(tex_path) => {
                 let tex_image = Material::load_texture(&tex_path);
                 (SrgbTexture2d::new(facade, tex_image).expect("Failed to create texture!"), true)
@@ -51,7 +51,7 @@ impl Material {
             None => (SrgbTexture2d::empty(facade, 0, 0).expect("Failed to create empty texture!"), false)
         };
         Material {
-            diffuse: obj_mat.Kd,
+            diffuse: obj_mat.c_diffuse,
             has_diffuse: has_diffuse,
             diffuse_texture: diffuse_texture
         }
