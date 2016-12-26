@@ -84,20 +84,13 @@ fn main() {
         for event in display.poll_events() {
             camera.handle_event(&event);
             match event {
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key1))
-                    => scene = scene::load_scene(&root_path.join(scenes[0]), &display),
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key2))
-                    => scene = scene::load_scene(&root_path.join(scenes[1]), &display),
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key3))
-                    => scene = scene::load_scene(&root_path.join(scenes[2]), &display),
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key4))
-                    => scene = scene::load_scene(&root_path.join(scenes[3]), &display),
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key5))
-                    => scene = scene::load_scene(&root_path.join(scenes[4]), &display),
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key6))
-                    => scene = scene::load_scene(&root_path.join(scenes[5]), &display),
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key7))
-                    => scene = scene::load_scene(&root_path.join(scenes[6]), &display),
+                // Not sure how portable this is
+                Event::KeyboardInput(ElementState::Pressed, code @ 2 ... 11, _) => {
+                    let i = code as usize - 2;
+                    if i < scenes.len() {
+                        scene = scene::load_scene(&root_path.join(scenes[i]), &display);
+                    }
+                }
                 Event::Closed => return,
                 _ => ()
             }
