@@ -68,17 +68,24 @@ impl Camera {
                 self.pos = translate(self.pos, Vector3::unit_y())
             }
 
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Up)) => {
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Up)) |
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::O)) => {
                 self.dir = rotate(self.dir, Vector3::unit_x()).normalize()
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Down)) => {
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Down)) |
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::L)) => {
                 self.dir = rotate(self.dir, -Vector3::unit_x()).normalize()
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Left)) => {
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Left)) |
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::K)) => {
                 self.dir = rotate(self.dir, Vector3::unit_y()).normalize()
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Right)) => {
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Right)) |
+            Event::KeyboardInput(ElementState::Pressed, 39, _) => {  // Ö
                 self.dir = rotate(self.dir, -Vector3::unit_y()).normalize()
+            }
+            Event::KeyboardInput(ElementState::Pressed, code, _) => {
+                println!("{:?}", code)
             }
             _ => ()
         }
