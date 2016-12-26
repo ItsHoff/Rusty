@@ -11,8 +11,9 @@ use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
 use cgmath::{Vector3, Point3};
 
-mod common;
-use common::Camera;
+mod scene;
+mod camera;
+use camera::Camera;
 
 /// Get the root directory of the project
 fn get_project_root() -> PathBuf {
@@ -45,7 +46,7 @@ fn main() {
                       "scenes/cornell-box/CornellBox-Water.obj",
                       "scenes/sibenik/sibenik.obj",
                       "scenes/nanosuit/nanosuit.obj");
-    let mut scene = common::load_scene(&root_path.join(scenes[0]), &display);
+    let mut scene = scene::load_scene(&root_path.join(scenes[0]), &display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -84,19 +85,19 @@ fn main() {
             camera.handle_event(&event);
             match event {
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key1))
-                    => scene = common::load_scene(&root_path.join(scenes[0]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[0]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key2))
-                    => scene = common::load_scene(&root_path.join(scenes[1]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[1]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key3))
-                    => scene = common::load_scene(&root_path.join(scenes[2]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[2]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key4))
-                    => scene = common::load_scene(&root_path.join(scenes[3]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[3]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key5))
-                    => scene = common::load_scene(&root_path.join(scenes[4]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[4]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key6))
-                    => scene = common::load_scene(&root_path.join(scenes[5]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[5]), &display),
                 Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Key7))
-                    => scene = common::load_scene(&root_path.join(scenes[6]), &display),
+                    => scene = scene::load_scene(&root_path.join(scenes[6]), &display),
                 Event::Closed => return,
                 _ => ()
             }

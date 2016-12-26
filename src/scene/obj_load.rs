@@ -378,7 +378,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                                         .ok_or("Found material properties before newmtl!"));
                     material.illumination_model = Some(try!(parse_int(&mut split_line)));
                 },
-                "d" => {
+                "d" | "Tr" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
                     material.opacity = Some(try!(parse_float(&mut split_line)));
@@ -418,7 +418,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                                         .ok_or("Found material properties before newmtl!"));
                     material.tex_shininess = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
-                "map_d" => {
+                "map_d" | "map_Tr" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
                     material.tex_opacity = Some(matlib_dir.join(try!(parse_string(&mut split_line))));

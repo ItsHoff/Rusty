@@ -1,10 +1,6 @@
-/// Common functionality for all the rendering backends
-
 extern crate image;
 
 mod obj_load;
-pub mod camera;
-pub use self::camera::Camera;
 
 use std::collections::HashMap;
 use std::fs::File;
