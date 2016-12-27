@@ -36,10 +36,10 @@ pub struct Material {
 
 impl Material {
     /// Create a new material based on a material loaded from the scene file
-    fn new(obj_mat: obj_load::Material) -> Material {
+    fn new(obj_mat: &obj_load::Material) -> Material {
         // Create diffuse texture and load it to the GPU
         let diffuse_image = match obj_mat.tex_diffuse {
-            Some(tex_path) => Some(Material::load_image(&tex_path)),
+            Some(ref tex_path) => Some(Material::load_image(tex_path)),
             None => None
         };
         Material {
@@ -78,7 +78,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    fn new(obj_mat: obj_load::Material) -> Mesh {
+    fn new(obj_mat: &obj_load::Material) -> Mesh {
         Mesh { vertices: Vec::new(),
                indices: Vec::new(),
                material: Material::new(obj_mat),
@@ -178,7 +178,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     for range in &obj.material_ranges {
         let obj_mat = obj.materials.get(&range.name)
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
-        let mut mesh = Mesh::new(obj_mat.clone());
+        let mut mesh = Mesh::new(&obj_mat);
         let mut vertex_map = HashMap::new();
         for tri in &obj.polygons[range.start_i..range.end_i] {
             let default_tex_coords= [0.0; 2];
