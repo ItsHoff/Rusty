@@ -8,7 +8,6 @@ TODO
 
 ###General
 - UI
-- Handle model scaling and positioning
 - Lights
 
 ###OpenGL Renderer
