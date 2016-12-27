@@ -7,7 +7,7 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use glium::{DisplayBuild, Surface};
-use glium::glutin::{Event, ElementState, VirtualKeyCode};
+use glium::glutin::{Event, ElementState};
 
 use cgmath::{Vector3, Point3};
 
@@ -44,8 +44,8 @@ fn main() {
                       "scenes/cornell-box/CornellBox-Original.obj",
                       "scenes/cornell-box/CornellBox-Glossy.obj",
                       "scenes/cornell-box/CornellBox-Water.obj",
-                      "scenes/sibenik/sibenik.obj",
-                      "scenes/nanosuit/nanosuit.obj");
+                      "scenes/nanosuit/nanosuit.obj",
+                      "scenes/sibenik/sibenik.obj");
     let mut scene = scene::load_scene(&root_path.join(scenes[0]), &display);
 
     let src_path = root_path.join("src");
@@ -69,9 +69,7 @@ fn main() {
         let mut target = display.draw();
 
         let (width, height) = target.get_dimensions();
-        // TODO: Move this to camera
-        let camera_to_clip = cgmath::perspective(cgmath::Rad(std::f32::consts::PI / 3.0),
-                                              width as f32 / height as f32, 0.01, 1000.0f32);
+        let camera_to_clip = camera.get_camera_to_clip(width, height);
         let world_to_camera = camera.get_world_to_camera();
 
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
