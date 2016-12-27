@@ -28,42 +28,46 @@ pub struct Vertex {
 implement_vertex!(Vertex, position, normal, tex_coords);
 
 /// Renderer representation of a material
-#[derive(Debug)]
 pub struct Material {
-    pub diffuse: Option<[f32; 3]>,
-    pub has_diffuse: bool,
-    pub diffuse_texture: SrgbTexture2d
+    pub diffuse: [f32; 3],
+    pub diffuse_image: Option<image::RgbaImage>,
+    pub diffuse_texture: Option<SrgbTexture2d>
 }
 
 impl Material {
     /// Create a new material based on a material loaded from the scene file
-    fn new<F: Facade>(facade: &F, obj_mat: obj_load::Material) -> Material {
+    fn new(obj_mat: obj_load::Material) -> Material {
         // Create diffuse texture and load it to the GPU
-        let (diffuse_texture, has_diffuse)  = match obj_mat.tex_diffuse {
-            Some(tex_path) => {
-                let tex_image = Material::load_texture(&tex_path);
-                (SrgbTexture2d::new(facade, tex_image).expect("Failed to create texture!"), true)
-            }
-            None => (SrgbTexture2d::empty(facade, 0, 0).expect("Failed to create empty texture!"), false)
+        let diffuse_image = match obj_mat.tex_diffuse {
+            Some(tex_path) => Some(Material::load_image(&tex_path)),
+            None => None
         };
         Material {
-            diffuse: obj_mat.c_diffuse,
-            has_diffuse: has_diffuse,
-            diffuse_texture: diffuse_texture
+            diffuse: obj_mat.c_diffuse.expect("No diffuse color!"),
+            diffuse_image: diffuse_image,
+            diffuse_texture: None
         }
     }
 
-    /// Load a texture at the given path and return it as raw image
-    fn load_texture(tex_path: &Path) -> RawImage2d<u8> {
-        let tex_reader = BufReader::new(File::open(tex_path).expect("Failed to open texture!"));
-        let image = image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba();
-        let image_dim = image.dimensions();
-        RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dim)
+    /// Load an image at
+    fn load_image(path: &Path) -> image::RgbaImage {
+        let tex_reader = BufReader::new(File::open(path).expect("Failed to open image!"));
+        image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba()
+    }
+
+    fn upload_textures<F: Facade>(&mut self, facade: &F) {
+        self.diffuse_texture = match self.diffuse_image {
+            Some(ref image) => {
+                let image_dim = image.dimensions();
+                let tex_image = RawImage2d::from_raw_rgba_reversed(image.clone().into_raw(), image_dim);
+                Some(SrgbTexture2d::new(facade, tex_image).expect("Failed to upload texture!"))
+            }
+            None => Some(SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!"))
+        }
     }
 }
 
 /// Renderer representation of mesh with a common material
-#[derive(Debug)]
 pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
@@ -74,18 +78,19 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    fn new<F: Facade>(facade: &F, obj_mat: obj_load::Material) -> Mesh {
+    fn new(obj_mat: obj_load::Material) -> Mesh {
         Mesh { vertices: Vec::new(),
                indices: Vec::new(),
-               material: Material::new(facade, obj_mat),
+               material: Material::new(obj_mat),
                local_to_world: Matrix4::identity(),
                vertex_buffer: None,
                index_buffer: None
         }
     }
 
-    /// Load the vertex and index buffers to the GPU
-    fn create_buffers<F: Facade>(&mut self, facade: &F) {
+    /// Load the textures + vertex and index buffers to the GPU
+    fn upload_data<F: Facade>(&mut self, facade: &F) {
+        self.material.upload_textures(facade);
         self.vertex_buffer = Some(VertexBuffer::new(facade, &self.vertices)
                                   .expect("Failed to create vertex buffer!"));
         self.index_buffer = Some(IndexBuffer::new(facade, PrimitiveType::TrianglesList, &self.indices)
@@ -99,9 +104,9 @@ impl Mesh {
             local_to_world: array4x4(self.local_to_world),
             world_to_clip: array4x4(world_to_clip),
             u_light: [-1.0, 0.4, 0.9f32],
-            u_color: self.material.diffuse.expect("No diffuse color!"),
-            u_has_diffuse: self.material.has_diffuse,
-            tex_diffuse: &self.material.diffuse_texture
+            u_color: self.material.diffuse,
+            u_has_diffuse: self.material.diffuse_image.is_some(),
+            tex_diffuse: self.material.diffuse_texture.as_ref().expect("Use of unloaded texture!")
         };
         target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer!"),
                     self.index_buffer.as_ref().expect("No index buffer!"),
@@ -173,7 +178,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     for range in &obj.material_ranges {
         let obj_mat = obj.materials.get(&range.name)
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
-        let mut mesh = Mesh::new(facade, obj_mat.clone());
+        let mut mesh = Mesh::new(obj_mat.clone());
         let mut vertex_map = HashMap::new();
         for tri in &obj.polygons[range.start_i..range.end_i] {
             let default_tex_coords= [0.0; 2];
@@ -205,7 +210,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
             }
         }
         if !mesh.vertices.is_empty() {
-            mesh.create_buffers(facade);
+            mesh.upload_data(facade);
             scene.meshes.push(mesh);
         }
     }
