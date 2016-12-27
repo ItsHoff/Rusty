@@ -63,7 +63,9 @@ fn main() {
         .. Default::default()
     };
 
-    let mut camera = Camera::new(Point3::new(0.0, 0.0, -2.0), Vector3::new(0.0, 0.0, 1.0));
+    let mut camera = Camera::new(Point3::from(scene.get_center())
+                                 + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
+                                 Vector3::new(0.0, 0.0, -1.0f32));
 
     loop {
         let mut target = display.draw();
@@ -83,10 +85,13 @@ fn main() {
             camera.handle_event(&event);
             match event {
                 // Not sure how portable this is
-                Event::KeyboardInput(ElementState::Pressed, code @ 2 ... 11, _) => {
+                Event::KeyboardInput(ElementState::Pressed, code @ 2...11, _) => {
                     let i = code as usize - 2;
                     if i < scenes.len() {
                         scene = scene::load_scene(&root_path.join(scenes[i]), &display);
+                        camera.set_position(Point3::from(scene.get_center())
+                                 + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
+                                 Vector3::new(0.0, 0.0, -1.0f32));
                     }
                 }
                 Event::Closed => return,

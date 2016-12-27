@@ -50,9 +50,15 @@ impl Camera {
         Camera { pos: pos, dir: dir, .. Default::default() }
     }
 
+    /// Move the camera to new position
+    pub fn set_position(&mut self, pos: Point3<f32>, dir: Vector3<f32>) {
+        self.pos = pos;
+        self.dir = dir;
+    }
+
     /// Get the world to camera transformation matrix
     pub fn get_world_to_camera(&self) -> Matrix4<f32> {
-        Matrix4::from(Matrix3::look_at(self.dir, self.up)) * Matrix4::from_translation(self.pos.to_vec())
+        Matrix4::from(self.get_rotation()) * Matrix4::from_translation(-self.pos.to_vec())
     }
 
     /// Get the camera to clip space transformation matrix
@@ -62,7 +68,7 @@ impl Camera {
 
     /// Get the camera rotation matrix
     fn get_rotation(&self) -> Matrix3<f32> {
-        Matrix3::look_at(self.dir, self.up)
+        Matrix3::look_at(-self.dir, self.up)
     }
 
     /// Helper function to move the camera to the given direction
@@ -85,22 +91,22 @@ impl Camera {
     pub fn handle_event(&mut self, event: &Event) {
         match *event {
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::W)) => {
-                self.translate(Vector3::unit_z())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::S)) => {
                 self.translate(-Vector3::unit_z())
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::A)) => {
-                self.translate(Vector3::unit_x())
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::S)) => {
+                self.translate(Vector3::unit_z())
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::D)) => {
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::A)) => {
                 self.translate(-Vector3::unit_x())
             }
+            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::D)) => {
+                self.translate(Vector3::unit_x())
+            }
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Q)) => {
-                self.translate(Vector3::unit_y())
+                self.translate(-Vector3::unit_y())
             }
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::E)) => {
-                self.translate(-Vector3::unit_y())
+                self.translate(Vector3::unit_y())
             }
 
             Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Up)) |

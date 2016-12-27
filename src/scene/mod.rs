@@ -110,13 +110,44 @@ impl Mesh {
 }
 
 /// Renderer representation of a scene
+#[derive(Default)]
 pub struct Scene {
-    pub meshes: Vec<Mesh>
+    pub meshes: Vec<Mesh>,
+    pub min: [f32; 3],
+    pub max: [f32; 3],
+}
+
+impl Scene {
+    pub fn get_center(&self) -> [f32; 3] {
+        let mut res = [0.0f32; 3];
+        for i in 0..2 {
+            res[i] = (self.min[i] + self.max[i]) / 2.0;
+        }
+        res
+    }
+
+    pub fn get_size(&self) -> f32 {
+        let mut max = 0.0f32;
+        for i in 0..2 {
+            max = max.max(self.max[i] - self.min[i]);
+        }
+        max
+    }
+
+    fn update_ranges(&mut self, new_pos: [f32; 3]) {
+        for i in 0..2 {
+            self.min[i] = self.min[i].min(new_pos[i]);
+        }
+        for i in 0..2 {
+            self.max[i] = self.max[i].max(new_pos[i]);
+        }
+    }
+
 }
 
 /// Load a scene from the given path bind resources to given facade
 pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
-    let mut scene = Scene { meshes: vec!() };
+    let mut scene = Scene { .. Default::default() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
 
     // Closure to calculate planar normal for a polygon
@@ -156,6 +187,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
                         // Panic if there is no positions
                         let pos_i = index_vertex[0].expect("No vertex positions!");
                         let pos = obj.positions[pos_i];
+                        scene.update_ranges(pos);
 
                         let tex_coords = match index_vertex[1] {
                             Some(tex_coords_i) => obj.tex_coords[tex_coords_i],
