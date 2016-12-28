@@ -12,11 +12,13 @@ use scene::mesh::Mesh;
 #[derive(Default)]
 pub struct Scene {
     pub meshes: Vec<Mesh>,
+    /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],
 }
 
 impl Scene {
+    /// Get the center of the scene as defined by the bounding box
     pub fn get_center(&self) -> [f32; 3] {
         let mut res = [0.0f32; 3];
         for i in 0..2 {
@@ -25,6 +27,7 @@ impl Scene {
         res
     }
 
+    /// Get the longest edge of the bounding box
     pub fn get_size(&self) -> f32 {
         let mut max = 0.0f32;
         for i in 0..2 {
@@ -33,6 +36,7 @@ impl Scene {
         max
     }
 
+    /// Update the bounding box with new position
     fn update_ranges(&mut self, new_pos: [f32; 3]) {
         for i in 0..2 {
             self.min[i] = self.min[i].min(new_pos[i]);
