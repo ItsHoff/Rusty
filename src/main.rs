@@ -71,13 +71,16 @@ fn main() {
         let mut target = display.draw();
 
         let (width, height) = target.get_dimensions();
-        let camera_to_clip = camera.get_camera_to_clip(width, height);
-        let world_to_camera = camera.get_world_to_camera();
+        // Don't draw if the window is minimized
+        if width != 0 && height != 0 {
+            let camera_to_clip = camera.get_camera_to_clip(width, height);
+            let world_to_camera = camera.get_world_to_camera();
 
-        target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-        // Draw meshes one at a time
-        for mesh in &scene.meshes {
-            mesh.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
+            target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
+            // Draw meshes one at a time
+            for mesh in &scene.meshes {
+                mesh.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
+            }
         }
         target.finish().unwrap();
 
