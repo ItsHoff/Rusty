@@ -73,10 +73,10 @@ impl Camera {
         Matrix3::look_at(-self.dir, self.up)
     }
 
-    /// Get the speed of the camera
+    /// Get the speed of the camera based on the duration of the input
     fn get_speed(dt: Duration) -> f32 {
         // Use tanh acceleration curve
-        let x = dt.as_secs() as f32 + dt.subsec_nanos() as f32 / 1e9 - 3.0;
+        let x = dt.as_secs() as f32 + dt.subsec_nanos() as f32 / 1e9 - 2.0;
         x.tanh() + 1.05
     }
 
@@ -96,10 +96,12 @@ impl Camera {
 
     /// Move camera based on input event
     pub fn process_input(&mut self, input: &InputState) {
+        let dt = input.last_reset.elapsed();
+        let time_scale = (dt.as_secs() as f32 * 1e9 + dt.subsec_nanos() as f32) / 1e8;
         for (key, t) in &input.key_presses {
-            let dt = t.elapsed();  // Length of the key press
-            let move_speed = 0.1 * self.scale.sqrt().min(self.scale) * Self::get_speed(dt);
-            let rotation_speed = 0.3 * Self::get_speed(dt);
+            let t_press = t.elapsed();  // Length of the key press
+            let move_speed = time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);
+            let rotation_speed = 3.0 * time_scale * Self::get_speed(t_press);
             match *key {
                 // Move with wasd + e, q for up and down
                 VirtualKeyCode::W => self.translate(-Vector3::unit_z(), move_speed),
@@ -122,8 +124,8 @@ impl Camera {
                 // Rotate camera while holding left mouse button
                 MouseButton::Left => {
                     let (dx, dy) = input.d_mouse;
-                    self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 300.0));
-                    self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 300.0));
+                    self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 250.0));
+                    self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 250.0));
                 }
                 _ => ()
             }

@@ -3,7 +3,6 @@ use std::time::Instant;
 
 use glium::glutin::{Event, ElementState, MouseButton, VirtualKeyCode};
 
-#[derive(Default)]
 pub struct InputState {
     /// Position of the mouse
     pub mouse_pos: (i32, i32),
@@ -12,18 +11,24 @@ pub struct InputState {
     /// Currently pressed mouse buttons with the time of the press
     pub mouse_presses: HashMap<MouseButton, Instant>,
     /// Currently pressed keys with the time of the press
-    pub key_presses: HashMap<VirtualKeyCode, Instant>
+    pub key_presses: HashMap<VirtualKeyCode, Instant>,
+    /// Time of the last reset
+    pub last_reset: Instant
 }
 
 impl InputState {
     /// Get a new empty input state
     pub fn new() -> InputState {
-        InputState { .. Default::default() }
+        InputState { mouse_pos: (0, 0),
+                     d_mouse: (0, 0),
+                     mouse_presses: HashMap::new(),
+                     key_presses: HashMap::new(),
+                     last_reset: Instant::now()
+        }
     }
 
     /// Update the state with an event
     pub fn update(&mut self, event: &Event) {
-        self.d_mouse = (0, 0);
         match *event {
             Event::MouseMoved(x, y) => {
                 self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
@@ -51,5 +56,11 @@ impl InputState {
             }
             _ => ()
         }
+    }
+
+    /// Reset the delta values after a loop
+    pub fn reset_deltas(&mut self) {
+        self.d_mouse = (0, 0);
+        self.last_reset = Instant::now();
     }
 }

@@ -91,7 +91,6 @@ fn main() {
 
         for event in display.poll_events() {
             input.update(&event);
-            camera.process_input(&input);
             match event {
                 // Not sure how portable this is
                 Event::KeyboardInput(ElementState::Pressed, code @ 2...11, _) => {
@@ -108,5 +107,7 @@ fn main() {
                 _ => ()
             }
         }
+        camera.process_input(&input);
+        input.reset_deltas();
     }
 }
