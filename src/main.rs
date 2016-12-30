@@ -70,6 +70,7 @@ fn main() {
     let mut camera = Camera::new(Point3::from(scene.get_center())
                                  + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
+    camera.set_scale(scene.get_size());
 
     loop {
         let mut target = display.draw();
@@ -100,6 +101,7 @@ fn main() {
                         camera.set_position(Point3::from(scene.get_center())
                                  + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
+                        camera.set_scale(scene.get_size());
                     }
                 }
                 Event::Closed => return,

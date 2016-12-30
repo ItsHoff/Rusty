@@ -24,6 +24,8 @@ pub struct Camera {
     near: f32,
     /// Far plane of the camera
     far: f32,
+    /// Size of the scene
+    scale: f32
 }
 
 
@@ -34,8 +36,9 @@ impl Default for Camera {
             dir: Vector3 {x: 0.0, y: 0.0, z: 1.0},
             up: Vector3 {x: 0.0, y: 1.0, z: 0.0},
             fov: Rad(::std::f32::consts::PI / 3.0),
-            near: 0.01,
-            far: 1000.0,
+            near: 0.001,
+            far: 10.0,
+            scale: 1.0
         }
     }
 }
@@ -51,6 +54,10 @@ impl Camera {
         self.dir = dir;
     }
 
+    pub fn set_scale(&mut self, scale: f32) {
+        self.scale = scale;
+    }
+
     /// Get the world to camera transformation matrix
     pub fn get_world_to_camera(&self) -> Matrix4<f32> {
         Matrix4::from(self.get_rotation()) * Matrix4::from_translation(-self.pos.to_vec())
@@ -58,7 +65,7 @@ impl Camera {
 
     /// Get the camera to clip space transformation matrix
     pub fn get_camera_to_clip(&self, w: u32, h: u32) -> Matrix4<f32> {
-        cgmath::perspective(self.fov, w as f32 / h as f32, self.near, self.far)
+        cgmath::perspective(self.fov, w as f32 / h as f32, self.near * self.scale, self.far * self.scale)
     }
 
     /// Get the camera rotation matrix
@@ -70,8 +77,7 @@ impl Camera {
     fn get_speed(dt: Duration) -> f32 {
         // Use tanh acceleration curve
         let x = dt.as_secs() as f32 + dt.subsec_nanos() as f32 / 1e9 - 3.0;
-        let tanh = x.tanh() + 1.0;
-        tanh * 0.5
+        x.tanh() + 1.05
     }
 
     /// Helper function to move the camera to the given direction
@@ -92,49 +98,32 @@ impl Camera {
     pub fn process_input(&mut self, input: &InputState) {
         for (key, t) in &input.key_presses {
             let dt = t.elapsed();  // Length of the key press
+            let move_speed = 0.1 * self.scale.sqrt().min(self.scale) * Self::get_speed(dt);
+            let rotation_speed = 0.3 * Self::get_speed(dt);
             match *key {
-                VirtualKeyCode::W => {
-                    self.translate(-Vector3::unit_z(), Self::get_speed(dt))
-                }
-                VirtualKeyCode::S => {
-                    self.translate(Vector3::unit_z(), Self::get_speed(dt))
-                }
-                VirtualKeyCode::A => {
-                    self.translate(-Vector3::unit_x(), Self::get_speed(dt))
-                }
-                VirtualKeyCode::D => {
-                    self.translate(Vector3::unit_x(), Self::get_speed(dt))
-                }
-                VirtualKeyCode::Q => {
-                    self.translate(-Vector3::unit_y(), Self::get_speed(dt))
-                }
-                VirtualKeyCode::E => {
-                    self.translate(Vector3::unit_y(), Self::get_speed(dt))
-                }
+                // Move with wasd + e, q for up and down
+                VirtualKeyCode::W => self.translate(-Vector3::unit_z(), move_speed),
+                VirtualKeyCode::S => self.translate(Vector3::unit_z(), move_speed),
+                VirtualKeyCode::A => self.translate(-Vector3::unit_x(), move_speed),
+                VirtualKeyCode::D => self.translate(Vector3::unit_x(), move_speed),
+                VirtualKeyCode::Q => self.translate(-Vector3::unit_y(), move_speed),
+                VirtualKeyCode::E => self.translate(Vector3::unit_y(), move_speed),
 
-                VirtualKeyCode::Up => {
-                    self.rotate(Vector3::unit_x(), Rad(0.5 * Self::get_speed(dt)))
-                }
-                VirtualKeyCode::Down => {
-                    self.rotate(-Vector3::unit_x(), Rad(0.5 * Self::get_speed(dt)))
-                }
-                VirtualKeyCode::Left => {
-                    self.rotate(Vector3::unit_y(), Rad(0.5 * Self::get_speed(dt)))
-                }
-                VirtualKeyCode::Right => {
-                    self.rotate(-Vector3::unit_y(), Rad(0.5 * Self::get_speed(dt)))
-                }
+                // Rotate with arrow keys
+                VirtualKeyCode::Up => self.rotate(Vector3::unit_x(), Rad(rotation_speed)),
+                VirtualKeyCode::Down => self.rotate(-Vector3::unit_x(), Rad(rotation_speed)),
+                VirtualKeyCode::Left => self.rotate(Vector3::unit_y(), Rad(rotation_speed)),
+                VirtualKeyCode::Right => self.rotate(-Vector3::unit_y(), Rad(rotation_speed)),
                 _ => ()
             }
         }
         for (button, _) in &input.mouse_presses {
             match *button {
+                // Rotate camera while holding left mouse button
                 MouseButton::Left => {
                     let (dx, dy) = input.d_mouse;
-                    let dx = dx as f32 / 10.0;
-                    let dy = dy as f32 / 10.0;
-                    self.rotate(-Vector3::unit_y(), Rad(0.025 * dx.tanh()));
-                    self.rotate(-Vector3::unit_x(), Rad(0.025 * dy.tanh()));
+                    self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 300.0));
+                    self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 300.0));
                 }
                 _ => ()
             }
