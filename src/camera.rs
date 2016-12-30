@@ -1,10 +1,14 @@
 /// Module containing the camera functionality
 
+use std::time::Duration;
+
 use cgmath;
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3, Matrix4, Matrix3, Rad};
 
-use glium::glutin::{Event, ElementState, VirtualKeyCode};
+use glium::glutin::{MouseButton, VirtualKeyCode};
+
+use input::InputState;
 
 /// Representation of a camera
 pub struct Camera {
@@ -20,15 +24,8 @@ pub struct Camera {
     near: f32,
     /// Far plane of the camera
     far: f32,
-    /// Movement speed of the camera
-    move_speed: f32,
-    /// Rotation speed of the camera
-    rotation_speed: Rad<f32>
 }
 
-const ACCEL: f32 = 1.05;
-const V_MOVE: f32 = 0.05;
-const V_ROTATION: Rad<f32> = Rad(0.02);
 
 impl Default for Camera {
     fn default() -> Camera {
@@ -39,8 +36,6 @@ impl Default for Camera {
             fov: Rad(::std::f32::consts::PI / 3.0),
             near: 0.01,
             far: 1000.0,
-            move_speed: V_MOVE,
-            rotation_speed: V_ROTATION
         }
     }
 }
@@ -71,65 +66,78 @@ impl Camera {
         Matrix3::look_at(-self.dir, self.up)
     }
 
+    /// Get the speed of the camera
+    fn get_speed(dt: Duration) -> f32 {
+        // Use tanh acceleration curve
+        let x = dt.as_secs() as f32 + dt.subsec_nanos() as f32 / 1e9 - 3.0;
+        let tanh = x.tanh() + 1.0;
+        tanh * 0.5
+    }
+
     /// Helper function to move the camera to the given direction
-    fn translate(&mut self, local_dir: Vector3<f32>) {
+    fn translate(&mut self, local_dir: Vector3<f32>, distance: f32) {
         let inverse_rotation = self.get_rotation().invert().expect("Non invertable camera rotation!");
-        let movement = self.move_speed * inverse_rotation * local_dir;
+        let movement = distance * inverse_rotation * local_dir;
         self.pos += movement;
-        self.move_speed *= ACCEL;
     }
 
     /// Helper function to rotate the camera around the given axis
-    fn rotate(&mut self, local_axis: Vector3<f32>) {
+    fn rotate(&mut self, local_axis: Vector3<f32>, angle: Rad<f32>) {
         let inverse_rotation = self.get_rotation().invert().expect("Non invertable camera rotation!");
         let axis = inverse_rotation * local_axis;
-        self.dir = Matrix3::from_axis_angle(axis, self.rotation_speed) * self.dir;
-        self.rotation_speed *= ACCEL;
+        self.dir = Matrix3::from_axis_angle(axis, angle) * self.dir;
     }
 
     /// Move camera based on input event
-    pub fn handle_event(&mut self, event: &Event) {
-        match *event {
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::W)) => {
-                self.translate(-Vector3::unit_z())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::S)) => {
-                self.translate(Vector3::unit_z())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::A)) => {
-                self.translate(-Vector3::unit_x())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::D)) => {
-                self.translate(Vector3::unit_x())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Q)) => {
-                self.translate(-Vector3::unit_y())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::E)) => {
-                self.translate(Vector3::unit_y())
-            }
+    pub fn process_input(&mut self, input: &InputState) {
+        for (key, t) in &input.key_presses {
+            let dt = t.elapsed();  // Length of the key press
+            match *key {
+                VirtualKeyCode::W => {
+                    self.translate(-Vector3::unit_z(), Self::get_speed(dt))
+                }
+                VirtualKeyCode::S => {
+                    self.translate(Vector3::unit_z(), Self::get_speed(dt))
+                }
+                VirtualKeyCode::A => {
+                    self.translate(-Vector3::unit_x(), Self::get_speed(dt))
+                }
+                VirtualKeyCode::D => {
+                    self.translate(Vector3::unit_x(), Self::get_speed(dt))
+                }
+                VirtualKeyCode::Q => {
+                    self.translate(-Vector3::unit_y(), Self::get_speed(dt))
+                }
+                VirtualKeyCode::E => {
+                    self.translate(Vector3::unit_y(), Self::get_speed(dt))
+                }
 
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Up)) |
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::O)) => {
-                self.rotate(Vector3::unit_x())
+                VirtualKeyCode::Up => {
+                    self.rotate(Vector3::unit_x(), Rad(0.5 * Self::get_speed(dt)))
+                }
+                VirtualKeyCode::Down => {
+                    self.rotate(-Vector3::unit_x(), Rad(0.5 * Self::get_speed(dt)))
+                }
+                VirtualKeyCode::Left => {
+                    self.rotate(Vector3::unit_y(), Rad(0.5 * Self::get_speed(dt)))
+                }
+                VirtualKeyCode::Right => {
+                    self.rotate(-Vector3::unit_y(), Rad(0.5 * Self::get_speed(dt)))
+                }
+                _ => ()
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Down)) |
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::L)) => {
-                self.rotate(-Vector3::unit_x())
+        }
+        for (button, _) in &input.mouse_presses {
+            match *button {
+                MouseButton::Left => {
+                    let (dx, dy) = input.d_mouse;
+                    let dx = dx as f32 / 10.0;
+                    let dy = dy as f32 / 10.0;
+                    self.rotate(-Vector3::unit_y(), Rad(0.025 * dx.tanh()));
+                    self.rotate(-Vector3::unit_x(), Rad(0.025 * dy.tanh()));
+                }
+                _ => ()
             }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Left)) |
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::K)) => {
-                self.rotate(Vector3::unit_y())
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Right)) |
-            Event::KeyboardInput(ElementState::Pressed, 39, _) => {  // Ö
-                self.rotate(-Vector3::unit_y())
-            }
-            Event::KeyboardInput(ElementState::Released, _, _) => {
-                self.move_speed = V_MOVE;
-                self.rotation_speed = V_ROTATION;
-            }
-            _ => ()
         }
     }
 }

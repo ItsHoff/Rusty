@@ -11,9 +11,12 @@ use glium::glutin::{Event, ElementState};
 
 use cgmath::{Vector3, Point3};
 
-mod scene;
 mod camera;
+mod input;
+mod scene;
+
 use camera::Camera;
+use input::InputState;
 
 /// Get the root directory of the project
 fn get_project_root() -> PathBuf {
@@ -63,6 +66,7 @@ fn main() {
         .. Default::default()
     };
 
+    let mut input = InputState::new();
     let mut camera = Camera::new(Point3::from(scene.get_center())
                                  + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
@@ -85,7 +89,8 @@ fn main() {
         target.finish().unwrap();
 
         for event in display.poll_events() {
-            camera.handle_event(&event);
+            input.update(&event);
+            camera.process_input(&input);
             match event {
                 // Not sure how portable this is
                 Event::KeyboardInput(ElementState::Pressed, code @ 2...11, _) => {
