@@ -119,14 +119,14 @@ impl Camera {
                 _ => ()
             }
         }
-        for (button, _) in &input.mouse_presses {
+        for button in input.mouse_presses.keys() {
             match *button {
                 // Rotate camera while holding left mouse button
                 MouseButton::Left => {
                     let (dx, dy) = input.d_mouse;
                     self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 250.0));
                     self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 250.0));
-                }
+                },
                 _ => ()
             }
         }

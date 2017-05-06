@@ -53,6 +53,6 @@ impl Mesh {
         };
         target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer!"),
                     self.index_buffer.as_ref().expect("No index buffer!"),
-                    &program, &uniforms, &draw_parameters).unwrap();
+                    program, &uniforms, draw_parameters).unwrap();
     }
 }

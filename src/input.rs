@@ -35,17 +35,13 @@ impl InputState {
                 self.mouse_pos = (x, y);
             }
             Event::MouseInput(ElementState::Pressed, button) => {
-                if !self.mouse_presses.contains_key(&button) {
-                    self.mouse_presses.insert(button, Instant::now());
-                }
+                self.mouse_presses.entry(button).or_insert_with(Instant::now);
             }
             Event::MouseInput(ElementState::Released, button) => {
                self.mouse_presses.remove(&button);
             }
             Event::KeyboardInput(ElementState::Pressed, _, Some(key)) => {
-                if !self.key_presses.contains_key(&key) {
-                    self.key_presses.insert(key, Instant::now());
-                }
+                self.key_presses.entry(key).or_insert_with(Instant::now);
             }
             Event::KeyboardInput(ElementState::Released, _, Some(key)) => {
                 self.key_presses.remove(&key);

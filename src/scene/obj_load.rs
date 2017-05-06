@@ -32,7 +32,7 @@ impl Polygon {
                     None => None
                 }
             },
-            smoothing_group: state.current_smoothing_group.clone(),
+            smoothing_group: state.current_smoothing_group,
             material: {
                 match state.current_material {
                     Some(ref range) => Some(range.name.clone()),
@@ -268,8 +268,8 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
         let line = line.expect("Failed to unwrap line");
         let mut split_line = line.split_whitespace();
         // Find the keyword of the line
-        match split_line.next() {
-            Some(key) => match key {
+        if let Some(key) = split_line.next() {
+            match key {
                 "f" => {
                     let polygon = try!(parse_polygon(&mut split_line, &obj, &state));
                     // Auto convert to triangles
@@ -305,12 +305,11 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                 "vn" => obj.normals.push(try!(parse_float3(&mut split_line))),
                 "vt" => obj.tex_coords.push(try!(parse_float2(&mut split_line))),
                 _ => {
-                    if !key.starts_with("#") {
+                    if !key.starts_with('#') {
                         println!("Unrecognised key {}", key);
                     }
                 }
-            },
-            None => {}
+            }
         }
     }
     // Close the open ranges
@@ -340,8 +339,8 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
         let line = line.expect("Failed to unwrap line");
         let mut split_line = line.split_whitespace();
         // Find the keyword of the line
-        match split_line.next() {
-            Some(key) => match key {
+        if let Some(key) = split_line.next() {
+            match key {
                 "newmtl" => {
                     if let Some(material) = current_material {
                         materials.insert(material.name.clone(), material);
@@ -439,12 +438,11 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                     material.tex_bump = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
                 },
                 _ => {
-                    if !key.starts_with("#") {
+                    if !key.starts_with('#') {
                         println!("Unrecognised material key {}", key);
                     }
                 }
-            },
-            None => {}
+            }
         }
     }
     let material = try!(current_material.ok_or("Didn't find any material definitions!"));
