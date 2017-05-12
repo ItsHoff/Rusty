@@ -1,4 +1,3 @@
-#![allow(needless_range_loop)]
 /// Simple module for loading wavefront object files
 
 use std::collections::HashMap;
@@ -202,6 +201,7 @@ fn parse_float(split_line: &mut SplitWhitespace) -> Result<f32, Box<Error>> {
     Ok(try!(item.parse()))
 }
 
+#[allow(needless_range_loop)]
 /// Parse two floats from the split input line
 fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>> {
     let mut float2 = [0.0f32; 2];
@@ -212,6 +212,7 @@ fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>
     Ok(float2)
 }
 
+#[allow(needless_range_loop)]
 /// Parse three floats from the split input line
 fn parse_float3(split_line: &mut SplitWhitespace) -> Result<[f32; 3], Box<Error>> {
     let mut float3 = [0.0f32; 3];
