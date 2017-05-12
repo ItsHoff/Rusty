@@ -51,7 +51,8 @@ fn main() {
                       "scenes/cornell-box/CornellBox-Water.obj",
                       "scenes/nanosuit/nanosuit.obj",
                       "scenes/sibenik/sibenik.obj");
-    let mut scene = scene::load_scene(&root_path.join(scenes[0]), &display);
+    let mut scene = scene::load_scene(&root_path.join(scenes[0]));
+    scene.upload_data(&display);
 
     let src_path = root_path.join("src");
     let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
@@ -84,10 +85,7 @@ fn main() {
             let world_to_camera = camera.get_world_to_camera();
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-            // Draw meshes one at a time
-            for mesh in &scene.meshes {
-                mesh.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
-            }
+            scene.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
         }
         target.finish().unwrap();
 
@@ -98,7 +96,8 @@ fn main() {
                 Event::KeyboardInput(ElementState::Pressed, code @ 2...11, _) => {
                     let i = code as usize - 2;
                     if i < scenes.len() {
-                        scene = scene::load_scene(&root_path.join(scenes[i]), &display);
+                        scene = scene::load_scene(&root_path.join(scenes[i]));
+                        scene.upload_data(&display);
                         camera.set_position(Point3::from(scene.get_center())
                                  + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));

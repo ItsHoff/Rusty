@@ -8,7 +8,10 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
+use glium::{DrawParameters, VertexBuffer, Program, Surface};
 use glium::backend::Facade;
+
+use cgmath::Matrix4;
 
 use self::mesh::Mesh;
 
@@ -25,7 +28,9 @@ implement_vertex!(Vertex, position, normal, tex_coords);
 /// Renderer representation of a scene
 #[derive(Default)]
 pub struct Scene {
+    pub vertices: Vec<Vertex>,
     pub meshes: Vec<Mesh>,
+    pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],
@@ -33,6 +38,23 @@ pub struct Scene {
 
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
+    /// Load the textures + vertex and index buffers to the GPU
+    pub fn upload_data<F: Facade>(&mut self, facade: &F) {
+        self.vertex_buffer = Some(VertexBuffer::new(facade, &self.vertices)
+                                  .expect("Failed to create vertex buffer!"));
+        for mesh in &mut self.meshes {
+            mesh.upload_data(facade);
+        }
+    }
+
+    pub fn draw<S: Surface>(&self, target: &mut S, program: &Program, draw_parameters: &DrawParameters,
+                            world_to_clip: Matrix4<f32>) {
+        for mesh in &self.meshes {
+            mesh.draw(target, program, draw_parameters, world_to_clip,
+                      self.vertex_buffer.as_ref().expect("No vertex buffer!"))
+        }
+    }
+
     /// Get the center of the scene as defined by the bounding box
     pub fn get_center(&self) -> [f32; 3] {
         let mut res = [0.0f32; 3];
@@ -63,7 +85,7 @@ impl Scene {
 }
 
 /// Load a scene from the given path bind resources to given facade
-pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
+pub fn load_scene(scene_path: &Path) -> Scene {
     let mut scene = Scene { .. Default::default() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
 
@@ -100,7 +122,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
                     Some(&i) => mesh.indices.push(i),
                     None => {
                         // Add vertex to map
-                        vertex_map.insert(index_vertex, mesh.vertices.len() as u32);
+                        vertex_map.insert(index_vertex, scene.vertices.len() as u32);
                         let pos = obj.positions[index_vertex.pos_i];
                         scene.update_ranges(pos);
 
@@ -113,14 +135,13 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
                             None => calculate_normal(tri)
                         };
 
-                        mesh.indices.push(mesh.vertices.len() as u32);
-                        mesh.vertices.push(Vertex { position: pos, normal: normal, tex_coords: tex_coords });
+                        mesh.indices.push(scene.vertices.len() as u32);
+                        scene.vertices.push(Vertex { position: pos, normal: normal, tex_coords: tex_coords });
                     }
                 }
             }
         }
-        if !mesh.vertices.is_empty() {
-            mesh.upload_data(facade);
+        if !mesh.indices.is_empty() {
             scene.meshes.push(mesh);
         }
     }
