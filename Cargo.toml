@@ -7,3 +7,7 @@ authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 cgmath = "*"
 glium = "*"
 image = "*"
+clippy = {version = "*", optional = true}
+
+[features]
+default = ["clippy"]
