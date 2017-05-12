@@ -1,3 +1,4 @@
+#![allow(needless_range_loop)]
 extern crate image;
 
 mod material;

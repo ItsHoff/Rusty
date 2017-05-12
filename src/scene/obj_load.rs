@@ -1,3 +1,4 @@
+#![allow(needless_range_loop)]
 /// Simple module for loading wavefront object files
 
 use std::collections::HashMap;
@@ -10,7 +11,7 @@ use std::str::SplitWhitespace;
 use std::vec::Vec;
 
 /// Representation of loaded polygon
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Polygon {
     /// Indices of vertex attributes in attribute vectors
     /// Ordered: pos, tex_coords, normal
@@ -44,9 +45,9 @@ impl Polygon {
     }
 
     /// Convert polygon to triangles
-    pub fn to_triangles(self) -> Vec<Polygon> {
+    pub fn to_triangles(&self) -> Vec<Polygon> {
         if self.index_vertices.len() <= 3 {
-            vec!(self)
+            vec!((*self).clone())
         } else {
             let mut tris = Vec::new();
             let tip = self.index_vertices[0];
