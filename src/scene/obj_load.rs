@@ -9,12 +9,26 @@ use std::path::{Path, PathBuf};
 use std::str::SplitWhitespace;
 use std::vec::Vec;
 
+/// Indices of vertex attributes in attribute vectors
+#[derive(Debug, Default, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct IndexVertex {
+    pub pos_i: usize,
+    pub tex_i: Option<usize>,
+    pub normal_i: Option<usize>,
+}
+
+impl IndexVertex {
+    fn new() -> IndexVertex {
+        IndexVertex {
+            ..Default::default()
+        }
+    }
+}
+
 /// Representation of loaded polygon
 #[derive(Debug, Default, Clone)]
 pub struct Polygon {
-    /// Indices of vertex attributes in attribute vectors
-    /// Ordered: pos, tex_coords, normal
-    pub index_vertices: Vec<[Option<usize>; 3]>,
+    pub index_vertices: Vec<IndexVertex>,
     /// Name of polygons group
     pub group: Option<String>,
     /// Number of polygons smoothing group
@@ -44,17 +58,22 @@ impl Polygon {
     }
 
     /// Convert polygon to triangles
-    pub fn to_triangles(&self) -> Vec<Polygon> {
-        if self.index_vertices.len() <= 3 {
-            vec!((*self).clone())
+    pub fn to_triangles(&self) -> Vec<Triangle> {
+        if self.index_vertices.len() == 3 {
+            vec!(Triangle {
+                    index_vertices: [self.index_vertices[0], self.index_vertices[1], self.index_vertices[2]],
+                    group: self.group.clone(),
+                    smoothing_group: self.smoothing_group,
+                    material: self.material.clone()
+                })
         } else {
             let mut tris = Vec::new();
             let tip = self.index_vertices[0];
             let mut v1 = self.index_vertices[1];
             // Go round the polygon and attach current two vertices to the central vertex
             for vertex in &self.index_vertices[2..] {
-                let tri = Polygon {
-                    index_vertices: vec!(tip, v1, *vertex),
+                let tri = Triangle {
+                    index_vertices: [tip, v1, *vertex],
                     group: self.group.clone(),
                     smoothing_group: self.smoothing_group,
                     material: self.material.clone()
@@ -65,6 +84,18 @@ impl Polygon {
             tris
         }
     }
+}
+
+/// Representation of loaded polygon
+#[derive(Debug, Default, Clone)]
+pub struct Triangle {
+    pub index_vertices: [IndexVertex; 3],
+    /// Name of triangles group
+    pub group: Option<String>,
+    /// Number of triangles smoothing group
+    pub smoothing_group: Option<u32>,
+    /// Name of triangles material
+    pub material: Option<String>
 }
 
 /// Named range that represents ranges of certain properties
@@ -143,21 +174,21 @@ impl Material {
 #[derive(Default)]
 pub struct Object {
     /// List of loaded vertex positions
-    /// Indexed by index_vertices in polygons
+    /// Indexed by index_vertices in triangles
     pub positions: Vec<[f32; 3]>,
     /// List of loaded vertex normals
-    /// Indexed by index_vertices in polygons
+    /// Indexed by index_vertices in triangles
     pub normals: Vec<[f32; 3]>,
     /// List of loaded vertex texture coordinates
-    /// Indexed by index_vertices in polygons
+    /// Indexed by index_vertices in triangles
     pub tex_coords: Vec<[f32; 2]>,
-    /// List of loaded polygons
-    pub polygons: Vec<Polygon>,
+    /// List of loaded triangles
+    pub triangles: Vec<Triangle>,
     /// Ranges of loaded groups
-    /// Ranges index the polygons list
+    /// Ranges index the triangles list
     pub group_ranges: Vec<Range>,
     /// Ranges of loaded materials
-    /// Ranges index the polygons list
+    /// Ranges index the triangles list
     pub material_ranges: Vec<Range>,
     /// Map of loaded materials
     pub materials: HashMap<String, Material>
@@ -233,7 +264,7 @@ fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseSt
               -> Result<Polygon, Box<Error>> {
     let mut polygon = Polygon::new(state);
     for item in split_line {
-        let mut index_vertex = [None; 3];
+        let mut index_vertex = IndexVertex::new();
         for (i, num) in item.split('/').enumerate() {
             if i >= 3 {
                 break;
@@ -242,13 +273,18 @@ fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseSt
                 let num: isize = try!(num.parse());
                 if num < 0 {
                     match i {
-                        0 => index_vertex[i] = Some((obj.positions.len() as isize + num) as usize),
-                        1 => index_vertex[i] = Some((obj.tex_coords.len() as isize + num) as usize),
-                        2 => index_vertex[i] = Some((obj.normals.len() as isize + num) as usize),
+                        0 => index_vertex.pos_i = (obj.positions.len() as isize + num) as usize,
+                        1 => index_vertex.tex_i = Some((obj.tex_coords.len() as isize + num) as usize),
+                        2 => index_vertex.normal_i = Some((obj.normals.len() as isize + num) as usize),
                         _ => unreachable!()
                     }
                 } else {
-                    index_vertex[i] = Some((num - 1) as usize);
+                    match i {
+                        0 => index_vertex.pos_i = (num - 1) as usize,
+                        1 => index_vertex.tex_i = Some((num - 1) as usize),
+                        2 => index_vertex.normal_i = Some((num - 1) as usize),
+                        _ => unreachable!()
+                    }
                 }
             }
         }
@@ -275,15 +311,15 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                     let polygon = try!(parse_polygon(&mut split_line, &obj, &state));
                     // Auto convert to triangles
                     // TODO: Make triangle conversion optional
-                    obj.polygons.append(&mut polygon.to_triangles());
+                    obj.triangles.append(&mut polygon.to_triangles());
                 },
                 "g" | "o" => {
                     if let Some(mut range) = state.current_group {
-                        range.end_i = obj.polygons.len();
+                        range.end_i = obj.triangles.len();
                         obj.group_ranges.push(range);
                     };
                     let group_name = try!(parse_string(&mut split_line));
-                    state.current_group = Some(Range::new(&group_name, obj.polygons.len()));
+                    state.current_group = Some(Range::new(&group_name, obj.triangles.len()));
                 },
                 "mtllib" => state.mat_libs.push(obj_dir.join(try!(parse_string(&mut split_line)))),
                 "s" => {
@@ -296,11 +332,11 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                 }
                 "usemtl" => {
                     if let Some(mut range) = state.current_material {
-                        range.end_i = obj.polygons.len();
+                        range.end_i = obj.triangles.len();
                         obj.material_ranges.push(range);
                     };
                     let material_name = try!(parse_string(&mut split_line));
-                    state.current_material = Some(Range::new(&material_name, obj.polygons.len()));
+                    state.current_material = Some(Range::new(&material_name, obj.triangles.len()));
                 },
                 "v" => obj.positions.push(try!(parse_float3(&mut split_line))),
                 "vn" => obj.normals.push(try!(parse_float3(&mut split_line))),
@@ -315,11 +351,11 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
     }
     // Close the open ranges
     if let Some(mut range) = state.current_group {
-        range.end_i = obj.polygons.len();
+        range.end_i = obj.triangles.len();
         obj.group_ranges.push(range);
     };
     if let Some(mut range) = state.current_material {
-        range.end_i = obj.polygons.len();
+        range.end_i = obj.triangles.len();
         obj.material_ranges.push(range);
     };
     // Load materials
@@ -449,30 +485,4 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
     let material = try!(current_material.ok_or("Didn't find any material definitions!"));
     materials.insert(material.name.clone(), material);
     Ok(materials)
-}
-
-/// Print an object
-// TODO: Improve or remove this
-#[allow(dead_code)]
-pub fn print_obj(object: &Object) {
-    println!("Polygons");
-    for p in &object.polygons {
-        println!("{:?}", p);
-    }
-    println!("Materials");
-    for m in &object.materials {
-        println!("{:?}", m);
-    }
-    //println!("Positions:");
-    //for v in &object.positions {
-        //println!("{:?}", v);
-    //}
-    //println!("Normals:");
-    //for vn in &object.normals {
-        //println!("{:?}", vn);
-    //}
-    //println!("Texture coordinates:");
-    //for vt in &object.tex_coords {
-        //println!("{:?}", vt);
-    //}
 }

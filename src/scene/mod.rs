@@ -67,11 +67,11 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
     let mut scene = Scene { .. Default::default() };
     let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
 
-    // Closure to calculate planar normal for a polygon
-    let calculate_normal = |polygon: &obj_load::Polygon| -> [f32; 3] {
-        let pos_i1 = polygon.index_vertices[0][0].expect("No vertex positions!");
-        let pos_i2 = polygon.index_vertices[1][0].expect("No vertex positions!");
-        let pos_i3 = polygon.index_vertices[2][0].expect("No vertex positions!");
+    // Closure to calculate planar normal for a triangle
+    let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {
+        let pos_i1 = triangle.index_vertices[0].pos_i;
+        let pos_i2 = triangle.index_vertices[1].pos_i;
+        let pos_i3 = triangle.index_vertices[2].pos_i;
         let pos_1 = obj.positions[pos_i1];
         let pos_2 = obj.positions[pos_i2];
         let pos_3 = obj.positions[pos_i3];
@@ -92,7 +92,7 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
         let mut mesh = Mesh::new(obj_mat);
         let mut vertex_map = HashMap::new();
-        for tri in &obj.polygons[range.start_i..range.end_i] {
+        for tri in &obj.triangles[range.start_i..range.end_i] {
             let default_tex_coords= [0.0; 2];
             for index_vertex in &tri.index_vertices {
                 match vertex_map.get(index_vertex) {
@@ -101,16 +101,14 @@ pub fn load_scene<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
                     None => {
                         // Add vertex to map
                         vertex_map.insert(index_vertex, mesh.vertices.len() as u32);
-                        // Panic if there is no positions
-                        let pos_i = index_vertex[0].expect("No vertex positions!");
-                        let pos = obj.positions[pos_i];
+                        let pos = obj.positions[index_vertex.pos_i];
                         scene.update_ranges(pos);
 
-                        let tex_coords = match index_vertex[1] {
-                            Some(tex_coords_i) => obj.tex_coords[tex_coords_i],
+                        let tex_coords = match index_vertex.tex_i {
+                            Some(tex_i) => obj.tex_coords[tex_i],
                             None => default_tex_coords
                         };
-                        let normal = match index_vertex[2] {
+                        let normal = match index_vertex.normal_i {
                             Some(normal_i) => obj.normals[normal_i],
                             None => calculate_normal(tri)
                         };
