@@ -31,7 +31,7 @@ pub struct Scene {
     pub max: [f32; 3],
 }
 
-#[allow(needless_range_loop)]
+#[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
     /// Get the center of the scene as defined by the bounding box
     pub fn get_center(&self) -> [f32; 3] {

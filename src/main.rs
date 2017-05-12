@@ -1,6 +1,5 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![allow(unknown_lints)]
 #[macro_use]
 extern crate glium;
 extern crate cgmath;
