@@ -12,8 +12,10 @@ use glium::{DrawParameters, VertexBuffer, Program, Surface};
 use glium::backend::Facade;
 
 use cgmath::Matrix4;
+use cgmath::conv::*;
 
 use self::mesh::Mesh;
+use self::material::Material;
 
 /// Renderer representation of a vertex
 #[derive(Copy, Clone, Debug)]
@@ -30,6 +32,7 @@ implement_vertex!(Vertex, position, normal, tex_coords);
 pub struct Scene {
     pub vertices: Vec<Vertex>,
     pub meshes: Vec<Mesh>,
+    pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     /// Bounding box of the scene
     pub min: [f32; 3],
@@ -45,13 +48,26 @@ impl Scene {
         for mesh in &mut self.meshes {
             mesh.upload_data(facade);
         }
+        for material in &mut self.materials {
+            material.upload_textures(facade);
+        }
     }
 
     pub fn draw<S: Surface>(&self, target: &mut S, program: &Program, draw_parameters: &DrawParameters,
                             world_to_clip: Matrix4<f32>) {
         for mesh in &self.meshes {
-            mesh.draw(target, program, draw_parameters, world_to_clip,
-                      self.vertex_buffer.as_ref().expect("No vertex buffer!"))
+            let material = &self.materials[mesh.material_i];
+            let uniforms = uniform! {
+                local_to_world: array4x4(mesh.local_to_world),
+                world_to_clip: array4x4(world_to_clip),
+                u_light: [-1.0, 0.4, 0.9f32],
+                u_color: material.diffuse,
+                u_has_diffuse: material.diffuse_image.is_some(),
+                tex_diffuse: material.diffuse_texture.as_ref().expect("Use of unloaded texture!")
+            };
+            target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer"),
+                        mesh.index_buffer.as_ref().expect("No index buffer!"),
+                        program, &uniforms, draw_parameters).unwrap();
         }
     }
 
@@ -109,11 +125,12 @@ pub fn load_scene(scene_path: &Path) -> Scene {
     };
 
     // Group the polygons by materials for easy rendering
+    let mut vertex_map = HashMap::new();
     for range in &obj.material_ranges {
         let obj_mat = obj.materials.get(&range.name)
             .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
-        let mut mesh = Mesh::new(obj_mat);
-        let mut vertex_map = HashMap::new();
+        let mut mesh = Mesh::new(scene.materials.len());
+        scene.materials.push(Material::new(obj_mat));
         for tri in &obj.triangles[range.start_i..range.end_i] {
             let default_tex_coords= [0.0; 2];
             for index_vertex in &tri.index_vertices {
