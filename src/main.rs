@@ -55,8 +55,8 @@ fn main() {
     scene.upload_data(&display);
 
     let src_path = root_path.join("src");
-    let vertex_shader_src = read_shader_from_file(&src_path.join("vertex.glsl"));
-    let fragment_shader_src = read_shader_from_file(&src_path.join("fragment.glsl"));
+    let vertex_shader_src = read_shader_from_file(&src_path.join("preview.vert"));
+    let fragment_shader_src = read_shader_from_file(&src_path.join("preview.frag"));
     let program = glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None)
         .expect("Failed to create program!");
 
