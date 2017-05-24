@@ -4,12 +4,10 @@
 extern crate glium;
 extern crate cgmath;
 
-use std::io::Read;
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use glium::{DisplayBuild, Surface};
-use glium::glutin::{Event, ElementState};
+use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
 use cgmath::{Vector3, Point3};
 
@@ -31,13 +29,6 @@ fn get_project_root() -> PathBuf {
     parent_dir.to_path_buf()
 }
 
-/// Read a shader found at path
-fn read_shader_from_file(shader_path: &Path) -> String {
-    let mut file = File::open(shader_path).unwrap();
-    let mut shader_src = String::new();
-    file.read_to_string(&mut shader_src).unwrap();
-    shader_src
-}
 
 fn main() {
     let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
@@ -51,29 +42,14 @@ fn main() {
                       "scenes/cornell-box/CornellBox-Water.obj",
                       "scenes/nanosuit/nanosuit.obj",
                       "scenes/sibenik/sibenik.obj");
-    let mut scene = scene::load_scene(&root_path.join(scenes[0]));
-    scene.upload_data(&display);
-
-    let src_path = root_path.join("src");
-    let vertex_shader_src = read_shader_from_file(&src_path.join("preview.vert"));
-    let fragment_shader_src = read_shader_from_file(&src_path.join("preview.frag"));
-    let program = glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None)
-        .expect("Failed to create program!");
-
-    let params = glium::DrawParameters {
-        depth: glium::Depth {
-            test: glium::draw_parameters::DepthTest::IfLess,
-            write: true,
-            .. Default::default()
-        },
-        .. Default::default()
-    };
+    let mut scene = scene::Scene::init(&root_path.join(scenes[0]), &display);
 
     let mut input = InputState::new();
     let mut camera = Camera::new(Point3::from(scene.get_center())
                                  + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
     camera.set_scale(scene.get_size());
+    let mut trace = false;
 
     loop {
         let mut target = display.draw();
@@ -85,25 +61,28 @@ fn main() {
             let world_to_camera = camera.get_world_to_camera();
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-            scene.draw(&mut target, &program, &params, camera_to_clip * world_to_camera);
+            if trace {
+            } else {
+                scene.draw(&mut target, camera_to_clip * world_to_camera);
+            }
         }
         target.finish().unwrap();
 
         for event in display.poll_events() {
             input.update(&event);
             match event {
-                // Not sure how portable this is
+                // Get number pressed based on the keycode
                 Event::KeyboardInput(ElementState::Pressed, code @ 2...11, _) => {
                     let i = code as usize - 2;
                     if i < scenes.len() {
-                        scene = scene::load_scene(&root_path.join(scenes[i]));
-                        scene.upload_data(&display);
+                        scene = scene::Scene::init(&root_path.join(scenes[i]), &display);
                         camera.set_position(Point3::from(scene.get_center())
                                  + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
                         camera.set_scale(scene.get_size());
                     }
-                }
+                },
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Space)) => trace = !trace,
                 Event::Closed => return,
                 _ => ()
             }

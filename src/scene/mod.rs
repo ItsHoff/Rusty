@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
+use glium;
 use glium::{DrawParameters, VertexBuffer, Program, Surface};
 use glium::backend::Facade;
 
@@ -34,6 +35,7 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
+    preview_shader: Option<Program>,
     /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],
@@ -41,8 +43,79 @@ pub struct Scene {
 
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
+    pub fn init<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
+        let mut scene = Scene { .. Default::default() };
+        scene.load_scene(scene_path);
+        scene.upload_data(facade);
+        scene.init_renderers(facade);
+        scene
+    }
+
+    /// Load a scene from the given path
+    fn load_scene(&mut self, scene_path: &Path) {
+        let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
+
+        // Closure to calculate planar normal for a triangle
+        let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {
+            let pos_i1 = triangle.index_vertices[0].pos_i;
+            let pos_i2 = triangle.index_vertices[1].pos_i;
+            let pos_i3 = triangle.index_vertices[2].pos_i;
+            let pos_1 = obj.positions[pos_i1];
+            let pos_2 = obj.positions[pos_i2];
+            let pos_3 = obj.positions[pos_i3];
+            let u = [pos_2[0] - pos_1[0],
+                    pos_2[1] - pos_1[1],
+                    pos_2[2] - pos_1[2]];
+            let v = [pos_3[0] - pos_1[0],
+                    pos_3[1] - pos_1[1],
+                    pos_3[2] - pos_1[2]];
+            [u[1]*v[2] - u[2]*v[1],
+            u[2]*v[0] - u[0]*v[2],
+            u[0]*v[1] - u[1]*v[0]]
+        };
+
+        // Group the polygons by materials for easy rendering
+        let mut vertex_map = HashMap::new();
+        for range in &obj.material_ranges {
+            let obj_mat = obj.materials.get(&range.name)
+                .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
+            let mut mesh = Mesh::new(self.materials.len());
+            self.materials.push(Material::new(obj_mat));
+            for tri in &obj.triangles[range.start_i..range.end_i] {
+                let default_tex_coords= [0.0; 2];
+                for index_vertex in &tri.index_vertices {
+                    match vertex_map.get(index_vertex) {
+                        // Vertex has already been added
+                        Some(&i) => mesh.indices.push(i),
+                        None => {
+                            // Add vertex to map
+                            vertex_map.insert(index_vertex, self.vertices.len() as u32);
+                            let pos = obj.positions[index_vertex.pos_i];
+                            self.update_ranges(pos);
+
+                            let tex_coords = match index_vertex.tex_i {
+                                Some(tex_i) => obj.tex_coords[tex_i],
+                                None => default_tex_coords
+                            };
+                            let normal = match index_vertex.normal_i {
+                                Some(normal_i) => obj.normals[normal_i],
+                                None => calculate_normal(tri)
+                            };
+
+                            mesh.indices.push(self.vertices.len() as u32);
+                            self.vertices.push(Vertex { position: pos, normal: normal, tex_coords: tex_coords });
+                        }
+                    }
+                }
+            }
+            if !mesh.indices.is_empty() {
+                self.meshes.push(mesh);
+            }
+        }
+    }
+
     /// Load the textures + vertex and index buffers to the GPU
-    pub fn upload_data<F: Facade>(&mut self, facade: &F) {
+    fn upload_data<F: Facade>(&mut self, facade: &F) {
         self.vertex_buffer = Some(VertexBuffer::new(facade, &self.vertices)
                                   .expect("Failed to create vertex buffer!"));
         for mesh in &mut self.meshes {
@@ -53,8 +126,24 @@ impl Scene {
         }
     }
 
-    pub fn draw<S: Surface>(&self, target: &mut S, program: &Program, draw_parameters: &DrawParameters,
-                            world_to_clip: Matrix4<f32>) {
+    fn init_renderers<F: Facade>(&mut self, facade: &F) {
+        let vertex_shader_src = include_str!("../preview.vert");
+        let fragment_shader_src = include_str!("../preview.frag");
+        let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+            .expect("Failed to create program!");
+        self.preview_shader = Some(program);
+    }
+
+    pub fn draw<S: Surface>(&self, target: &mut S, world_to_clip: Matrix4<f32>) {
+        let draw_parameters = DrawParameters {
+            depth: glium::Depth {
+                test: glium::draw_parameters::DepthTest::IfLess,
+                write: true,
+                .. Default::default()
+            },
+            .. Default::default()
+        };
+
         for mesh in &self.meshes {
             let material = &self.materials[mesh.material_i];
             let uniforms = uniform! {
@@ -67,7 +156,8 @@ impl Scene {
             };
             target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer"),
                         mesh.index_buffer.as_ref().expect("No index buffer!"),
-                        program, &uniforms, draw_parameters).unwrap();
+                        self.preview_shader.as_ref().expect("No shader!"),
+                        &uniforms, &draw_parameters).unwrap();
         }
     }
 
@@ -98,69 +188,4 @@ impl Scene {
             self.max[i] = self.max[i].max(new_pos[i]);
         }
     }
-}
-
-/// Load a scene from the given path bind resources to given facade
-pub fn load_scene(scene_path: &Path) -> Scene {
-    let mut scene = Scene { .. Default::default() };
-    let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
-
-    // Closure to calculate planar normal for a triangle
-    let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {
-        let pos_i1 = triangle.index_vertices[0].pos_i;
-        let pos_i2 = triangle.index_vertices[1].pos_i;
-        let pos_i3 = triangle.index_vertices[2].pos_i;
-        let pos_1 = obj.positions[pos_i1];
-        let pos_2 = obj.positions[pos_i2];
-        let pos_3 = obj.positions[pos_i3];
-        let u = [pos_2[0] - pos_1[0],
-                 pos_2[1] - pos_1[1],
-                 pos_2[2] - pos_1[2]];
-        let v = [pos_3[0] - pos_1[0],
-                 pos_3[1] - pos_1[1],
-                 pos_3[2] - pos_1[2]];
-        [u[1]*v[2] - u[2]*v[1],
-         u[2]*v[0] - u[0]*v[2],
-         u[0]*v[1] - u[1]*v[0]]
-    };
-
-    // Group the polygons by materials for easy rendering
-    let mut vertex_map = HashMap::new();
-    for range in &obj.material_ranges {
-        let obj_mat = obj.materials.get(&range.name)
-            .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
-        let mut mesh = Mesh::new(scene.materials.len());
-        scene.materials.push(Material::new(obj_mat));
-        for tri in &obj.triangles[range.start_i..range.end_i] {
-            let default_tex_coords= [0.0; 2];
-            for index_vertex in &tri.index_vertices {
-                match vertex_map.get(index_vertex) {
-                    // Vertex has already been added
-                    Some(&i) => mesh.indices.push(i),
-                    None => {
-                        // Add vertex to map
-                        vertex_map.insert(index_vertex, scene.vertices.len() as u32);
-                        let pos = obj.positions[index_vertex.pos_i];
-                        scene.update_ranges(pos);
-
-                        let tex_coords = match index_vertex.tex_i {
-                            Some(tex_i) => obj.tex_coords[tex_i],
-                            None => default_tex_coords
-                        };
-                        let normal = match index_vertex.normal_i {
-                            Some(normal_i) => obj.normals[normal_i],
-                            None => calculate_normal(tri)
-                        };
-
-                        mesh.indices.push(scene.vertices.len() as u32);
-                        scene.vertices.push(Vertex { position: pos, normal: normal, tex_coords: tex_coords });
-                    }
-                }
-            }
-        }
-        if !mesh.indices.is_empty() {
-            scene.meshes.push(mesh);
-        }
-    }
-    scene
 }
