@@ -62,6 +62,7 @@ fn main() {
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
             if trace {
+                scene.trace(&mut target);
             } else {
                 scene.draw(&mut target, camera_to_clip * world_to_camera);
             }

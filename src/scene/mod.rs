@@ -9,7 +9,7 @@ use std::path::Path;
 use std::vec::Vec;
 
 use glium;
-use glium::{DrawParameters, VertexBuffer, Program, Surface};
+use glium::{DrawParameters, VertexBuffer, IndexBuffer, Program, Surface};
 use glium::backend::Facade;
 
 use cgmath::Matrix4;
@@ -35,7 +35,10 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
+    image_vertex_buffer: Option<VertexBuffer<Vertex>>,
+    image_index_buffer: Option<IndexBuffer<u32>>,
     preview_shader: Option<Program>,
+    image_shader: Option<Program>,
     /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],
@@ -124,14 +127,41 @@ impl Scene {
         for material in &mut self.materials {
             material.upload_textures(facade);
         }
+        let vertices = vec!(
+            Vertex { position: [-1.0, -1.0, 0.0],
+                     normal: [0.0, 0.0, 0.0],
+                     tex_coords: [0.0, 0.0] },
+            Vertex { position: [1.0, -1.0, 0.0],
+                     normal: [0.0, 0.0, 0.0],
+                     tex_coords: [1.0, 0.0] },
+            Vertex { position: [1.0, 1.0, 0.0],
+                     normal: [0.0, 0.0, 0.0],
+                     tex_coords: [1.0, 1.0] },
+            Vertex { position: [-1.0, 1.0, 0.0],
+                     normal: [0.0, 0.0, 0.0],
+                     tex_coords: [0.0, 1.0] },
+        );
+        self.image_vertex_buffer = Some(VertexBuffer::new(facade, &vertices)
+                                  .expect("Failed to create vertex buffer!"));
+        let indices = vec!(0, 1, 2, 0, 2, 3);
+        self.image_index_buffer = Some(IndexBuffer::new(facade, glium::index::PrimitiveType::TrianglesList,
+                                                        &indices) .expect("Failed to create index buffer!"));
     }
 
     fn init_renderers<F: Facade>(&mut self, facade: &F) {
+        // Preview shader
         let vertex_shader_src = include_str!("../preview.vert");
         let fragment_shader_src = include_str!("../preview.frag");
         let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
         self.preview_shader = Some(program);
+
+        // Image shader
+        let vertex_shader_src = include_str!("../image.vert");
+        let fragment_shader_src = include_str!("../image.frag");
+        let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+            .expect("Failed to create program!");
+        self.image_shader = Some(program);
     }
 
     pub fn draw<S: Surface>(&self, target: &mut S, world_to_clip: Matrix4<f32>) {
@@ -156,7 +186,24 @@ impl Scene {
             };
             target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer"),
                         mesh.index_buffer.as_ref().expect("No index buffer!"),
-                        self.preview_shader.as_ref().expect("No shader!"),
+                        self.preview_shader.as_ref().expect("No preview shader!"),
+                        &uniforms, &draw_parameters).unwrap();
+        }
+    }
+
+    pub fn trace<S: Surface>(&self, target: &mut S) {
+        let draw_parameters = DrawParameters {
+            .. Default::default()
+        };
+
+        let material = &self.materials[0];
+        if let Some(ref texture) = material.diffuse_texture {
+            let uniforms = uniform! {
+                image: texture,
+            };
+            target.draw(self.image_vertex_buffer.as_ref().expect("No vertex buffer"),
+                        self.image_index_buffer.as_ref().expect("No index buffer!"),
+                        self.image_shader.as_ref().expect("No image shader!"),
                         &uniforms, &draw_parameters).unwrap();
         }
     }
