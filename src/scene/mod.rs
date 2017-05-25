@@ -11,9 +11,12 @@ use std::vec::Vec;
 use glium;
 use glium::{DrawParameters, VertexBuffer, IndexBuffer, Program, Surface};
 use glium::backend::Facade;
+use glium::texture::{RawImage2d, Texture2d};
 
 use cgmath::Matrix4;
 use cgmath::conv::*;
+
+use self::image::{RgbImage, Rgb};
 
 use self::mesh::Mesh;
 use self::material::Material;
@@ -39,6 +42,7 @@ pub struct Scene {
     image_index_buffer: Option<IndexBuffer<u32>>,
     preview_shader: Option<Program>,
     image_shader: Option<Program>,
+    t: u32,
     /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],
@@ -191,21 +195,28 @@ impl Scene {
         }
     }
 
-    pub fn trace<S: Surface>(&self, target: &mut S) {
+    pub fn trace<S: Surface, F: Facade>(&mut self, target: &mut S, facade: &F, width: u32, height: u32) {
         let draw_parameters = DrawParameters {
             .. Default::default()
         };
-
-        let material = &self.materials[0];
-        if let Some(ref texture) = material.diffuse_texture {
-            let uniforms = uniform! {
-                image: texture,
-            };
-            target.draw(self.image_vertex_buffer.as_ref().expect("No vertex buffer"),
-                        self.image_index_buffer.as_ref().expect("No index buffer!"),
-                        self.image_shader.as_ref().expect("No image shader!"),
-                        &uniforms, &draw_parameters).unwrap();
+        let mut image = RgbImage::new(width, height);
+        for x in 0..width {
+            for y in 0..height {
+                image.put_pixel(x, y, Rgb {data: [(255.0 * x as f32 / width as f32) as u8,
+                                                  (255.0 * y as f32 / height as f32) as u8,
+                                                  self.t as u8]});
+            }
         }
+        self.t += 1;
+        let raw_image = RawImage2d::from_raw_rgb(image.into_raw(), (width, height));
+        let texture = Texture2d::new(facade, raw_image).expect("Failed to upload traced image!");
+        let uniforms = uniform! {
+            image: &texture,
+        };
+        target.draw(self.image_vertex_buffer.as_ref().expect("No vertex buffer"),
+                    self.image_index_buffer.as_ref().expect("No index buffer!"),
+                    self.image_shader.as_ref().expect("No image shader!"),
+                    &uniforms, &draw_parameters).unwrap();
     }
 
     /// Get the center of the scene as defined by the bounding box
