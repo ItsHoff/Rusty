@@ -16,7 +16,7 @@ use glium::texture::{RawImage2d, Texture2d};
 use cgmath::Matrix4;
 use cgmath::conv::*;
 
-use self::image::{RgbImage, Rgb};
+use self::image::{ImageBuffer, Rgb};
 
 use self::mesh::Mesh;
 use self::material::Material;
@@ -199,16 +199,17 @@ impl Scene {
         let draw_parameters = DrawParameters {
             .. Default::default()
         };
-        let mut image = RgbImage::new(width, height);
+        let mut image = ImageBuffer::<Rgb<f32>, Vec<f32>>::new(width, height);
         for x in 0..width {
             for y in 0..height {
-                image.put_pixel(x, y, Rgb {data: [(255.0 * x as f32 / width as f32) as u8,
-                                                  (255.0 * y as f32 / height as f32) as u8,
-                                                  self.t as u8]});
+                image.put_pixel(x, y, Rgb {data: [x as f32 / width as f32,
+                                                  y as f32 / height as f32,
+                                                  (self.t % 255) as f32 / 255.0]});
             }
         }
         self.t += 1;
-        let raw_image = RawImage2d::from_raw_rgb(image.into_raw(), (width, height));
+        let mut raw_image = RawImage2d::from_raw_rgb(image.into_raw(), (width, height));
+        raw_image.format = glium::texture::ClientFormat::F32F32F32;
         let texture = Texture2d::new(facade, raw_image).expect("Failed to upload traced image!");
         let uniforms = uniform! {
             image: &texture,
