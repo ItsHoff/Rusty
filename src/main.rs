@@ -6,8 +6,8 @@ extern crate cgmath;
 
 use std::path::PathBuf;
 
-use glium::{DisplayBuild, Surface};
-use glium::glutin::{Event, ElementState, VirtualKeyCode};
+use glium::{ Surface};
+use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
 
 use cgmath::{Vector3, Point3};
 
@@ -31,7 +31,10 @@ fn get_project_root() -> PathBuf {
 
 
 fn main() {
-    let display = glium::glutin::WindowBuilder::new().with_depth_buffer(24).build_glium().unwrap();
+    let mut events_loop = glium::glutin::EventsLoop::new();
+    let window = glium::glutin::WindowBuilder::new();
+    let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
+    let display = glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
     let root_path = get_project_root();
     // TODO: Enable use of arbitrary scene
@@ -69,24 +72,34 @@ fn main() {
         }
         target.finish().unwrap();
 
-        for event in display.poll_events() {
+        { // TODO clean this up
+        let event_handler = |event| {
             input.update(&event);
             match event {
-                // Get number pressed based on the keycode
-                Event::KeyboardInput(ElementState::Pressed, code @ 2...11, _) => {
-                    let i = code as usize - 2;
-                    if i < scenes.len() {
-                        scene = scene::Scene::init(&root_path.join(scenes[i]), &display);
-                        camera.set_position(Point3::from(scene.get_center())
-                                 + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                 Vector3::new(0.0, 0.0, -1.0f32));
-                        camera.set_scale(scene.get_size());
+                Event::WindowEvent{event: WindowEvent::KeyboardInput{input, ..}, ..} => {
+                    match input {
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Space), ..}
+                        => trace = !trace,
+                        // Get number pressed based on the keycode
+                        KeyboardInput{state: ElementState::Pressed, scancode, ..} => {
+                            let i = scancode as usize - 2;
+                            if 0 < i && i < scenes.len() {
+                                scene = scene::Scene::init(&root_path.join(scenes[i]), &display);
+                                camera.set_position(Point3::from(scene.get_center())
+                                                    + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
+                                                    Vector3::new(0.0, 0.0, -1.0f32));
+                                camera.set_scale(scene.get_size());
+                            }
+                        },
+                        _ => ()
                     }
-                },
-                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Space)) => trace = !trace,
-                Event::Closed => return,
+                }
+                Event::WindowEvent{event: WindowEvent::Closed, ..} => return,
                 _ => ()
             }
+        };
+        events_loop.poll_events(event_handler);
         }
         camera.process_input(&input);
         input.reset_deltas();

@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use glium::glutin::{Event, ElementState, MouseButton, VirtualKeyCode};
+use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, MouseButton, VirtualKeyCode};
 
 pub struct InputState {
     /// Position of the mouse
-    pub mouse_pos: (i32, i32),
+    pub mouse_pos: (f64, f64),
     /// Movement of the mouse
-    pub d_mouse: (i32, i32),
+    pub d_mouse: (f64, f64),
     /// Currently pressed mouse buttons with the time of the press
     pub mouse_presses: HashMap<MouseButton, Instant>,
     /// Currently pressed keys with the time of the press
@@ -19,8 +19,8 @@ pub struct InputState {
 impl InputState {
     /// Get a new empty input state
     pub fn new() -> InputState {
-        InputState { mouse_pos: (0, 0),
-                     d_mouse: (0, 0),
+        InputState { mouse_pos: (0.0, 0.0),
+                     d_mouse: (0.0, 0.0),
                      mouse_presses: HashMap::new(),
                      key_presses: HashMap::new(),
                      last_reset: Instant::now()
@@ -30,25 +30,35 @@ impl InputState {
     /// Update the state with an event
     pub fn update(&mut self, event: &Event) {
         match *event {
-            Event::MouseMoved(x, y) => {
-                self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
-                self.mouse_pos = (x, y);
-            }
-            Event::MouseInput(ElementState::Pressed, button) => {
-                self.mouse_presses.entry(button).or_insert_with(Instant::now);
-            }
-            Event::MouseInput(ElementState::Released, button) => {
-               self.mouse_presses.remove(&button);
-            }
-            Event::KeyboardInput(ElementState::Pressed, _, Some(key)) => {
-                self.key_presses.entry(key).or_insert_with(Instant::now);
-            }
-            Event::KeyboardInput(ElementState::Released, _, Some(key)) => {
-                self.key_presses.remove(&key);
-            }
-            Event::Focused(false) => {
-                self.mouse_presses.clear();
-                self.key_presses.clear();
+            Event::WindowEvent{ref event, ..} => {
+                match *event {
+                    WindowEvent::MouseMoved{position:(x, y), ..} => {
+                        self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
+                        self.mouse_pos = (x, y);
+                    }
+                    WindowEvent::MouseInput{state: ElementState::Pressed, button, ..} => {
+                        self.mouse_presses.entry(button).or_insert_with(Instant::now);
+                    }
+                    WindowEvent::MouseInput{state: ElementState::Released, button, ..} => {
+                        self.mouse_presses.remove(&button);
+                    }
+                    WindowEvent::KeyboardInput{input, ..} => {
+                        match input {
+                            KeyboardInput{state: ElementState::Pressed, virtual_keycode: Some(key), ..} => {
+                                self.key_presses.entry(key).or_insert_with(Instant::now);
+                            }
+                            KeyboardInput{state: ElementState::Released, virtual_keycode: Some(key), ..} => {
+                                self.key_presses.remove(&key);
+                            }
+                            _ => ()
+                        }
+                    }
+                    WindowEvent::Focused(false) => {
+                        self.mouse_presses.clear();
+                        self.key_presses.clear();
+                    }
+                    _ => ()
+                }
             }
             _ => ()
         }
@@ -56,7 +66,7 @@ impl InputState {
 
     /// Reset the delta values after a loop
     pub fn reset_deltas(&mut self) {
-        self.d_mouse = (0, 0);
+        self.d_mouse = (0.0, 0.0);
         self.last_reset = Instant::now();
     }
 }

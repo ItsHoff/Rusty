@@ -41,7 +41,7 @@ impl Material {
         self.diffuse_texture = match self.diffuse_image {
             Some(ref image) => {
                 let image_dim = image.dimensions();
-                let tex_image = RawImage2d::from_raw_rgba_reversed(image.clone().into_raw(), image_dim);
+                let tex_image = RawImage2d::from_raw_rgba_reversed(&image.clone().into_raw(), image_dim);
                 Some(SrgbTexture2d::new(facade, tex_image).expect("Failed to upload texture!"))
             }
             // Use empty texture as a placeholder
