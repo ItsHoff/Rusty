@@ -29,38 +29,35 @@ impl InputState {
 
     /// Update the state with an event
     pub fn update(&mut self, event: &Event) {
-        match *event {
-            Event::WindowEvent{ref event, ..} => {
-                match *event {
-                    WindowEvent::MouseMoved{position:(x, y), ..} => {
-                        self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
-                        self.mouse_pos = (x, y);
-                    }
-                    WindowEvent::MouseInput{state: ElementState::Pressed, button, ..} => {
-                        self.mouse_presses.entry(button).or_insert_with(Instant::now);
-                    }
-                    WindowEvent::MouseInput{state: ElementState::Released, button, ..} => {
-                        self.mouse_presses.remove(&button);
-                    }
-                    WindowEvent::KeyboardInput{input, ..} => {
-                        match input {
-                            KeyboardInput{state: ElementState::Pressed, virtual_keycode: Some(key), ..} => {
-                                self.key_presses.entry(key).or_insert_with(Instant::now);
-                            }
-                            KeyboardInput{state: ElementState::Released, virtual_keycode: Some(key), ..} => {
-                                self.key_presses.remove(&key);
-                            }
-                            _ => ()
-                        }
-                    }
-                    WindowEvent::Focused(false) => {
-                        self.mouse_presses.clear();
-                        self.key_presses.clear();
-                    }
-                    _ => ()
+        if let Event::WindowEvent{ref event, ..} = *event {
+            match *event {
+                WindowEvent::MouseMoved{position:(x, y), ..} => {
+                    self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
+                    self.mouse_pos = (x, y);
                 }
+                WindowEvent::MouseInput{state: ElementState::Pressed, button, ..} => {
+                    self.mouse_presses.entry(button).or_insert_with(Instant::now);
+                }
+                WindowEvent::MouseInput{state: ElementState::Released, button, ..} => {
+                    self.mouse_presses.remove(&button);
+                }
+                WindowEvent::KeyboardInput{input, ..} => {
+                    match input {
+                        KeyboardInput{state: ElementState::Pressed, virtual_keycode: Some(key), ..} => {
+                            self.key_presses.entry(key).or_insert_with(Instant::now);
+                        }
+                        KeyboardInput{state: ElementState::Released, virtual_keycode: Some(key), ..} => {
+                            self.key_presses.remove(&key);
+                        }
+                        _ => ()
+                    }
+                }
+                WindowEvent::Focused(false) => {
+                    self.mouse_presses.clear();
+                    self.key_presses.clear();
+                }
+                _ => ()
             }
-            _ => ()
         }
     }
 
