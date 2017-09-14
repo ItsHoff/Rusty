@@ -1,3 +1,4 @@
+#![cfg_attr(feature="clippy", allow(forget_copy))]
 extern crate image;
 
 mod material;
@@ -31,6 +32,11 @@ pub struct Vertex {
 
 implement_vertex!(Vertex, position, normal, tex_coords);
 
+/// Tracable triangle
+struct RTTriangle {
+    vert_is: [usize; 3],
+}
+
 /// Renderer representation of a scene
 #[derive(Default)]
 pub struct Scene {
@@ -38,6 +44,7 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
+    triangles: Vec<RTTriangle>,
     image_vertex_buffer: Option<VertexBuffer<Vertex>>,
     image_index_buffer: Option<IndexBuffer<u32>>,
     preview_shader: Option<Program>,
@@ -89,8 +96,9 @@ impl Scene {
             let mut mesh = Mesh::new(self.materials.len());
             self.materials.push(Material::new(obj_mat));
             for tri in &obj.triangles[range.start_i..range.end_i] {
-                let default_tex_coords= [0.0; 2];
-                for index_vertex in &tri.index_vertices {
+                let mut rt_tri = RTTriangle { vert_is: [0, 0, 0] };
+                let default_tex_coords = [0.0; 2];
+                for (i, index_vertex) in tri.index_vertices.iter().enumerate() {
                     match vertex_map.get(index_vertex) {
                         // Vertex has already been added
                         Some(&i) => mesh.indices.push(i),
@@ -110,10 +118,13 @@ impl Scene {
                             };
 
                             mesh.indices.push(self.vertices.len() as u32);
-                            self.vertices.push(Vertex { position: pos, normal: normal, tex_coords: tex_coords });
+                            rt_tri.vert_is[i] = self.vertices.len();
+                            self.vertices.push(Vertex { position: pos, normal: normal,
+                                                        tex_coords: tex_coords });
                         }
                     }
                 }
+                self.triangles.push(rt_tri);
             }
             if !mesh.indices.is_empty() {
                 self.meshes.push(mesh);
