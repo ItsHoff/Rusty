@@ -75,7 +75,7 @@ impl Scene {
                         // Vertex has already been added
                         Some(&i) => {
                             mesh.indices.push(i as u32);
-                            tri_builder.add_vertex(i);
+                            tri_builder.add_vertex(self.vertices[i]);
                         }
                         None => {
                             let pos = obj.positions[index_vertex.pos_i];
@@ -91,14 +91,15 @@ impl Scene {
                             };
 
                             mesh.indices.push(self.vertices.len() as u32);
-                            tri_builder.add_vertex(self.vertices.len());
                             vertex_map.insert(index_vertex, self.vertices.len());
                             self.vertices.push(Vertex { position: pos, normal: normal,
                                                         tex_coords: tex_coords });
+                            tri_builder.add_vertex(*self.vertices.last().unwrap());
                         }
                     }
                 }
-                self.triangles.push(tri_builder.build());
+                self.triangles.push(tri_builder.build()
+                                    .expect("Failed to build tri!"));
             }
             if !mesh.indices.is_empty() {
                 self.meshes.push(mesh);
