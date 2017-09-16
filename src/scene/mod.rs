@@ -1,6 +1,3 @@
-#![cfg_attr(feature="clippy", allow(forget_copy))]
-extern crate image;
-
 mod material;
 mod mesh;
 mod obj_load;
@@ -9,33 +6,14 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
-use glium;
-use glium::{DrawParameters, VertexBuffer, IndexBuffer, Program, Surface};
+use glium::VertexBuffer;
 use glium::backend::Facade;
-use glium::texture::{RawImage2d, Texture2d};
 
-use cgmath::Matrix4;
-use cgmath::conv::*;
-
-use self::image::{ImageBuffer, Rgb};
+use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
 
 use self::mesh::Mesh;
 use self::material::Material;
 
-/// Renderer representation of a vertex
-#[derive(Copy, Clone, Debug)]
-pub struct Vertex {
-    pub position: [f32; 3],
-    pub normal: [f32; 3],
-    pub tex_coords: [f32; 2]
-}
-
-implement_vertex!(Vertex, position, normal, tex_coords);
-
-/// Tracable triangle
-struct RTTriangle {
-    vert_is: [usize; 3],
-}
 
 /// Renderer representation of a scene
 #[derive(Default)]
@@ -45,11 +23,6 @@ pub struct Scene {
     pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     triangles: Vec<RTTriangle>,
-    image_vertex_buffer: Option<VertexBuffer<Vertex>>,
-    image_index_buffer: Option<IndexBuffer<u32>>,
-    preview_shader: Option<Program>,
-    image_shader: Option<Program>,
-    t: u32,
     /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],
@@ -57,11 +30,10 @@ pub struct Scene {
 
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
-    pub fn init<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
-        let mut scene = Scene { .. Default::default() };
+    pub fn new<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
+        let mut scene = Scene { ..Default::default() };
         scene.load_scene(scene_path);
         scene.upload_data(facade);
-        scene.init_renderers(facade);
         scene
     }
 
@@ -96,15 +68,16 @@ impl Scene {
             let mut mesh = Mesh::new(self.materials.len());
             self.materials.push(Material::new(obj_mat));
             for tri in &obj.triangles[range.start_i..range.end_i] {
-                let mut rt_tri = RTTriangle { vert_is: [0, 0, 0] };
+                let mut tri_builder = RTTriangleBuilder::new();
                 let default_tex_coords = [0.0; 2];
-                for (i, index_vertex) in tri.index_vertices.iter().enumerate() {
+                for index_vertex in &tri.index_vertices {
                     match vertex_map.get(index_vertex) {
                         // Vertex has already been added
-                        Some(&i) => mesh.indices.push(i),
+                        Some(&i) => {
+                            mesh.indices.push(i as u32);
+                            tri_builder.add_vertex(i);
+                        }
                         None => {
-                            // Add vertex to map
-                            vertex_map.insert(index_vertex, self.vertices.len() as u32);
                             let pos = obj.positions[index_vertex.pos_i];
                             self.update_ranges(pos);
 
@@ -118,13 +91,14 @@ impl Scene {
                             };
 
                             mesh.indices.push(self.vertices.len() as u32);
-                            rt_tri.vert_is[i] = self.vertices.len();
+                            tri_builder.add_vertex(self.vertices.len());
+                            vertex_map.insert(index_vertex, self.vertices.len());
                             self.vertices.push(Vertex { position: pos, normal: normal,
                                                         tex_coords: tex_coords });
                         }
                     }
                 }
-                self.triangles.push(rt_tri);
+                self.triangles.push(tri_builder.build());
             }
             if !mesh.indices.is_empty() {
                 self.meshes.push(mesh);
@@ -142,93 +116,6 @@ impl Scene {
         for material in &mut self.materials {
             material.upload_textures(facade);
         }
-        let vertices = vec!(
-            Vertex { position: [-1.0, -1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [0.0, 0.0] },
-            Vertex { position: [1.0, -1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [1.0, 0.0] },
-            Vertex { position: [1.0, 1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [1.0, 1.0] },
-            Vertex { position: [-1.0, 1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [0.0, 1.0] },
-        );
-        self.image_vertex_buffer = Some(VertexBuffer::new(facade, &vertices)
-                                  .expect("Failed to create vertex buffer!"));
-        let indices = vec!(0, 1, 2, 0, 2, 3);
-        self.image_index_buffer = Some(IndexBuffer::new(facade, glium::index::PrimitiveType::TrianglesList,
-                                                        &indices) .expect("Failed to create index buffer!"));
-    }
-
-    fn init_renderers<F: Facade>(&mut self, facade: &F) {
-        // Preview shader
-        let vertex_shader_src = include_str!("../preview.vert");
-        let fragment_shader_src = include_str!("../preview.frag");
-        let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
-            .expect("Failed to create program!");
-        self.preview_shader = Some(program);
-
-        // Image shader
-        let vertex_shader_src = include_str!("../image.vert");
-        let fragment_shader_src = include_str!("../image.frag");
-        let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
-            .expect("Failed to create program!");
-        self.image_shader = Some(program);
-    }
-
-    pub fn draw<S: Surface>(&self, target: &mut S, world_to_clip: Matrix4<f32>) {
-        let draw_parameters = DrawParameters {
-            depth: glium::Depth {
-                test: glium::draw_parameters::DepthTest::IfLess,
-                write: true,
-                .. Default::default()
-            },
-            .. Default::default()
-        };
-
-        for mesh in &self.meshes {
-            let material = &self.materials[mesh.material_i];
-            let uniforms = uniform! {
-                local_to_world: array4x4(mesh.local_to_world),
-                world_to_clip: array4x4(world_to_clip),
-                u_light: [-1.0, 0.4, 0.9f32],
-                u_color: material.diffuse,
-                u_has_diffuse: material.diffuse_image.is_some(),
-                tex_diffuse: material.diffuse_texture.as_ref().expect("Use of unloaded texture!")
-            };
-            target.draw(self.vertex_buffer.as_ref().expect("No vertex buffer"),
-                        mesh.index_buffer.as_ref().expect("No index buffer!"),
-                        self.preview_shader.as_ref().expect("No preview shader!"),
-                        &uniforms, &draw_parameters).unwrap();
-        }
-    }
-
-    pub fn trace<S: Surface, F: Facade>(&mut self, target: &mut S, facade: &F, width: u32, height: u32) {
-        let draw_parameters = DrawParameters {
-            .. Default::default()
-        };
-        let mut image = ImageBuffer::<Rgb<f32>, Vec<f32>>::new(width, height);
-        for x in 0..width {
-            for y in 0..height {
-                image.put_pixel(x, y, Rgb {data: [x as f32 / width as f32,
-                                                  y as f32 / height as f32,
-                                                  (self.t % 255) as f32 / 255.0]});
-            }
-        }
-        self.t += 1;
-        let mut raw_image = RawImage2d::from_raw_rgb(image.into_raw(), (width, height));
-        raw_image.format = glium::texture::ClientFormat::F32F32F32;
-        let texture = Texture2d::new(facade, raw_image).expect("Failed to upload traced image!");
-        let uniforms = uniform! {
-            image: &texture,
-        };
-        target.draw(self.image_vertex_buffer.as_ref().expect("No vertex buffer"),
-                    self.image_index_buffer.as_ref().expect("No index buffer!"),
-                    self.image_shader.as_ref().expect("No image shader!"),
-                    &uniforms, &draw_parameters).unwrap();
     }
 
     /// Get the center of the scene as defined by the bounding box

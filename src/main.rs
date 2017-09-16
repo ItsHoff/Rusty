@@ -13,6 +13,7 @@ use cgmath::{Vector3, Point3};
 
 mod camera;
 mod input;
+mod renderer;
 mod scene;
 
 use camera::Camera;
@@ -45,7 +46,9 @@ fn main() {
                       "scenes/cornell-box/CornellBox-Water.obj",
                       "scenes/nanosuit/nanosuit.obj",
                       "scenes/sibenik/sibenik.obj");
-    let mut scene = scene::Scene::init(&root_path.join(scenes[0]), &display);
+    let mut scene = scene::Scene::new(&root_path.join(scenes[0]), &display);
+    let gl_renderer = renderer::GLRenderer::new(&display);
+    let pt_renderer = renderer::PTRenderer::new(&display);
 
     let mut input = InputState::new();
     let mut camera = Camera::new(Point3::from(scene.get_center())
@@ -65,9 +68,9 @@ fn main() {
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
             if trace {
-                scene.trace(&mut target, &display, width, height);
+                pt_renderer.render(&scene, &mut target, &display, width as usize, height as usize);
             } else {
-                scene.draw(&mut target, camera_to_clip * world_to_camera);
+                gl_renderer.render(&scene, &mut target, camera_to_clip * world_to_camera);
             }
         }
         target.finish().unwrap();
@@ -85,7 +88,7 @@ fn main() {
                         KeyboardInput{state: ElementState::Pressed, scancode, ..} => {
                             let i = scancode as usize - 2;
                             if 0 < i && i < scenes.len() {
-                                scene = scene::Scene::init(&root_path.join(scenes[i]), &display);
+                                scene = scene::Scene::new(&root_path.join(scenes[i]), &display);
                                 camera.set_position(Point3::from(scene.get_center())
                                                     + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
                                                     Vector3::new(0.0, 0.0, -1.0f32));

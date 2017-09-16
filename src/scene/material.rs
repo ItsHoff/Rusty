@@ -1,3 +1,5 @@
+extern crate image;
+
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -5,7 +7,6 @@ use std::path::Path;
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
 
-use scene::image;
 use scene::obj_load;
 
 /// Renderer representation of a material
