@@ -85,10 +85,6 @@ impl RTTriangle {
                                                   p1.to_homogeneous());
         let to_barycentric = from_barycentric.invert()
             .expect("Non invertible barycentric tranform");
-        println!("p1: {:?}", to_barycentric * p1.to_homogeneous());
-        println!("p2: {:?}", to_barycentric * p2.to_homogeneous());
-        println!("p3: {:?}", to_barycentric * p3.to_homogeneous());
-        println!("to_barycentric: {:?}", to_barycentric);
         RTTriangle { v1: v1, v2: v2, v3: v3, to_barycentric: to_barycentric }
     }
 
@@ -106,7 +102,8 @@ impl RTTriangle {
     }
 
     fn get_diffuse(&self, _u: f32, _v: f32) -> Vector3<f32> {
-        Vector3::new(1.0, 0.0, 0.0)
+        let p = self.v1.position.to_vec();
+        Vector3::new(p.x.abs(), p.y.abs(), p.z.abs()).normalize()
     }
 }
 
