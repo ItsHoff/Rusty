@@ -1,5 +1,5 @@
 use cgmath::prelude::*;
-use cgmath::{Vector3, Vector4, Point3};
+use cgmath::Vector4;
 
 use glium;
 use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters};
