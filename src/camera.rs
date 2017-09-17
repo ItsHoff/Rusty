@@ -13,9 +13,9 @@ use input::InputState;
 /// Representation of a camera
 pub struct Camera {
     /// Position of the camera in world coordinates
-    pos: Point3<f32>,
+    pub pos: Point3<f32>,
     /// Direction the camera is looking at in world coordinates
-    dir: Vector3<f32>,
+    pub dir: Vector3<f32>,
     /// Definition of camera up in world coordinates
     up: Vector3<f32>,
     /// Vertical field-of-view of the camera

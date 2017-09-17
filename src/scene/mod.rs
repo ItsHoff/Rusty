@@ -22,7 +22,7 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
-    triangles: Vec<RTTriangle>,
+    pub triangles: Vec<RTTriangle>,
     /// Bounding box of the scene
     pub min: [f32; 3],
     pub max: [f32; 3],

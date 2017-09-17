@@ -3,7 +3,8 @@
 mod gl_renderer;
 mod pt_renderer;
 
-use cgmath::{Vector3, Point3, Point2};
+use cgmath::{Vector3, Point2, Point3, Matrix4};
+use cgmath::prelude::*;
 
 pub use self::gl_renderer::GLRenderer;
 pub use self::pt_renderer::PTRenderer;
@@ -54,10 +55,11 @@ impl RTTriangleBuilder {
         if self.vertices.len() != 3 {
             Err("Triangle doesn't have 3 vertices!".to_owned())
         } else {
-            let vertices = [CGVertex::from(self.vertices[0]),
-                            CGVertex::from(self.vertices[1]),
-                            CGVertex::from(self.vertices[2])];
-            Ok(RTTriangle { vertices: vertices })
+            Ok(RTTriangle::new(
+                CGVertex::from(self.vertices[0]),
+                CGVertex::from(self.vertices[1]),
+                CGVertex::from(self.vertices[2]))
+               )
         }
     }
 }
@@ -65,5 +67,65 @@ impl RTTriangleBuilder {
 /// Tracable triangle
 #[derive(Debug)]
 pub struct RTTriangle {
-    vertices: [CGVertex; 3],
+    v1: CGVertex,
+    v2: CGVertex,
+    v3: CGVertex,
+    to_barycentric: Matrix4<f32>,
+}
+
+impl RTTriangle {
+    fn new(v1: CGVertex, v2: CGVertex, v3: CGVertex) -> RTTriangle {
+        let p1 = v1.position;
+        let p2 = v2.position;
+        let p3 = v3.position;
+        let z = (p2 - p1).cross(p3 - p1).normalize();
+        let from_barycentric = Matrix4::from_cols((p2-p1).extend(0.0),
+                                                  (p3-p1).extend(0.0),
+                                                  z.extend(0.0),
+                                                  p1.to_homogeneous());
+        let to_barycentric = from_barycentric.invert()
+            .expect("Non invertible barycentric tranform");
+        println!("p1: {:?}", to_barycentric * p1.to_homogeneous());
+        println!("p2: {:?}", to_barycentric * p2.to_homogeneous());
+        println!("p3: {:?}", to_barycentric * p3.to_homogeneous());
+        println!("to_barycentric: {:?}", to_barycentric);
+        RTTriangle { v1: v1, v2: v2, v3: v3, to_barycentric: to_barycentric }
+    }
+
+    fn intersect(&self, ray: &Ray) -> Option<Hit> {
+        let bary_o = self.to_barycentric * ray.orig.to_homogeneous();
+        let bary_d = self.to_barycentric * ray.dir.extend(0.0);
+        let t = -bary_o.z / bary_d.z;
+        let u = bary_o.x + t * bary_d.x;
+        let v = bary_o.y + t * bary_d.y;
+        if u > 0.0 && v > 0.0 && u + v < 1.0 && t > 0.0 && t < ray.length {
+            Some ( Hit { tri: self, t: t, u: u, v: v } )
+        } else {
+            None
+        }
+    }
+
+    fn get_diffuse(&self, _u: f32, _v: f32) -> Vector3<f32> {
+        Vector3::new(1.0, 0.0, 0.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct Hit<'a> {
+    tri: &'a RTTriangle,
+    t: f32,
+    u: f32,
+    v: f32,
+}
+
+pub struct Ray {
+    orig: Point3<f32>,
+    dir: Vector3<f32>,
+    length: f32,
+}
+
+impl Ray {
+    fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
+        Ray { orig: orig, dir: dir, length: length }
+    }
 }

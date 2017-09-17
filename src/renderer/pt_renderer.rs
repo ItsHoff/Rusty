@@ -1,10 +1,13 @@
+use cgmath::prelude::*;
+use cgmath::{Vector3, Vector4, Point3};
+
 use glium;
 use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters};
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, Texture2d};
 
-use renderer::Vertex;
-
+use camera::Camera;
+use renderer::{Vertex, Ray, Hit};
 use scene::Scene;
 
 pub struct PTRenderer {
@@ -46,17 +49,42 @@ impl PTRenderer {
     }
 
     #[cfg_attr(feature="clippy", allow(needless_range_loop))]
-    pub fn render<S: Surface, F: Facade>(&self, _scene: &Scene, target: &mut S, facade: &F,
-                                         width: usize, height: usize) {
-        let draw_parameters = DrawParameters {
-            ..Default::default()
-        };
+    pub fn render<S: Surface, F: Facade>(&self, scene: &Scene, target: &mut S, facade: &F,
+                                         width: usize, height: usize, _camera: &Camera) {
         let mut image = vec![0.0; 3 * width * height];
         for y in 0..height {
             for x in 0..width {
-                image[3 * (y * width + x)]     = x as f32 / width as f32;
-                image[3 * (y * width + x) + 1] = y as f32 / height as f32;
-                image[3 * (y * width + x) + 2] = 0.0f32;
+                let clip_x = 2.0 * x as f32 / width as f32 - 1.0;
+                let clip_y = 2.0 * y as f32 / height as f32 - 1.0;
+                let clip_p = Point3::new(clip_x, clip_y, 1.0);
+                let ray = Ray::new(clip_p, Vector3::new(0.0, 0.0, -1.0), 100.0);
+                let mut current_hit: Option<Hit> = None;
+
+                for tri in &scene.triangles {
+                    if let Some(hit) = tri.intersect(&ray) {
+                        if let Some(best) = current_hit.take() {
+                            if hit.t < best.t {
+                                current_hit = Some(hit);
+                            } else {
+                                current_hit = Some(best);
+                            }
+                        } else {
+                            current_hit = Some(hit);
+                        }
+                    }
+                }
+
+                if let Some(hit) = current_hit {
+                    let c = hit.tri.get_diffuse(hit.u, hit.v);
+                    image[3 * (y * width + x)]     = c.x;
+                    image[3 * (y * width + x) + 1] = c.y;
+                    image[3 * (y * width + x) + 2] = c.z;
+                } else {
+                    image[3 * (y * width + x)]     = 0.0;
+                    image[3 * (y * width + x) + 1] = 0.0;
+                    image[3 * (y * width + x) + 2] = 0.0;
+                }
+
             }
         }
         let mut raw_image = RawImage2d::from_raw_rgb(image, (width as u32, height as u32));
@@ -64,6 +92,9 @@ impl PTRenderer {
         let texture = Texture2d::new(facade, raw_image).expect("Failed to upload traced image!");
         let uniforms = uniform! {
             image: &texture,
+        };
+        let draw_parameters = DrawParameters {
+            ..Default::default()
         };
         target.draw(&self.vertex_buffer, &self.index_buffer, &self.shader,
                     &uniforms, &draw_parameters).unwrap();

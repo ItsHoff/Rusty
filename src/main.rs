@@ -39,7 +39,8 @@ fn main() {
 
     let root_path = get_project_root();
     // TODO: Enable use of arbitrary scene
-    let scenes = vec!("scenes/cornell/cornell.obj",
+    let scenes = vec!("scenes/plane.obj",
+                      "scenes/cornell/cornell.obj",
                       "scenes/cornell/cornell_chesterfield.obj",
                       "scenes/cornell-box/CornellBox-Original.obj",
                       "scenes/cornell-box/CornellBox-Glossy.obj",
@@ -68,7 +69,7 @@ fn main() {
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
             if trace {
-                pt_renderer.render(&scene, &mut target, &display, width as usize, height as usize);
+                pt_renderer.render(&scene, &mut target, &display, width as usize, height as usize, &camera);
             } else {
                 gl_renderer.render(&scene, &mut target, camera_to_clip * world_to_camera);
             }
@@ -98,7 +99,7 @@ fn main() {
                         _ => ()
                     }
                 }
-                Event::WindowEvent{event: WindowEvent::Closed, ..} => return,
+                Event::WindowEvent{event: WindowEvent::Closed, ..} => panic!(),
                 _ => ()
             }
         };
