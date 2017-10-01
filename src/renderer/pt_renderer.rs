@@ -79,7 +79,7 @@ impl PTRenderer {
                 }
 
                 if let Some(hit) = current_hit {
-                    let c = hit.tri.get_diffuse(hit.u, hit.v);
+                    let c = hit.tri.get_diffuse(&scene.materials, hit.u, hit.v);
                     image[3 * (y * width + x)]     = c.x;
                     image[3 * (y * width + x) + 1] = c.y;
                     image[3 * (y * width + x) + 2] = c.z;

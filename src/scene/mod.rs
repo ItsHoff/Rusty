@@ -12,7 +12,7 @@ use glium::backend::Facade;
 use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
 
 use self::mesh::Mesh;
-use self::material::Material;
+pub use self::material::Material;
 
 
 /// Renderer representation of a scene
@@ -98,7 +98,7 @@ impl Scene {
                         }
                     }
                 }
-                self.triangles.push(tri_builder.build()
+                self.triangles.push(tri_builder.build(self.materials.len() - 1)
                                     .expect("Failed to build tri!"));
             }
             if !mesh.indices.is_empty() {
