@@ -1,0 +1,11 @@
+* TODO
+** Features
+*** BVH
+*** Multi threading
+*** Lights
+*** Diffuse shading
+*** Monte Carlo tracing
+** Improvements
+*** Input handling
+*** Arbitrary scene loading
+*** UI
