@@ -24,8 +24,10 @@ fn get_project_root() -> PathBuf {
     let exe_dir = std::env::current_exe().unwrap();
     let mut parent_dir = exe_dir.parent().unwrap();
     // This fails if the executable is not in the project tree
-    while !parent_dir.ends_with("rusty") {
-        parent_dir = parent_dir.parent().unwrap();
+    // or the directory is renamed
+    while !(parent_dir.ends_with("rusty") || parent_dir.ends_with("Rusty")) {
+        parent_dir = parent_dir.parent()
+            .expect(&format!("Failed to find project root from {:?}!", exe_dir));
     }
     parent_dir.to_path_buf()
 }
