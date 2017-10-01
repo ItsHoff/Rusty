@@ -99,7 +99,7 @@ fn main() {
                         _ => ()
                     }
                 }
-                Event::WindowEvent{event: WindowEvent::Closed, ..} => panic!(),
+                Event::WindowEvent{event: WindowEvent::Closed, ..} => std::process::exit(0),
                 _ => ()
             }
         };
