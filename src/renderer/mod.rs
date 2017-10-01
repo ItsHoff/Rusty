@@ -94,7 +94,7 @@ impl RTTriangle {
         let t = -bary_o.z / bary_d.z;
         let u = bary_o.x + t * bary_d.x;
         let v = bary_o.y + t * bary_d.y;
-        if u > 0.0 && v > 0.0 && u + v < 1.0 && t > 0.0 && t < ray.length {
+        if u >= 0.0 && v >= 0.0 && u + v <= 1.0 && t > 0.0 && t < ray.length {
             Some ( Hit { tri: self, t: t, u: u, v: v } )
         } else {
             None
