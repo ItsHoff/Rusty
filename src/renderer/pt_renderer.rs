@@ -79,7 +79,9 @@ impl PTRenderer {
                 }
 
                 if let Some(hit) = current_hit {
-                    let c = hit.tri.get_diffuse(&scene.materials, hit.u, hit.v);
+                    // This should account for sRBG
+                    let mut c = hit.tri.get_diffuse(&scene.materials, hit.u, hit.v);
+                    c *= dir.dot(hit.tri.get_normal(hit.u, hit.v)).abs();
                     image[3 * (y * width + x)]     = c.x;
                     image[3 * (y * width + x) + 1] = c.y;
                     image[3 * (y * width + x) + 2] = c.z;

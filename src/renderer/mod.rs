@@ -115,6 +115,12 @@ impl RTTriangle {
         let material = &materials[self.material_i];
         Vector3::from(material.diffuse)
     }
+
+    fn get_normal(&self, u: f32, v: f32) -> Vector3<f32> {
+        let n1 = self.v1.normal;
+        let n2 = self.v2.normal;
+        let n3 = self.v3.normal;
+        (1.0 - u - v) * n1 + u * n2 + v * n3
     }
 }
 
