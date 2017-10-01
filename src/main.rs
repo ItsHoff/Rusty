@@ -6,7 +6,7 @@ extern crate cgmath;
 
 use std::path::PathBuf;
 
-use glium::{ Surface};
+use glium::Surface;
 use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
 
 use cgmath::{Vector3, Point3};
