@@ -19,16 +19,16 @@ pub struct PTRenderer {
 impl PTRenderer {
     pub fn new<F: Facade>(facade: &F) -> PTRenderer {
         let vertices = vec!(
-            Vertex { position: [-1.0, -1.0, 0.0],
+            Vertex { pos: [-1.0, -1.0, 0.0],
                      normal: [0.0, 0.0, 0.0],
                      tex_coords: [0.0, 0.0] },
-            Vertex { position: [1.0, -1.0, 0.0],
+            Vertex { pos: [1.0, -1.0, 0.0],
                      normal: [0.0, 0.0, 0.0],
                      tex_coords: [1.0, 0.0] },
-            Vertex { position: [1.0, 1.0, 0.0],
+            Vertex { pos: [1.0, 1.0, 0.0],
                      normal: [0.0, 0.0, 0.0],
                      tex_coords: [1.0, 1.0] },
-            Vertex { position: [-1.0, 1.0, 0.0],
+            Vertex { pos: [-1.0, 1.0, 0.0],
                      normal: [0.0, 0.0, 0.0],
                      tex_coords: [0.0, 1.0] },
         );
@@ -43,9 +43,9 @@ impl PTRenderer {
         // Image shader
         let vertex_shader_src = include_str!("../image.vert");
         let fragment_shader_src = include_str!("../image.frag");
-        let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+        let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        PTRenderer { shader: program, vertex_buffer: vertex_buffer, index_buffer: index_buffer }
+        PTRenderer { shader, vertex_buffer, index_buffer }
     }
 
     #[cfg_attr(feature="clippy", allow(needless_range_loop))]

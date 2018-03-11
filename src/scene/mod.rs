@@ -92,8 +92,7 @@ impl Scene {
 
                             mesh.indices.push(self.vertices.len() as u32);
                             vertex_map.insert(index_vertex, self.vertices.len());
-                            self.vertices.push(Vertex { position: pos, normal: normal,
-                                                        tex_coords: tex_coords });
+                            self.vertices.push(Vertex { pos, normal, tex_coords });
                             tri_builder.add_vertex(*self.vertices.last().unwrap());
                         }
                     }

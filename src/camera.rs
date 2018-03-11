@@ -45,7 +45,7 @@ impl Default for Camera {
 
 impl Camera {
     pub fn new(pos: Point3<f32>, dir: Vector3<f32>) -> Camera {
-        Camera { pos: pos, dir: dir, .. Default::default() }
+        Camera { pos, dir, .. Default::default() }
     }
 
     pub fn set_scale(&mut self, scale: f32) {

@@ -16,7 +16,7 @@ pub struct Mesh {
 impl Mesh {
     pub fn new(material_i: usize) -> Mesh {
         Mesh { indices: Vec::new(),
-               material_i: material_i,
+               material_i,
                local_to_world: Matrix4::identity(),
                index_buffer: None
         }

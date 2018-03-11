@@ -14,17 +14,17 @@ pub use self::pt_renderer::PTRenderer;
 /// Vertex using raw arrays that can be inserted in vertex buffers
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Vertex {
-    pub position: [f32; 3],
+    pub pos: [f32; 3],
     pub normal: [f32; 3],
     pub tex_coords: [f32; 2],
 }
 
-implement_vertex!(Vertex, position, normal, tex_coords);
+implement_vertex!(Vertex, pos, normal, tex_coords);
 
 /// Vertex utilising cgmath types
 #[derive(Debug)]
 struct CGVertex {
-    position: Point3<f32>,
+    pos: Point3<f32>,
     normal: Vector3<f32>,
     tex_coords: Point2<f32>,
 }
@@ -32,7 +32,7 @@ struct CGVertex {
 impl From<Vertex> for CGVertex {
     fn from(v: Vertex) -> CGVertex {
         CGVertex {
-            position: Point3::from(v.position),
+            pos: Point3::from(v.pos),
             normal: Vector3::from(v.normal),
             tex_coords: Point2::from(v.tex_coords),
         }
@@ -80,9 +80,9 @@ pub struct RTTriangle {
 
 impl RTTriangle {
     fn new(v1: CGVertex, v2: CGVertex, v3: CGVertex, material_i: usize) -> RTTriangle {
-        let p1 = v1.position;
-        let p2 = v2.position;
-        let p3 = v3.position;
+        let p1 = v1.pos;
+        let p2 = v2.pos;
+        let p3 = v3.pos;
         let z = (p2 - p1).cross(p3 - p1).normalize();
         let from_barycentric = Matrix4::from_cols((p2-p1).extend(0.0),
                                                   (p3-p1).extend(0.0),
@@ -91,9 +91,9 @@ impl RTTriangle {
         let to_barycentric = from_barycentric.invert()
             .expect("Non invertible barycentric tranform");
         RTTriangle {
-            v1: v1, v2: v2, v3: v3,
-            to_barycentric: to_barycentric,
-            material_i: material_i
+            v1, v2, v3,
+            to_barycentric,
+            material_i
         }
     }
 
@@ -104,7 +104,7 @@ impl RTTriangle {
         let u = bary_o.x + t * bary_d.x;
         let v = bary_o.y + t * bary_d.y;
         if u >= 0.0 && v >= 0.0 && u + v <= 1.0 && t > 0.0 && t < ray.length {
-            Some ( Hit { tri: self, t: t, u: u, v: v } )
+            Some ( Hit { tri: self, t, u, v } )
         } else {
             None
         }
@@ -140,6 +140,6 @@ pub struct Ray {
 
 impl Ray {
     fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
-        Ray { orig: orig, dir: dir, length: length }
+        Ray { orig, dir, length }
     }
 }

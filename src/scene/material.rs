@@ -26,7 +26,7 @@ impl Material {
         };
         Material {
             diffuse: obj_mat.c_diffuse.expect("No diffuse color!"),
-            diffuse_image: diffuse_image,
+            diffuse_image,
             diffuse_texture: None
         }
     }

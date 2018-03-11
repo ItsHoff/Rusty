@@ -15,9 +15,9 @@ impl GLRenderer {
     pub fn new<F: Facade>(facade: &F) -> GLRenderer {
         let vertex_shader_src = include_str!("../preview.vert");
         let fragment_shader_src = include_str!("../preview.frag");
-        let program = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+        let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        GLRenderer { shader: program }
+        GLRenderer { shader }
     }
 
     pub fn render<S: Surface>(&self, scene: &Scene, target: &mut S, world_to_clip: Matrix4<f32>) {
