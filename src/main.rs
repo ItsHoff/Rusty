@@ -4,9 +4,10 @@
 extern crate glium;
 extern crate cgmath;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use glium::Surface;
+use glium::backend::Facade;
 use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
 
 use cgmath::{Vector3, Point3};
@@ -18,6 +19,7 @@ mod scene;
 
 use camera::Camera;
 use input::InputState;
+use scene::Scene;
 
 /// Get the root directory of the project
 fn get_project_root() -> PathBuf {
@@ -32,6 +34,14 @@ fn get_project_root() -> PathBuf {
     parent_dir.to_path_buf()
 }
 
+fn new_scene<F: Facade>(path: &Path, facade: &F) -> (Scene, Camera) {
+    let scene = Scene::new(path, facade);
+    let mut camera = Camera::new(Point3::from(scene.get_center())
+                                 + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
+                                 Vector3::new(0.0, 0.0, -1.0f32));
+    camera.set_scale(scene.get_size());
+    (scene, camera)
+}
 
 fn main() {
     let mut events_loop = glium::glutin::EventsLoop::new();
@@ -41,23 +51,20 @@ fn main() {
 
     let root_path = get_project_root();
     // TODO: Enable use of arbitrary scene
-    let scenes = vec!("scenes/plane.obj",
-                      "scenes/cornell/cornell.obj",
-                      "scenes/cornell/cornell_chesterfield.obj",
-                      "scenes/cornell-box/CornellBox-Original.obj",
-                      "scenes/cornell-box/CornellBox-Glossy.obj",
-                      "scenes/cornell-box/CornellBox-Water.obj",
-                      "scenes/nanosuit/nanosuit.obj",
-                      "scenes/sibenik/sibenik.obj");
-    let mut scene = scene::Scene::new(&root_path.join(scenes[0]), &display);
+    let scenes = vec!(root_path.join("scenes/plane.obj"),
+                      root_path.join("scenes/cornell/cornell.obj"),
+                      root_path.join("scenes/cornell/cornell_chesterfield.obj"),
+                      root_path.join("scenes/cornell-box/CornellBox-Original.obj"),
+                      root_path.join("scenes/cornell-box/CornellBox-Glossy.obj"),
+                      root_path.join("scenes/cornell-box/CornellBox-Water.obj"),
+                      root_path.join("scenes/nanosuit/nanosuit.obj"),
+                      root_path.join("scenes/sibenik/sibenik.obj"));
     let gl_renderer = renderer::GLRenderer::new(&display);
     let pt_renderer = renderer::PTRenderer::new(&display);
 
+    let (mut scene, mut camera) = new_scene(&scenes[0], &display);
+
     let mut input = InputState::new();
-    let mut camera = Camera::new(Point3::from(scene.get_center())
-                                 + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                 Vector3::new(0.0, 0.0, -1.0f32));
-    camera.set_scale(scene.get_size());
     let mut trace = false;
 
     loop {
@@ -87,16 +94,53 @@ fn main() {
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Space), ..}
                         => trace = !trace,
-                        // Get number pressed based on the keycode
-                        KeyboardInput{state: ElementState::Pressed, scancode, ..} => {
-                            let i = scancode as usize - 2;
-                            if 0 < i && i < scenes.len() {
-                                scene = scene::Scene::new(&root_path.join(scenes[i]), &display);
-                                camera.set_position(Point3::from(scene.get_center())
-                                                    + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                                    Vector3::new(0.0, 0.0, -1.0f32));
-                                camera.set_scale(scene.get_size());
-                            }
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key1), ..} => {
+                            let res = new_scene(&scenes[0], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key2), ..} => {
+                            let res = new_scene(&scenes[1], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key3), ..} => {
+                            let res = new_scene(&scenes[2], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key4), ..} => {
+                            let res = new_scene(&scenes[3], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key5), ..} => {
+                            let res = new_scene(&scenes[4], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key6), ..} => {
+                            let res = new_scene(&scenes[5], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key7), ..} => {
+                            let res = new_scene(&scenes[6], &display);
+                            scene = res.0;
+                            camera = res.1;
+                        },
+                        KeyboardInput{state: ElementState::Pressed,
+                                      virtual_keycode: Some(VirtualKeyCode::Key8), ..} => {
+                            let res = new_scene(&scenes[7], &display);
+                            scene = res.0;
+                            camera = res.1;
                         },
                         _ => ()
                     }

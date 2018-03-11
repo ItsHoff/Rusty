@@ -48,12 +48,6 @@ impl Camera {
         Camera { pos: pos, dir: dir, .. Default::default() }
     }
 
-    /// Move the camera to new position
-    pub fn set_position(&mut self, pos: Point3<f32>, dir: Vector3<f32>) {
-        self.pos = pos;
-        self.dir = dir;
-    }
-
     pub fn set_scale(&mut self, scale: f32) {
         self.scale = scale;
     }
