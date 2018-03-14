@@ -7,7 +7,7 @@ use glium::backend::Facade;
 use glium::texture::{RawImage2d, Texture2d};
 
 use camera::Camera;
-use renderer::{Vertex, Ray, Hit};
+use renderer::{Vertex, Ray, Hit, Intersectable};
 use scene::Scene;
 
 pub struct PTRenderer {
@@ -61,7 +61,7 @@ impl PTRenderer {
                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                 let world_p = clip_to_world * clip_p;
                 let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
-                let ray = Ray::new(camera.pos, dir, 100.0);
+                let ray = Ray { orig: camera.pos, dir, length: 100.0 };
                 let mut current_hit: Option<Hit> = None;
 
                 for tri in &scene.triangles {
@@ -80,8 +80,8 @@ impl PTRenderer {
 
                 if let Some(hit) = current_hit {
                     // This should account for sRBG
-                    let mut c = hit.tri.get_diffuse(&scene.materials, hit.u, hit.v);
-                    c *= dir.dot(hit.tri.get_normal(hit.u, hit.v)).abs();
+                    let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
+                    c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
                     image[3 * (y * width + x)]     = c.x;
                     image[3 * (y * width + x) + 1] = c.y;
                     image[3 * (y * width + x) + 2] = c.z;
