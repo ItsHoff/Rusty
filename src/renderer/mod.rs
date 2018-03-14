@@ -62,8 +62,7 @@ impl RTTriangleBuilder {
                 CGVertex::from(self.vertices[1]),
                 CGVertex::from(self.vertices[2]),
                 material_i
-            )
-               )
+            ))
         }
     }
 }

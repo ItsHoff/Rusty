@@ -6,11 +6,14 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
+use cgmath::Point3;
+
 use glium::VertexBuffer;
 use glium::backend::Facade;
 
 use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
 
+use aabb::AABB;
 use self::mesh::Mesh;
 pub use self::material::Material;
 
@@ -23,9 +26,7 @@ pub struct Scene {
     pub materials: Vec<Material>,
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     pub triangles: Vec<RTTriangle>,
-    /// Bounding box of the scene
-    pub min: [f32; 3],
-    pub max: [f32; 3],
+    pub aabb: AABB,
 }
 
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
@@ -79,7 +80,7 @@ impl Scene {
                         }
                         None => {
                             let pos = obj.positions[index_vertex.pos_i];
-                            self.update_ranges(pos);
+                            self.aabb.update(Point3::from(pos));
 
                             let tex_coords = match index_vertex.tex_i {
                                 Some(tex_i) => obj.tex_coords[tex_i],
@@ -119,30 +120,12 @@ impl Scene {
     }
 
     /// Get the center of the scene as defined by the bounding box
-    pub fn get_center(&self) -> [f32; 3] {
-        let mut res = [0.0f32; 3];
-        for i in 0..2 {
-            res[i] = (self.min[i] + self.max[i]) / 2.0;
-        }
-        res
+    pub fn center(&self) -> Point3<f32> {
+        self.aabb.center()
     }
 
-    /// Get the longest edge of the bounding box
-    pub fn get_size(&self) -> f32 {
-        let mut max = 0.0f32;
-        for i in 0..2 {
-            max = max.max(self.max[i] - self.min[i]);
-        }
-        max
-    }
-
-    /// Update the bounding box with new position
-    fn update_ranges(&mut self, new_pos: [f32; 3]) {
-        for i in 0..2 {
-            self.min[i] = self.min[i].min(new_pos[i]);
-        }
-        for i in 0..2 {
-            self.max[i] = self.max[i].max(new_pos[i]);
-        }
+    /// Get the approximate size of the scene
+    pub fn size(&self) -> f32 {
+        self.aabb.longest_edge()
     }
 }

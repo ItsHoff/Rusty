@@ -10,8 +10,9 @@ use glium::Surface;
 use glium::backend::Facade;
 use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
 
-use cgmath::{Vector3, Point3};
+use cgmath::Vector3;
 
+mod aabb;
 mod camera;
 mod input;
 mod renderer;
@@ -36,10 +37,9 @@ fn get_project_root() -> PathBuf {
 
 fn new_scene<F: Facade>(path: &Path, facade: &F) -> (Scene, Camera) {
     let scene = Scene::new(path, facade);
-    let mut camera = Camera::new(Point3::from(scene.get_center())
-                                 + scene.get_size() * Vector3::new(0.0, 0.0, 1.0f32),
+    let mut camera = Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
-    camera.set_scale(scene.get_size());
+    camera.set_scale(scene.size());
     (scene, camera)
 }
 
