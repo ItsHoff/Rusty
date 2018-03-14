@@ -11,7 +11,7 @@ pub struct Vertex {
 implement_vertex!(Vertex, pos, normal, tex_coords);
 
 /// Vertex utilising cgmath types
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CGVertex {
     pub pos: Point3<f32>,
     pub normal: Vector3<f32>,

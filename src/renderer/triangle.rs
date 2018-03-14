@@ -1,8 +1,10 @@
 use cgmath::prelude::*;
-use cgmath::{Vector3, Matrix4};
+use cgmath::{Vector3, Matrix4, Point3};
 
 use scene::Material;
 
+use aabb;
+use aabb::AABB;
 use super::{Vertex, CGVertex, Ray, Hit, Intersectable};
 
 #[derive(Default)]
@@ -34,7 +36,7 @@ impl RTTriangleBuilder {
 }
 
 /// Tracable triangle
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RTTriangle {
     v1: CGVertex,
     v2: CGVertex,
@@ -73,6 +75,20 @@ impl RTTriangle {
         let n2 = self.v2.normal;
         let n3 = self.v3.normal;
         (1.0 - u - v) * n1 + u * n2 + v * n3
+    }
+
+    pub fn aabb(&self) -> AABB {
+        let mut min = self.v1.pos;
+        min = aabb::min_point(&min, &self.v2.pos);
+        min = aabb::min_point(&min, &self.v3.pos);
+        let mut max = self.v1.pos;
+        max = aabb::max_point(&max, &self.v2.pos);
+        max = aabb::max_point(&max, &self.v3.pos);
+        AABB { min, max }
+    }
+
+    pub fn center(&self) -> Point3<f32> {
+        Point3::centroid(&[self.v1.pos, self.v2.pos, self.v3.pos])
     }
 }
 

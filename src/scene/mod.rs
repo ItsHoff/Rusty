@@ -1,3 +1,4 @@
+mod bvh;
 mod material;
 mod mesh;
 mod obj_load;
@@ -14,6 +15,7 @@ use glium::backend::Facade;
 use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
 
 use aabb::AABB;
+use self::bvh::BVHNode;
 use self::mesh::Mesh;
 pub use self::material::Material;
 
@@ -27,6 +29,7 @@ pub struct Scene {
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     pub triangles: Vec<RTTriangle>,
     pub aabb: AABB,
+    pub bvh: Vec<BVHNode>
 }
 
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
@@ -35,6 +38,7 @@ impl Scene {
         let mut scene = Scene { ..Default::default() };
         scene.load_scene(scene_path);
         scene.upload_data(facade);
+        scene.bvh = bvh::build_object_median(&mut scene.triangles);
         scene
     }
 
@@ -80,7 +84,7 @@ impl Scene {
                         }
                         None => {
                             let pos = obj.positions[index_vertex.pos_i];
-                            self.aabb.update(Point3::from(pos));
+                            self.aabb.add_point(&Point3::from(pos));
 
                             let tex_coords = match index_vertex.tex_i {
                                 Some(tex_i) => obj.tex_coords[tex_i],
