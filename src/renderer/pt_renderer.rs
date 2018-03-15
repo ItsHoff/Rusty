@@ -14,6 +14,7 @@ pub struct PTRenderer {
     shader: glium::Program,
     vertex_buffer: VertexBuffer<Vertex>,
     index_buffer: IndexBuffer<u32>,
+    image: Option<Vec<f32>>,
 }
 
 impl PTRenderer {
@@ -45,40 +46,49 @@ impl PTRenderer {
         let fragment_shader_src = include_str!("../image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        PTRenderer { shader, vertex_buffer, index_buffer }
+        PTRenderer { shader, vertex_buffer, index_buffer, image: None }
+    }
+
+    pub fn start_render(&mut self) {
+        self.image = None;
     }
 
     #[cfg_attr(feature="clippy", allow(needless_range_loop))]
-    pub fn render<S: Surface, F: Facade>(&self, scene: &Scene, target: &mut S, facade: &F,
+    pub fn render<S: Surface, F: Facade>(&mut self, scene: &Scene, target: &mut S, facade: &F,
                                          width: usize, height: usize, camera: &Camera) {
-        let clip_to_world = (camera.get_camera_to_clip(width as u32, height as u32)
-            * camera.get_world_to_camera()).invert().expect("Non invertible world to clip");
-        let mut image = vec![0.0; 3 * width * height];
-        for y in 0..height {
-            for x in 0..width {
-                let clip_x = 2.0 * x as f32 / width as f32 - 1.0;
-                let clip_y = 2.0 * y as f32 / height as f32 - 1.0;
-                let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
-                let world_p = clip_to_world * clip_p;
-                let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
-                let ray = Ray::new(camera.pos, dir, 100.0);
+        if self.image.is_none() {
+            let clip_to_world = (camera.get_camera_to_clip(width as u32, height as u32)
+                                 * camera.get_world_to_camera()).invert()
+                .expect("Non invertible world to clip");
+            let mut image = vec![0.0; 3 * width * height];
+            for y in 0..height {
+                for x in 0..width {
+                    let clip_x = 2.0 * x as f32 / width as f32 - 1.0;
+                    let clip_y = 2.0 * y as f32 / height as f32 - 1.0;
+                    let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
+                    let world_p = clip_to_world * clip_p;
+                    let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
+                    let ray = Ray::new(camera.pos, dir, 100.0);
 
-                if let Some(hit) = find_hit(scene, ray) {
-                    // TODO: This should account for sRBG
-                    let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
-                    c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
-                    image[3 * (y * width + x)]     = c.x;
-                    image[3 * (y * width + x) + 1] = c.y;
-                    image[3 * (y * width + x) + 2] = c.z;
-                } else {
-                    image[3 * (y * width + x)]     = 0.0;
-                    image[3 * (y * width + x) + 1] = 0.0;
-                    image[3 * (y * width + x) + 2] = 0.0;
+                    if let Some(hit) = find_hit(scene, ray) {
+                        // TODO: This should account for sRBG
+                        let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
+                        c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
+                        image[3 * (y * width + x)]     = c.x;
+                        image[3 * (y * width + x) + 1] = c.y;
+                        image[3 * (y * width + x) + 2] = c.z;
+                    } else {
+                        image[3 * (y * width + x)]     = 0.0;
+                        image[3 * (y * width + x) + 1] = 0.0;
+                        image[3 * (y * width + x) + 2] = 0.0;
+                    }
+
                 }
-
             }
+            self.image = Some(image);
         }
-        let mut raw_image = RawImage2d::from_raw_rgb(image, (width as u32, height as u32));
+        let mut raw_image = RawImage2d::from_raw_rgb(self.image.as_ref().unwrap().clone(),
+                                                     (width as u32, height as u32));
         raw_image.format = glium::texture::ClientFormat::F32F32F32;
         let texture = Texture2d::new(facade, raw_image).expect("Failed to upload traced image!");
         let uniforms = uniform! {
