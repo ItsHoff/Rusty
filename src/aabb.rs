@@ -1,6 +1,8 @@
 use cgmath::prelude::*;
 use cgmath::Point3;
 
+use renderer::{Intersect, Ray};
+
 pub struct AABB {
     pub min: Point3<f32>,
     pub max: Point3<f32>,
@@ -68,5 +70,31 @@ impl AABB {
             }
         }
         index
+    }
+}
+
+impl<'a> Intersect<'a, f32> for AABB {
+    fn intersect(&self, ray: &Ray) -> Option<f32> {
+        let t1 = (self.min - ray.orig).mul_element_wise(ray.reciprocal_dir);
+        let t2 = (self.max - ray.orig).mul_element_wise(ray.reciprocal_dir);
+        let mut start = ::std::f32::MIN;
+        let mut end = ::std::f32::MAX;
+        for i in 0..2 {
+            if ray.dir[i] == 0.0 && (ray.orig[i] < self.min[i] || ray.orig[i] > self.max[i]) {
+                // Can't hit
+                return None;
+            } else if ray.dir[i] < 0.0 {
+                start = start.max(t2[i]);
+                end = end.min(t1[i]);
+            } else {
+                start = start.max(t1[i]);
+                end = end.min(t2[i]);
+            }
+        }
+        if start <= end && end > 0.0 && start < ray.length {
+            Some(start)
+        } else {
+            None
+        }
     }
 }

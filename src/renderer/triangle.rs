@@ -5,7 +5,7 @@ use scene::Material;
 
 use aabb;
 use aabb::AABB;
-use super::{Vertex, CGVertex, Ray, Hit, Intersectable};
+use super::{Vertex, CGVertex, Ray, Hit, Intersect};
 
 #[derive(Default)]
 pub struct RTTriangleBuilder {
@@ -92,7 +92,7 @@ impl RTTriangle {
     }
 }
 
-impl<'a> Intersectable<'a, Hit<'a>> for RTTriangle {
+impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
     fn intersect(&self, ray: &Ray) -> Option<Hit> {
         let bary_o = self.to_barycentric * ray.orig.to_homogeneous();
         let bary_d = self.to_barycentric * ray.dir.extend(0.0);

@@ -12,7 +12,7 @@ pub use self::pt_renderer::PTRenderer;
 pub use self::triangle::{RTTriangle, RTTriangleBuilder};
 pub use self::vertex::{Vertex, CGVertex};
 
-pub trait Intersectable<'a, H> {
+pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;
 }
 
@@ -26,7 +26,16 @@ pub struct Hit<'a> {
 
 #[derive(Clone, Copy)]
 pub struct Ray {
-    orig: Point3<f32>,
-    dir: Vector3<f32>,
-    length: f32,
+    pub orig: Point3<f32>,
+    pub dir: Vector3<f32>,
+    // For more efficient ray plane intersections
+    pub reciprocal_dir: Vector3<f32>,
+    pub length: f32,
+}
+
+impl Ray {
+    fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
+        let reciprocal_dir = 1.0 / dir;
+        Ray { orig, dir, reciprocal_dir, length }
+    }
 }

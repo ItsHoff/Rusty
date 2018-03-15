@@ -15,7 +15,7 @@ use glium::backend::Facade;
 use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
 
 use aabb::AABB;
-use self::bvh::BVHNode;
+use self::bvh::BVH;
 use self::mesh::Mesh;
 pub use self::material::Material;
 
@@ -29,7 +29,7 @@ pub struct Scene {
     pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     pub triangles: Vec<RTTriangle>,
     pub aabb: AABB,
-    pub bvh: Vec<BVHNode>
+    pub bvh: BVH
 }
 
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
@@ -38,7 +38,7 @@ impl Scene {
         let mut scene = Scene { ..Default::default() };
         scene.load_scene(scene_path);
         scene.upload_data(facade);
-        scene.bvh = bvh::build_object_median(&mut scene.triangles);
+        scene.bvh = BVH::build_object_median(&mut scene.triangles);
         scene
     }
 
