@@ -1,6 +1,5 @@
 * TODO
 ** Features
-*** BVH
 *** Multi threading
 *** Lights
 *** Diffuse shading
