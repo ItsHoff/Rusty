@@ -24,6 +24,7 @@ pub struct Hit<'a> {
     v: f32,
 }
 
+#[derive(Clone, Copy)]
 pub struct Ray {
     orig: Point3<f32>,
     dir: Vector3<f32>,

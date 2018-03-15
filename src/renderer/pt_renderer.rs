@@ -62,24 +62,9 @@ impl PTRenderer {
                 let world_p = clip_to_world * clip_p;
                 let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
                 let ray = Ray { orig: camera.pos, dir, length: 100.0 };
-                let mut current_hit: Option<Hit> = None;
 
-                for tri in &scene.triangles {
-                    if let Some(hit) = tri.intersect(&ray) {
-                        if let Some(best) = current_hit.take() {
-                            if hit.t < best.t {
-                                current_hit = Some(hit);
-                            } else {
-                                current_hit = Some(best);
-                            }
-                        } else {
-                            current_hit = Some(hit);
-                        }
-                    }
-                }
-
-                if let Some(hit) = current_hit {
-                    // This should account for sRBG
+                if let Some(hit) = find_hit(scene, ray) {
+                    // TODO: This should account for sRBG
                     let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
                     c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
                     image[3 * (y * width + x)]     = c.x;
@@ -105,4 +90,22 @@ impl PTRenderer {
         target.draw(&self.vertex_buffer, &self.index_buffer, &self.shader,
                     &uniforms, &draw_parameters).unwrap();
     }
+}
+
+fn find_hit(scene: &Scene, ray: Ray) -> Option<Hit> {
+    let mut closest_hit: Option<Hit> = None;
+    for tri in &scene.triangles {
+        if let Some(hit) = tri.intersect(&ray) {
+            if let Some(closest) = closest_hit.take() {
+                if hit.t < closest.t {
+                    closest_hit = Some(hit);
+                } else {
+                    closest_hit = Some(closest);
+                }
+            } else {
+                closest_hit = Some(hit);
+            }
+        }
+    }
+    closest_hit
 }
