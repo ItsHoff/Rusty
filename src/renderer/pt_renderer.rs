@@ -9,12 +9,14 @@ use glium::texture::{RawImage2d, Texture2d};
 use camera::Camera;
 use renderer::{Vertex, Ray, Hit, Intersect};
 use scene::Scene;
+use scene::bvh::BVHNode;
 
 pub struct PTRenderer {
     shader: glium::Program,
     vertex_buffer: VertexBuffer<Vertex>,
     index_buffer: IndexBuffer<u32>,
     image: Option<Vec<f32>>,
+    node_stack: Vec<(*const BVHNode, f32)>,
 }
 
 impl PTRenderer {
@@ -46,7 +48,7 @@ impl PTRenderer {
         let fragment_shader_src = include_str!("../image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        PTRenderer { shader, vertex_buffer, index_buffer, image: None }
+        PTRenderer { shader, vertex_buffer, index_buffer, image: None, node_stack: Vec::new() }
     }
 
     pub fn start_render(&mut self) {
@@ -70,7 +72,7 @@ impl PTRenderer {
                     let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
                     let ray = Ray::new(camera.pos, dir, 100.0);
 
-                    if let Some(hit) = find_hit(scene, ray) {
+                    if let Some(hit) = self.find_hit(scene, ray) {
                         // TODO: This should account for sRBG
                         let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
                         c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
@@ -100,40 +102,40 @@ impl PTRenderer {
         target.draw(&self.vertex_buffer, &self.index_buffer, &self.shader,
                     &uniforms, &draw_parameters).unwrap();
     }
-}
 
-fn find_hit(scene: &Scene, ray: Ray) -> Option<Hit> {
-    let bvh = &scene.bvh;
-    let mut node_stack = Vec::with_capacity(f32::log2(bvh.size() as f32) as usize);
-    node_stack.push((bvh.root(), 0.0f32));
-    let mut closest_hit: Option<Hit> = None;
-    while let Some((node, t)) = node_stack.pop() {
-        // We've already found closer hit
-        if closest_hit.as_ref().map_or(false, |hit| hit.t <= t) { continue }
-        if node.is_leaf() {
-            for tri in &scene.triangles[node.start_i..node.end_i] {
-                if let Some(hit) = tri.intersect(&ray) {
-                    if let Some(closest) = closest_hit.take() {
-                        if hit.t < closest.t {
-                            closest_hit = Some(hit);
+    fn find_hit<'a>(&mut self, scene: &'a Scene, ray: Ray) -> Option<Hit<'a>> {
+        let bvh = &scene.bvh;
+        self.node_stack.push((bvh.root(), 0.0f32));
+        let mut closest_hit: Option<Hit> = None;
+        while let Some((node_p, t)) = self.node_stack.pop() {
+            let node = unsafe { &*node_p };
+            // We've already found closer hit
+            if closest_hit.as_ref().map_or(false, |hit| hit.t <= t) { continue }
+            if node.is_leaf() {
+                for tri in &scene.triangles[node.start_i..node.end_i] {
+                    if let Some(hit) = tri.intersect(&ray) {
+                        if let Some(closest) = closest_hit.take() {
+                            if hit.t < closest.t {
+                                closest_hit = Some(hit);
+                            } else {
+                                closest_hit = Some(closest);
+                            }
                         } else {
-                            closest_hit = Some(closest);
+                            closest_hit = Some(hit);
                         }
-                    } else {
-                        closest_hit = Some(hit);
                     }
                 }
-            }
-        } else {
-            // TODO: put closest hit on top of the stack
-            let (left, right) = bvh.get_children(node).expect("Non leaf node had no child nodes!");
-            if let Some(t_left) = left.intersect(&ray) {
-                node_stack.push((left, t_left));
-            }
-            if let Some(t_right) = right.intersect(&ray) {
-                node_stack.push((right, t_right));
+            } else {
+                // TODO: put closest hit on top of the stack
+                let (left, right) = bvh.get_children(node).expect("Non leaf node had no child nodes!");
+                if let Some(t_left) = left.intersect(&ray) {
+                    self.node_stack.push((left, t_left));
+                }
+                if let Some(t_right) = right.intersect(&ray) {
+                    self.node_stack.push((right, t_right));
+                }
             }
         }
+        closest_hit
     }
-    closest_hit
 }

@@ -59,10 +59,10 @@ fn main() {
                       root_path.join("scenes/cornell-box/CornellBox-Water.obj"),
                       root_path.join("scenes/nanosuit/nanosuit.obj"),
                       root_path.join("scenes/sibenik/sibenik.obj"));
-    let gl_renderer = renderer::GLRenderer::new(&display);
-    let mut pt_renderer = renderer::PTRenderer::new(&display);
 
     let (mut scene, mut camera) = new_scene(&scenes[0], &display);
+    let gl_renderer = renderer::GLRenderer::new(&display);
+    let mut pt_renderer = renderer::PTRenderer::new(&display);
 
     let mut input = InputState::new();
     let mut trace = false;

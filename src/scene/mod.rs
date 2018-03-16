@@ -1,4 +1,4 @@
-mod bvh;
+pub mod bvh;
 mod material;
 mod mesh;
 mod obj_load;
@@ -18,7 +18,6 @@ use aabb::AABB;
 use self::bvh::BVH;
 use self::mesh::Mesh;
 pub use self::material::Material;
-
 
 /// Renderer representation of a scene
 #[derive(Default)]
