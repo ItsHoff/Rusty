@@ -10,16 +10,16 @@ pub struct AABB {
 }
 
 pub fn min_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {
-    let mut p_min = Point3::origin();
-    for i in 0..2 {
+    let mut p_min = Point3::max_value();
+    for i in 0..3 {
         p_min[i] = p1[i].min(p2[i]);
     }
     p_min
 }
 
 pub fn max_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {
-    let mut p_max = Point3::origin();
-    for i in 0..2 {
+    let mut p_max = Point3::min_value();
+    for i in 0..3 {
         p_max[i] = p1[i].max(p2[i]);
     }
     p_max
@@ -45,7 +45,7 @@ impl AABB {
 
     pub fn longest_edge(&self) -> f32 {
         let mut longest = 0.0f32;
-        for i in 0..2 {
+        for i in 0..3 {
             longest = longest.max(self.max[i] - self.min[i]);
         }
         longest
@@ -54,7 +54,7 @@ impl AABB {
     pub fn longest_edge_i(&self) -> usize {
         let mut longest = 0.0f32;
         let mut index = 0;
-        for i in 0..2 {
+        for i in 0..3 {
             let length = self.max[i] - self.min[i];
             if length > longest {
                 longest = length;
@@ -71,7 +71,7 @@ impl<'a> Intersect<'a, f32> for AABB {
         let t2 = (self.max - ray.orig).mul_element_wise(ray.reciprocal_dir);
         let mut start = ::std::f32::MIN;
         let mut end = ::std::f32::MAX;
-        for i in 0..2 {
+        for i in 0..3 {
             if ray.dir[i] == 0.0 && (ray.orig[i] < self.min[i] || ray.orig[i] > self.max[i]) {
                 // Can't hit
                 return None;
