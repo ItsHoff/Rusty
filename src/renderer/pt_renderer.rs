@@ -80,9 +80,9 @@ impl PTRenderer {
                         image[3 * (y * width + x) + 1] = c.y;
                         image[3 * (y * width + x) + 2] = c.z;
                     } else {
-                        image[3 * (y * width + x)]     = 0.0;
-                        image[3 * (y * width + x) + 1] = 0.0;
-                        image[3 * (y * width + x) + 2] = 0.0;
+                        image[3 * (y * width + x)]     = 0.1;
+                        image[3 * (y * width + x) + 1] = 0.1;
+                        image[3 * (y * width + x) + 2] = 0.1;
                     }
 
                 }
