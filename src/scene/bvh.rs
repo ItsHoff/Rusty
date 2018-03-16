@@ -14,15 +14,16 @@ pub struct BVHNode {
 impl BVHNode {
     fn new(indices: &[usize], aabbs: &[AABB], start_i: usize, end_i: usize) -> BVHNode {
         let mut node = BVHNode {
-            aabb: AABB::default(),
+            aabb: aabbs[indices[start_i]].clone(),
             start_i, end_i,
             left_child_i: None, right_child_i: None
         };
-        for i in indices[start_i..end_i].iter() {
-            node.aabb.add_aabb(&aabbs[*i]);
+        for &i in indices[(start_i + 1)..end_i].iter() {
+            node.aabb.add_aabb(&aabbs[i]);
         }
         node
     }
+
 
     fn size(&self) -> usize {
         self.end_i - self.start_i
@@ -41,12 +42,15 @@ impl<'a> Intersect<'a, f32> for BVHNode {
 
 const MAX_LEAF_SIZE: usize = 8;
 
-#[derive(Default)]
 pub struct BVH {
     nodes: Vec<BVHNode>,
 }
 
 impl BVH {
+    pub fn empty() -> BVH {
+        BVH { nodes: Vec::new() }
+    }
+
     pub fn build_object_median(triangles: &mut Vec<RTTriangle>) -> BVH {
         let mut indices: Vec<usize> = (0..triangles.len()).collect();
         let aabbs: Vec<AABB> = triangles.iter().map(|t| t.aabb()).collect();

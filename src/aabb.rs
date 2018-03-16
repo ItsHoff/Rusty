@@ -3,18 +3,10 @@ use cgmath::Point3;
 
 use renderer::{Intersect, Ray};
 
+#[derive(Clone)]
 pub struct AABB {
     pub min: Point3<f32>,
     pub max: Point3<f32>,
-}
-
-impl Default for AABB {
-    fn default() -> AABB {
-        AABB {
-            min: Point3::origin(),
-            max: Point3::origin(),
-        }
-    }
 }
 
 pub fn min_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {

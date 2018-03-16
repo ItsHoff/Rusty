@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
+use cgmath::prelude::*;
 use cgmath::Point3;
 
 use glium::VertexBuffer;
@@ -20,7 +21,6 @@ use self::mesh::Mesh;
 pub use self::material::Material;
 
 /// Renderer representation of a scene
-#[derive(Default)]
 pub struct Scene {
     pub vertices: Vec<Vertex>,
     pub meshes: Vec<Mesh>,
@@ -34,7 +34,15 @@ pub struct Scene {
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
     pub fn new<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
-        let mut scene = Scene { ..Default::default() };
+        let mut scene = Scene {
+            vertices: Vec::new(),
+            meshes: Vec::new(),
+            materials: Vec::new(),
+            vertex_buffer: None,
+            triangles: Vec::new(),
+            aabb: AABB { min: Point3::origin(), max: Point3::origin() },
+            bvh: BVH::empty(),
+        };
         scene.load_scene(scene_path);
         scene.upload_data(facade);
         scene.bvh = BVH::build_object_median(&mut scene.triangles);
