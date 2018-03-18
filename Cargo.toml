@@ -5,7 +5,7 @@ authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 
 [dependencies]
 cgmath = "0.16.0"
-glium = "0.17.1"
+glium = "0.20.0"
 image = "0.15.0"
 clippy = {version = "*", optional = true}
 

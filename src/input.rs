@@ -31,7 +31,7 @@ impl InputState {
     pub fn update(&mut self, event: &Event) {
         if let Event::WindowEvent{ref event, ..} = *event {
             match *event {
-                WindowEvent::MouseMoved{position:(x, y), ..} => {
+                WindowEvent::CursorMoved{position:(x, y), ..} => {
                     self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
                     self.mouse_pos = (x, y);
                 }
