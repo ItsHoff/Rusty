@@ -78,7 +78,7 @@ fn main() {
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
             if trace {
-                pt_renderer.render(&scene, &mut target, &display, width as usize, height as usize, &camera);
+                pt_renderer.render(&scene, &mut target, &display, &camera);
             } else {
                 gl_renderer.render(&scene, &mut target, camera_to_clip * world_to_camera);
             }
@@ -95,7 +95,7 @@ fn main() {
                                       virtual_keycode: Some(VirtualKeyCode::Space), ..} => {
                             trace = !trace;
                             if trace {
-                                pt_renderer.start_render();
+                                pt_renderer.start_render(width, height);
                             }
                         },
                         KeyboardInput{state: ElementState::Pressed,
