@@ -2,7 +2,7 @@ use cgmath::prelude::*;
 use cgmath::Vector4;
 
 use glium;
-use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters};
+use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect};
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, Texture2d};
 
@@ -30,13 +30,14 @@ impl RenderCoordinator {
         }
     }
 
-    fn next_block(&mut self) -> (usize, usize, usize, usize) {
+    fn next_block(&mut self) -> Rect {
         let block_height = 20;
         let block_width = 20;
         // TODO: check max_iterations
         if self.end_y >= self.height && self.end_x >= self.width {
             self.iteration += 1;
-            self.end_y = 0;
+            self.start_y = 0;
+            self.end_y = block_width.min(self.height);
             self.end_x = 0;
         } else if self.end_x >= self.width {
             self.start_y = self.end_y;
@@ -45,8 +46,11 @@ impl RenderCoordinator {
         }
         let start_x = self.end_x;
         self.end_x = (start_x + block_width).min(self.width);
-        (start_x as usize, self.end_x as usize,
-         self.start_y as usize, self.end_y as usize)
+        Rect { left: start_x,
+               bottom: self.start_y,
+               width: self.end_x - start_x,
+               height: self.end_y - self.start_y,
+        }
     }
 }
 
@@ -54,7 +58,7 @@ pub struct PTRenderer {
     shader: glium::Program,
     vertex_buffer: VertexBuffer<Vertex>,
     index_buffer: IndexBuffer<u32>,
-    image: Vec<f32>,
+    texture: Texture2d,
     node_stack: Vec<(*const BVHNode, f32)>,
     coordinator: RenderCoordinator,
 }
@@ -82,64 +86,62 @@ impl PTRenderer {
                                             glium::index::PrimitiveType::TrianglesList,
                                             &indices)
             .expect("Failed to create index buffer!");
+        let texture = Texture2d::empty(facade, 0, 0).expect("Failed to create trace texture!");
 
         // Image shader
         let vertex_shader_src = include_str!("../image.vert");
         let fragment_shader_src = include_str!("../image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        PTRenderer { shader, vertex_buffer, index_buffer,
-                     image: Vec::new(),
+        PTRenderer { shader, vertex_buffer, index_buffer, texture,
                      node_stack: Vec::new(),
                      coordinator: RenderCoordinator::new(0, 0, None),
         }
     }
 
-    pub fn start_render(&mut self, width: u32, height: u32) {
-        self.image = vec![0.0f32; (3 * width * height) as usize];
+    pub fn start_render<F: Facade>(&mut self, facade: &F, width: u32, height: u32) {
+        let empty_image = RawImage2d::from_raw_rgb(vec![0.0; (3 * width * height) as usize], (width, height));
+        self.texture = Texture2d::new(facade, empty_image).expect("Failed to upload traced image!");
         self.coordinator = RenderCoordinator::new(width, height, None);
     }
 
     #[cfg_attr(feature="clippy", allow(needless_range_loop))]
-    pub fn render<S: Surface, F: Facade>(&mut self, scene: &Scene, target: &mut S, facade: &F,
-                                         camera: &Camera) {
-        let width = self.coordinator.width;
-        let height = self.coordinator.height;
-        let clip_to_world = (camera.get_camera_to_clip(width, height)
+    pub fn render<S: Surface>(&mut self, scene: &Scene, target: &mut S, camera: &Camera) {
+        let image_width = self.coordinator.width;
+        let image_height = self.coordinator.height;
+        let clip_to_world = (camera.get_camera_to_clip(image_width, image_height)
                              * camera.get_world_to_camera()).invert()
             .expect("Non invertible world to clip");
-        let (x_start, x_end, y_start, y_end) = self.coordinator.next_block();
-        for y in y_start..y_end {
-            for x in x_start..x_end {
-                let clip_x = 2.0 * x as f32 / width as f32 - 1.0;
-                let clip_y = 2.0 * y as f32 / height as f32 - 1.0;
+        let rect = self.coordinator.next_block();
+        let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
+        for h in 0..rect.height {
+            for w in 0..rect.width {
+                let clip_x = 2.0 * (rect.left + w) as f32 / image_width as f32 - 1.0;
+                let clip_y = 2.0 * (rect.bottom + h) as f32 / image_height as f32 - 1.0;
                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                 let world_p = clip_to_world * clip_p;
                 let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
                 let ray = Ray::new(camera.pos, dir, 100.0);
 
-                let pixel_i = 3 * (y * width as usize + x);
+                let pixel_i = 3 * (h * rect.width + w) as usize;
                 if let Some(hit) = self.find_hit(scene, ray) {
                     // TODO: This should account for sRBG
                     let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
                     c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
-                    self.image[pixel_i]     = c.x;
-                    self.image[pixel_i + 1] = c.y;
-                    self.image[pixel_i + 2] = c.z;
+                    block[pixel_i]     = c.x;
+                    block[pixel_i + 1] = c.y;
+                    block[pixel_i + 2] = c.z;
                 } else {
-                    self.image[pixel_i]     = 0.1;
-                    self.image[pixel_i + 1] = 0.1;
-                    self.image[pixel_i + 2] = 0.1;
+                    block[pixel_i]     = 0.1;
+                    block[pixel_i + 1] = 0.1;
+                    block[pixel_i + 2] = 0.1;
                 }
-
             }
         }
-        let mut raw_image = RawImage2d::from_raw_rgb(self.image.clone(),
-                                                     (width as u32, height as u32));
-        raw_image.format = glium::texture::ClientFormat::F32F32F32;
-        let texture = Texture2d::new(facade, raw_image).expect("Failed to upload traced image!");
+        let raw_block = RawImage2d::from_raw_rgb(block, (rect.width, rect.height));
+        self.texture.write(rect, raw_block);
         let uniforms = uniform! {
-            image: &texture,
+            image: &self.texture,
         };
         let draw_parameters = DrawParameters {
             ..Default::default()
