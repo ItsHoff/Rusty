@@ -24,7 +24,6 @@ impl BVHNode {
         node
     }
 
-
     fn size(&self) -> usize {
         self.end_i - self.start_i
     }
@@ -109,9 +108,5 @@ impl BVH {
 
     pub fn root(&self) -> &BVHNode {
         &self.nodes[0]
-    }
-
-    pub fn size(&self) -> usize {
-        self.nodes.len()
     }
 }
