@@ -7,6 +7,7 @@ authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 cgmath = "0.16.0"
 glium = "0.20.0"
 image = "0.15.0"
+num_cpus = "1.8.0"
 clippy = {version = "*", optional = true}
 
 [features]

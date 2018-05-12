@@ -11,6 +11,7 @@ use glium::glutin::{MouseButton, VirtualKeyCode};
 use input::InputState;
 
 /// Representation of a camera
+#[derive(Clone)]
 pub struct Camera {
     /// Position of the camera in world coordinates
     pub pos: Point3<f32>,

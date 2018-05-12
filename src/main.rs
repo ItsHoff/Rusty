@@ -5,6 +5,7 @@ extern crate glium;
 extern crate cgmath;
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use glium::Surface;
 use glium::backend::Facade;
@@ -35,13 +36,13 @@ fn get_project_root() -> PathBuf {
     parent_dir.to_path_buf()
 }
 
-fn new_scene<F: Facade>(path: &Path, facade: &F) -> (Scene, GPUScene, Camera) {
+fn new_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Camera) {
     let scene = Scene::new(path);
     let gpu_scene = scene.upload_data(facade);
     let mut camera = Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
     camera.set_scale(scene.size());
-    (scene, gpu_scene, camera)
+    (Arc::new(scene), gpu_scene, camera)
 }
 
 fn main() {
@@ -67,6 +68,7 @@ fn main() {
 
     let mut input = InputState::new();
     let mut trace = false;
+    let mut quit = false;
 
     loop {
         let mut target = display.draw();
@@ -79,15 +81,14 @@ fn main() {
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
             if trace {
-                pt_renderer.render(&scene, &mut target, &camera);
+                pt_renderer.render(&mut target);
             } else {
                 gl_renderer.render(&gpu_scene, &mut target, camera_to_clip * world_to_camera);
             }
         }
         target.finish().unwrap();
 
-        { // TODO clean this up
-        let event_handler = |event| {
+        events_loop.poll_events(|event| {
             input.update(&event);
             match event {
                 Event::WindowEvent{event: WindowEvent::KeyboardInput{input, ..}, ..} => {
@@ -96,9 +97,12 @@ fn main() {
                                       virtual_keycode: Some(VirtualKeyCode::Space), ..} => {
                             trace = !trace;
                             if trace {
-                                pt_renderer.start_render(&display, width, height);
+                                pt_renderer.start_render(&display, &scene, &camera, width, height);
+                            } else {
+                                pt_renderer.wait_for_close();
                             }
                         },
+                        // TODO: make this a macro
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key1), ..} => {
                             let res = new_scene(&scenes[0], &display);
@@ -158,13 +162,17 @@ fn main() {
                         _ => ()
                     }
                 }
-                Event::WindowEvent{event: WindowEvent::Closed, ..} => std::process::exit(0),
+                Event::WindowEvent{event: WindowEvent::Closed, ..} => quit = true,
                 _ => ()
             }
-        };
-        events_loop.poll_events(event_handler);
-        }
+        });
         camera.process_input(&input);
         input.reset_deltas();
+        if quit {
+            println!("Stopping threads");
+            pt_renderer.wait_for_close();
+            println!("Stopped");
+            return;
+        }
     }
 }
