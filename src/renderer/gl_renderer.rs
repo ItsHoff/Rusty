@@ -5,7 +5,7 @@ use glium;
 use glium::{DrawParameters, Surface};
 use glium::backend::Facade;
 
-use scene::Scene;
+use scene::GPUScene;
 
 pub struct GLRenderer {
     shader: glium::Program,
@@ -20,7 +20,7 @@ impl GLRenderer {
         GLRenderer { shader }
     }
 
-    pub fn render<S: Surface>(&self, scene: &Scene, target: &mut S, world_to_clip: Matrix4<f32>) {
+    pub fn render<S: Surface>(&self, scene: &GPUScene, target: &mut S, world_to_clip: Matrix4<f32>) {
         let draw_parameters = DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
@@ -37,11 +37,10 @@ impl GLRenderer {
                 world_to_clip: array4x4(world_to_clip),
                 u_light: [-1.0, 0.4, 0.9f32],
                 u_color: material.diffuse,
-                u_has_diffuse: material.diffuse_image.is_some(),
-                tex_diffuse: material.diffuse_texture.as_ref().expect("Use of unloaded texture!")
+                u_has_diffuse: material.has_diffuse,
+                tex_diffuse: &material.diffuse_texture
             };
-            target.draw(scene.vertex_buffer.as_ref().expect("No vertex buffer"),
-                        mesh.index_buffer.as_ref().expect("No index buffer!"),
+            target.draw(&scene.vertex_buffer, &mesh.index_buffer,
                         &self.shader, &uniforms, &draw_parameters).unwrap();
         }
     }

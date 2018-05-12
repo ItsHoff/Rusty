@@ -9,11 +9,17 @@ use glium::texture::{RawImage2d, SrgbTexture2d};
 
 use scene::obj_load;
 
-/// Renderer representation of a material
+/// Material for CPU rendering
 pub struct Material {
     pub diffuse: [f32; 3],
     pub diffuse_image: Option<image::RgbaImage>,    // Texture on the CPU
-    pub diffuse_texture: Option<SrgbTexture2d>      // Texture on the GPU
+}
+
+/// Material for GPU rendering
+pub struct GPUMaterial {
+    pub diffuse: [f32; 3],
+    pub has_diffuse: bool,
+    pub diffuse_texture: SrgbTexture2d      // Texture on the GPU
 }
 
 impl Material {
@@ -27,7 +33,6 @@ impl Material {
         Material {
             diffuse: obj_mat.c_diffuse.expect("No diffuse color!"),
             diffuse_image,
-            diffuse_texture: None
         }
     }
 
@@ -38,15 +43,20 @@ impl Material {
     }
 
     /// Upload textures to the GPU
-    pub fn upload_textures<F: Facade>(&mut self, facade: &F) {
-        self.diffuse_texture = match self.diffuse_image {
+    pub fn upload_textures<F: Facade>(&self, facade: &F) -> GPUMaterial {
+        let diffuse_texture = match self.diffuse_image {
             Some(ref image) => {
                 let image_dim = image.dimensions();
                 let tex_image = RawImage2d::from_raw_rgba_reversed(&image.clone().into_raw(), image_dim);
-                Some(SrgbTexture2d::new(facade, tex_image).expect("Failed to upload texture!"))
+                SrgbTexture2d::new(facade, tex_image).expect("Failed to upload texture!")
             }
             // Use empty texture as a placeholder
-            None => Some(SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!"))
+            None => SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!")
+        };
+        GPUMaterial {
+            diffuse: self.diffuse,
+            has_diffuse: self.diffuse_image.is_some(),
+            diffuse_texture,
         }
     }
 }

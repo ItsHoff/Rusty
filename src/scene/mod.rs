@@ -17,34 +17,38 @@ use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
 
 use aabb::AABB;
 use self::bvh::BVH;
-use self::mesh::Mesh;
-pub use self::material::Material;
+use self::mesh::{Mesh, GPUMesh};
+pub use self::material::{Material, GPUMaterial};
 
-/// Renderer representation of a scene
+/// Scene containing all the CPU resources
 pub struct Scene {
     pub vertices: Vec<Vertex>,
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
-    pub vertex_buffer: Option<VertexBuffer<Vertex>>,
     pub triangles: Vec<RTTriangle>,
     pub aabb: AABB,
     pub bvh: BVH
 }
 
+/// Scene containing minimum resources for GPU rendering
+pub struct GPUScene {
+    pub meshes: Vec<GPUMesh>,
+    pub materials: Vec<GPUMaterial>,
+    pub vertex_buffer: VertexBuffer<Vertex>,
+}
+
 #[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
-    pub fn new<F: Facade>(scene_path: &Path, facade: &F) -> Scene {
+    pub fn new(scene_path: &Path) -> Scene {
         let mut scene = Scene {
             vertices: Vec::new(),
             meshes: Vec::new(),
             materials: Vec::new(),
-            vertex_buffer: None,
             triangles: Vec::new(),
             aabb: AABB { min: Point3::origin(), max: Point3::origin() },
             bvh: BVH::empty(),
         };
         scene.load_scene(scene_path);
-        scene.upload_data(facade);
         scene.bvh = BVH::build_object_median(&mut scene.triangles);
         scene
     }
@@ -119,14 +123,21 @@ impl Scene {
     }
 
     /// Load the textures + vertex and index buffers to the GPU
-    fn upload_data<F: Facade>(&mut self, facade: &F) {
-        self.vertex_buffer = Some(VertexBuffer::new(facade, &self.vertices)
-                                  .expect("Failed to create vertex buffer!"));
-        for mesh in &mut self.meshes {
-            mesh.upload_data(facade);
+    pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUScene {
+        let vertex_buffer = VertexBuffer::new(facade, &self.vertices)
+                                  .expect("Failed to create vertex buffer!");
+        let mut meshes = Vec::new();
+        let mut materials = Vec::new();
+        for mesh in &self.meshes {
+            meshes.push(mesh.upload_data(facade));
         }
-        for material in &mut self.materials {
-            material.upload_textures(facade);
+        for material in &self.materials {
+            materials.push(material.upload_textures(facade));
+        }
+        GPUScene {
+            meshes,
+            materials,
+            vertex_buffer,
         }
     }
 

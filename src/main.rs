@@ -20,7 +20,7 @@ mod scene;
 
 use camera::Camera;
 use input::InputState;
-use scene::Scene;
+use scene::{Scene, GPUScene};
 
 /// Get the root directory of the project
 fn get_project_root() -> PathBuf {
@@ -35,12 +35,13 @@ fn get_project_root() -> PathBuf {
     parent_dir.to_path_buf()
 }
 
-fn new_scene<F: Facade>(path: &Path, facade: &F) -> (Scene, Camera) {
-    let scene = Scene::new(path, facade);
+fn new_scene<F: Facade>(path: &Path, facade: &F) -> (Scene, GPUScene, Camera) {
+    let scene = Scene::new(path);
+    let gpu_scene = scene.upload_data(facade);
     let mut camera = Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
     camera.set_scale(scene.size());
-    (scene, camera)
+    (scene, gpu_scene, camera)
 }
 
 fn main() {
@@ -60,7 +61,7 @@ fn main() {
                       root_path.join("scenes/nanosuit/nanosuit.obj"),
                       root_path.join("scenes/sibenik/sibenik.obj"));
 
-    let (mut scene, mut camera) = new_scene(&scenes[0], &display);
+    let (mut scene, mut gpu_scene, mut camera) = new_scene(&scenes[0], &display);
     let gl_renderer = renderer::GLRenderer::new(&display);
     let mut pt_renderer = renderer::PTRenderer::new(&display);
 
@@ -80,7 +81,7 @@ fn main() {
             if trace {
                 pt_renderer.render(&scene, &mut target, &camera);
             } else {
-                gl_renderer.render(&scene, &mut target, camera_to_clip * world_to_camera);
+                gl_renderer.render(&gpu_scene, &mut target, camera_to_clip * world_to_camera);
             }
         }
         target.finish().unwrap();
@@ -102,49 +103,57 @@ fn main() {
                                       virtual_keycode: Some(VirtualKeyCode::Key1), ..} => {
                             let res = new_scene(&scenes[0], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key2), ..} => {
                             let res = new_scene(&scenes[1], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key3), ..} => {
                             let res = new_scene(&scenes[2], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key4), ..} => {
                             let res = new_scene(&scenes[3], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key5), ..} => {
                             let res = new_scene(&scenes[4], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key6), ..} => {
                             let res = new_scene(&scenes[5], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key7), ..} => {
                             let res = new_scene(&scenes[6], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(VirtualKeyCode::Key8), ..} => {
                             let res = new_scene(&scenes[7], &display);
                             scene = res.0;
-                            camera = res.1;
+                            gpu_scene = res.1;
+                            camera = res.2;
                         },
                         _ => ()
                     }
