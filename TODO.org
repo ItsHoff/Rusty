@@ -1,13 +1,9 @@
 * TODO
 ** Features
-*** Multi threading
-    * RenderCoordinator for pulling work
-    * channel for sending results back https://doc.rust-lang.org/std/sync/
-    * need to separate GPU resources from scene since they're not Send
 *** Lights
 *** Diffuse shading
 *** Monte Carlo tracing
+*** Benchmarking
 ** Improvements
-*** Input handling
 *** Arbitrary scene loading
 *** UI
