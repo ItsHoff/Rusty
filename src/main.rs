@@ -34,19 +34,6 @@ use input::InputState;
 use pt_renderer::PTRenderer;
 use scene::{Scene, GPUScene};
 
-/// Get the root directory of the project
-fn get_project_root() -> PathBuf {
-    let exe_dir = std::env::current_exe().unwrap();
-    let mut parent_dir = exe_dir.parent().unwrap();
-    // This fails if the executable is not in the project tree
-    // or the directory is renamed
-    while !(parent_dir.ends_with("rusty") || parent_dir.ends_with("Rusty")) {
-        parent_dir = parent_dir.parent()
-            .expect(&format!("Failed to find project root from {:?}!", exe_dir));
-    }
-    parent_dir.to_path_buf()
-}
-
 fn load_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Camera) {
     let scene = Scene::new(path);
     let gpu_scene = scene.upload_data(facade);
@@ -62,7 +49,7 @@ fn main() {
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
     let display = glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
-    let root_path = get_project_root();
+    let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     // TODO: Enable use of arbitrary scene
     let scenes: HashMap<VirtualKeyCode, PathBuf> =
         [(VirtualKeyCode::Key1, root_path.join("scenes/plane.obj")),
