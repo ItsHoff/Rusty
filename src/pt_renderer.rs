@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, mpsc::{self, Sender, Receiver, TryRecvError}};
 use std::thread::{self, JoinHandle};
 
 use cgmath::prelude::*;
-use cgmath::Vector4;
+use cgmath::{Vector3, Vector4, Point3};
 
 use glium;
 use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect};
@@ -12,9 +12,30 @@ use glium::backend::Facade;
 use glium::texture::{RawImage2d, Texture2d};
 
 use camera::Camera;
-use renderer::{Vertex, Ray, Hit, Intersect};
 use scene::Scene;
-use scene::bvh::BVHNode;
+use bvh::BVHNode;
+use triangle::Hit;
+use vertex::Vertex;
+
+pub trait Intersect<'a, H> {
+    fn intersect(&'a self, ray: &Ray) -> Option<H>;
+}
+
+#[derive(Clone, Copy)]
+pub struct Ray {
+    pub orig: Point3<f32>,
+    pub dir: Vector3<f32>,
+    // For more efficient ray plane intersections
+    pub reciprocal_dir: Vector3<f32>,
+    pub length: f32,
+}
+
+impl Ray {
+    fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
+        let reciprocal_dir = 1.0 / dir;
+        Ray { orig, dir, reciprocal_dir, length }
+    }
+}
 
 #[allow(dead_code)]
 pub struct RenderCoordinator {
@@ -103,8 +124,8 @@ impl PTRenderer {
         let texture = Texture2d::empty(facade, 0, 0).expect("Failed to create trace texture!");
 
         // Image shader
-        let vertex_shader_src = include_str!("../image.vert");
-        let fragment_shader_src = include_str!("../image.frag");
+        let vertex_shader_src = include_str!("shaders/image.vert");
+        let fragment_shader_src = include_str!("shaders/image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
         PTRenderer { shader, vertex_buffer, index_buffer, texture,

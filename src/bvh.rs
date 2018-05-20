@@ -1,7 +1,8 @@
 use cgmath::Point3;
 
 use aabb::AABB;
-use renderer::{Intersect, RTTriangle, Ray};
+use pt_renderer::{Intersect, Ray};
+use triangle::RTTriangle;
 
 pub struct BVHNode {
     aabb: AABB,

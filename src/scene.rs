@@ -1,8 +1,3 @@
-pub mod bvh;
-mod material;
-mod mesh;
-mod obj_load;
-
 use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
@@ -13,12 +8,14 @@ use cgmath::Point3;
 use glium::VertexBuffer;
 use glium::backend::Facade;
 
-use renderer::{Vertex, RTTriangle, RTTriangleBuilder};
+use vertex::Vertex;
+use triangle::{RTTriangle, RTTriangleBuilder};
 
 use aabb::AABB;
-use self::bvh::BVH;
-use self::mesh::{Mesh, GPUMesh};
-pub use self::material::{Material, GPUMaterial};
+use bvh::BVH;
+use mesh::{Mesh, GPUMesh};
+use material::{Material, GPUMaterial};
+use obj_load;
 
 /// Scene containing all the CPU resources
 pub struct Scene {

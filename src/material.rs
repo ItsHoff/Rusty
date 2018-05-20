@@ -7,7 +7,7 @@ use std::path::Path;
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
 
-use scene::obj_load;
+use obj_load;
 
 /// Material for CPU rendering
 pub struct Material {

@@ -1,11 +1,11 @@
 use cgmath::prelude::*;
 use cgmath::{Vector3, Matrix4, Point3};
 
-use scene::Material;
+use material::Material;
 
-use aabb;
-use aabb::AABB;
-use super::{Vertex, CGVertex, Ray, Hit, Intersect};
+use aabb::{self, AABB};
+use vertex::{Vertex, CGVertex};
+use pt_renderer::{Ray, Intersect};
 
 #[derive(Default)]
 pub struct RTTriangleBuilder {
@@ -90,6 +90,14 @@ impl RTTriangle {
     pub fn center(&self) -> Point3<f32> {
         Point3::centroid(&[self.v1.pos, self.v2.pos, self.v3.pos])
     }
+}
+
+#[derive(Debug)]
+pub struct Hit<'a> {
+    pub tri: &'a RTTriangle,
+    pub t: f32,
+    pub u: f32,
+    pub v: f32,
 }
 
 impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {

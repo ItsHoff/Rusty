@@ -1,8 +1,22 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
+
 #[macro_use]
 extern crate glium;
 extern crate cgmath;
+
+mod aabb;
+mod bvh;
+mod camera;
+mod gl_renderer;
+mod input;
+mod material;
+mod mesh;
+mod obj_load;
+mod pt_renderer;
+mod scene;
+mod triangle;
+mod vertex;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -14,14 +28,10 @@ use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyC
 
 use cgmath::Vector3;
 
-mod aabb;
-mod camera;
-mod input;
-mod renderer;
-mod scene;
-
 use camera::Camera;
+use gl_renderer::GLRenderer;
 use input::InputState;
+use pt_renderer::PTRenderer;
 use scene::{Scene, GPUScene};
 
 /// Get the root directory of the project
@@ -67,8 +77,8 @@ fn main() {
 
     let (mut scene, mut gpu_scene, mut camera) =
         load_scene(&scenes[&VirtualKeyCode::Key1], &display);
-    let gl_renderer = renderer::GLRenderer::new(&display);
-    let mut pt_renderer = renderer::PTRenderer::new(&display);
+    let gl_renderer = GLRenderer::new(&display);
+    let mut pt_renderer = PTRenderer::new(&display);
 
     let mut input = InputState::new();
     let mut trace = false;

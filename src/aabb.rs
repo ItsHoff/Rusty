@@ -1,7 +1,7 @@
 use cgmath::prelude::*;
 use cgmath::Point3;
 
-use renderer::{Intersect, Ray};
+use pt_renderer::{Intersect, Ray};
 
 #[derive(Clone)]
 pub struct AABB {
