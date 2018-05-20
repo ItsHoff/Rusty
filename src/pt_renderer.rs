@@ -229,7 +229,8 @@ impl PTRenderer {
     }
 }
 
-fn find_hit<'a>(scene: &'a Scene, ray: Ray, node_stack: &mut Vec<(*const BVHNode, f32)>) -> Option<Hit<'a>> {
+fn find_hit<'a>(scene: &'a Scene, ray: Ray, node_stack: &mut Vec<(*const BVHNode, f32)>)
+                -> Option<Hit<'a>> {
     let bvh = &scene.bvh;
     node_stack.push((bvh.root(), 0.0f32));
     let mut closest_hit: Option<Hit> = None;
