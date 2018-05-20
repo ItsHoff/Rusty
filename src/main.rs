@@ -103,7 +103,7 @@ fn main() {
                             if trace {
                                 pt_renderer.start_render(&display, &scene, &camera, width, height);
                             } else {
-                                pt_renderer.wait_for_close();
+                                pt_renderer.stop_threads();
                             }
                         },
                         KeyboardInput{state: ElementState::Pressed,
@@ -125,9 +125,7 @@ fn main() {
         camera.process_input(&input);
         input.reset_deltas();
         if quit {
-            println!("Stopping threads");
-            pt_renderer.wait_for_close();
-            println!("Stopped");
+            pt_renderer.stop_threads();
             return;
         }
     }

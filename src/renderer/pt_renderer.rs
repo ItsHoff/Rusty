@@ -1,6 +1,6 @@
 extern crate num_cpus;
 
-use std::sync::{Arc, Mutex, mpsc::{self, Receiver}};
+use std::sync::{Arc, Mutex, mpsc::{self, Sender, Receiver, TryRecvError}};
 use std::thread::{self, JoinHandle};
 
 use cgmath::prelude::*;
@@ -64,10 +64,6 @@ impl RenderCoordinator {
             }
         )
     }
-
-    fn stop(&mut self) {
-        self.max_iterations = Some(0);
-    }
 }
 
 pub struct PTRenderer {
@@ -76,7 +72,8 @@ pub struct PTRenderer {
     index_buffer: IndexBuffer<u32>,
     texture: Texture2d,
     coordinator: Arc<Mutex<RenderCoordinator>>,
-    rx: Option<Receiver<(Rect, Vec<f32>)>>,
+    receive_channel: Option<Receiver<(Rect, Vec<f32>)>>,
+    send_channels: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
 }
 
@@ -112,7 +109,8 @@ impl PTRenderer {
             .expect("Failed to create program!");
         PTRenderer { shader, vertex_buffer, index_buffer, texture,
                      coordinator: Arc::new(Mutex::new(RenderCoordinator::new(0, 0, None))),
-                     rx: None,
+                     receive_channel: None,
+                     send_channels: Vec::new(),
                      thread_handles: Vec::new(),
         }
     }
@@ -122,10 +120,12 @@ impl PTRenderer {
         let empty_image = RawImage2d::from_raw_rgb(vec![0.0; (3 * width * height) as usize], (width, height));
         self.texture = Texture2d::new(facade, empty_image).expect("Failed to upload traced image!");
         self.coordinator = Arc::new(Mutex::new(RenderCoordinator::new(width, height, None)));
-        let (tx, rx) = mpsc::channel();
-        self.rx = Some(rx);
-        for _ in 0..3 { //num_cpus::get_physical() {
-            let tx = tx.clone();
+        let (thread_sender, main_receiver) = mpsc::channel();
+        self.receive_channel = Some(main_receiver);
+        for _ in 0..num_cpus::get_physical() {
+            let sender = thread_sender.clone();
+            let (main_sender, receiver) = mpsc::channel();
+            self.send_channels.push(main_sender);
             let coordinator = self.coordinator.clone();
             let camera = camera.clone();
             let scene = scene.clone();
@@ -135,6 +135,14 @@ impl PTRenderer {
             let handle = thread::spawn(move|| {
                 let mut node_stack = Vec::new();
                 loop {
+                    match receiver.try_recv() {
+                        Err(TryRecvError::Empty) => (),
+                        Ok(_) => return,
+                        Err(TryRecvError::Disconnected) => {
+                            println!("Threads were not properly stopped before disconnecting channel!");
+                            return;
+                        }
+                    }
                     if let Some(rect) = coordinator.lock().unwrap().next_block() {
                         let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
                         for h in 0..rect.height {
@@ -161,7 +169,7 @@ impl PTRenderer {
                                 }
                             }
                         }
-                        tx.send((rect, block)).expect("Receiver closed!");
+                        sender.send((rect, block)).expect("Receiver closed!");
                     } else {
                         return;
                     }
@@ -172,7 +180,7 @@ impl PTRenderer {
     }
 
     pub fn render<S: Surface>(&mut self, target: &mut S) {
-        if let Some(ref rx) = self.rx {
+        if let Some(ref rx) = self.receive_channel {
             for (rect, block) in rx.try_iter().take(10) {
                 let raw_block = RawImage2d::from_raw_rgb(block, (rect.width, rect.height));
                 self.texture.write(rect, raw_block);
@@ -188,11 +196,15 @@ impl PTRenderer {
         }
     }
 
-    pub fn wait_for_close(&mut self) {
-        self.coordinator.lock().unwrap().stop();
+    pub fn stop_threads(&mut self) {
+        for sender in &self.send_channels {
+            sender.send(()).unwrap();
+        }
         for handle in self.thread_handles.drain(..) {
             handle.join().unwrap();
         }
+        // Drop channels after join so stop messages are properly reveived
+        self.send_channels.clear();
     }
 }
 
