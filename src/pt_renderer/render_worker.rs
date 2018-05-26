@@ -31,8 +31,7 @@ impl RenderWorker {
             let coordinator = self.coordinator.lock().unwrap();
             (coordinator.width, coordinator.height)
         };
-        let clip_to_world = (self.camera.get_camera_to_clip() * self.camera.get_world_to_camera())
-            .invert().expect("Non invertible world to clip");
+        let clip_to_world = self.camera.get_world_to_clip().invert().unwrap();
         loop {
             match self.message_rx.try_recv() {
                 Err(TryRecvError::Empty) => (),

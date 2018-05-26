@@ -78,14 +78,11 @@ fn main() {
         camera.update_viewport(target.get_dimensions());
         // Don't draw if the window is minimized
         if camera.width != 0 && camera.height != 0 {
-            let camera_to_clip = camera.get_camera_to_clip();
-            let world_to_camera = camera.get_world_to_camera();
-
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
             if trace {
                 pt_renderer.render(&mut target);
             } else {
-                gl_renderer.render(&gpu_scene, &mut target, camera_to_clip * world_to_camera);
+                gl_renderer.render(&mut target, &gpu_scene, &camera);
             }
         }
         target.finish().unwrap();

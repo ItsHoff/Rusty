@@ -1,10 +1,10 @@
-use cgmath::Matrix4;
 use cgmath::conv::*;
 
 use glium;
 use glium::{DrawParameters, Surface};
 use glium::backend::Facade;
 
+use camera::Camera;
 use scene::GPUScene;
 
 pub struct GLRenderer {
@@ -20,7 +20,8 @@ impl GLRenderer {
         GLRenderer { shader }
     }
 
-    pub fn render<S: Surface>(&self, scene: &GPUScene, target: &mut S, world_to_clip: Matrix4<f32>) {
+    pub fn render<S: Surface>(&self, target: &mut S, scene: &GPUScene, camera: &Camera) {
+        let world_to_clip = camera.get_world_to_clip();
         let draw_parameters = DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,

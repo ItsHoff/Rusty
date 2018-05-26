@@ -74,6 +74,11 @@ impl Camera {
                             self.near * self.scale, self.far * self.scale)
     }
 
+    /// Get the combined world to clip transformation
+    pub fn get_world_to_clip(&self) -> Matrix4<f32> {
+        self.get_camera_to_clip() * self.get_world_to_camera()
+    }
+
     /// Get the camera rotation matrix
     fn get_rotation(&self) -> Matrix3<f32> {
         Matrix3::look_at(-self.dir, self.up)
