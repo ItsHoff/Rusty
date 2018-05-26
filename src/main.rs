@@ -75,10 +75,10 @@ fn main() {
     loop {
         let mut target = display.draw();
 
-        let (width, height) = target.get_dimensions();
+        camera.update_viewport(target.get_dimensions());
         // Don't draw if the window is minimized
-        if width != 0 && height != 0 {
-            let camera_to_clip = camera.get_camera_to_clip(width, height);
+        if camera.width != 0 && camera.height != 0 {
+            let camera_to_clip = camera.get_camera_to_clip();
             let world_to_camera = camera.get_world_to_camera();
 
             target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
@@ -99,7 +99,7 @@ fn main() {
                                       virtual_keycode: Some(VirtualKeyCode::Space), ..} => {
                             trace = !trace;
                             if trace {
-                                pt_renderer.start_render(&display, &scene, &camera, width, height);
+                                pt_renderer.start_render(&display, &scene, &camera);
                             } else {
                                 pt_renderer.stop_threads();
                             }

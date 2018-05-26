@@ -17,6 +17,10 @@ pub struct Camera {
     pub pos: Point3<f32>,
     /// Direction the camera is looking at in world coordinates
     pub dir: Vector3<f32>,
+    /// Width of the viewport in pixels
+    pub width: u32,
+    /// Height of the viewport in pixels
+    pub height: u32,
     /// Definition of camera up in world coordinates
     up: Vector3<f32>,
     /// Vertical field-of-view of the camera
@@ -35,6 +39,7 @@ impl Default for Camera {
         Camera {
             pos: Point3 {x: 0.0, y: 0.0, z: 0.0},
             dir: Vector3 {x: 0.0, y: 0.0, z: 1.0},
+            width: 0, height: 0,
             up: Vector3 {x: 0.0, y: 1.0, z: 0.0},
             fov: Rad(::std::f32::consts::PI / 3.0),
             near: 0.001,
@@ -49,6 +54,11 @@ impl Camera {
         Camera { pos, dir, .. Default::default() }
     }
 
+    pub fn update_viewport(&mut self, size: (u32, u32)) {
+        self.width = size.0;
+        self.height = size.1;
+    }
+
     pub fn set_scale(&mut self, scale: f32) {
         self.scale = scale;
     }
@@ -59,8 +69,9 @@ impl Camera {
     }
 
     /// Get the camera to clip space transformation matrix
-    pub fn get_camera_to_clip(&self, w: u32, h: u32) -> Matrix4<f32> {
-        cgmath::perspective(self.fov, w as f32 / h as f32, self.near * self.scale, self.far * self.scale)
+    pub fn get_camera_to_clip(&self) -> Matrix4<f32> {
+        cgmath::perspective(self.fov, self.width as f32 / self.height as f32,
+                            self.near * self.scale, self.far * self.scale)
     }
 
     /// Get the camera rotation matrix
