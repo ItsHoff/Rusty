@@ -172,17 +172,32 @@ impl PTRenderer {
                                 let clip_y = 2.0 * (rect.bottom + h) as f32 / height as f32 - 1.0;
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = clip_to_world * clip_p;
-                                let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec()).normalize();
+                                let dir = ((world_p / world_p.w).truncate() - camera.pos.to_vec())
+                                    .normalize();
                                 let ray = Ray::new(camera.pos, dir, 100.0);
 
                                 let pixel_i = 3 * (h * rect.width + w) as usize;
                                 if let Some(hit) = find_hit(&scene, ray, &mut node_stack) {
+                                    let light_sample = scene.sample_light();
+                                    let hit_to_light = light_sample - hit.pos();
+                                    let light_ray = Ray::new(hit.pos(), hit_to_light.normalize(),
+                                                             hit_to_light.magnitude());
+                                    let e = if let Some(hit) = find_hit(&scene, light_ray, &mut node_stack) {
+                                        if 1e-5 < hit.t && hit.t < 1.0 - 1e-5 {
+                                            0.0
+                                        } else {
+                                            1.0
+                                        }
+
+                                    } else {
+                                        1.0
+                                    };
                                     // TODO: This should account for sRBG
                                     let mut c = hit.tri.diffuse(&scene.materials, hit.u, hit.v);
                                     c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
-                                    block[pixel_i]     = c.x;
-                                    block[pixel_i + 1] = c.y;
-                                    block[pixel_i + 2] = c.z;
+                                    block[pixel_i]     = e * c.x;
+                                    block[pixel_i + 1] = e * c.y;
+                                    block[pixel_i + 2] = e * c.z;
                                 } else {
                                     block[pixel_i]     = 0.1;
                                     block[pixel_i + 1] = 0.1;

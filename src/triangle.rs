@@ -1,9 +1,10 @@
 use cgmath::prelude::*;
 use cgmath::{Vector3, Matrix4, Point3};
 
-use material::Material;
+use rand;
 
 use aabb::{self, AABB};
+use material::Material;
 use vertex::{Vertex, CGVertex};
 use pt_renderer::{Ray, Intersect};
 
@@ -90,6 +91,22 @@ impl RTTriangle {
     pub fn center(&self) -> Point3<f32> {
         Point3::centroid(&[self.v1.pos, self.v2.pos, self.v3.pos])
     }
+
+    pub fn random_point(&self) -> Point3<f32> {
+        let mut u: f32 = rand::random();
+        let mut v: f32 = rand::random();
+        if u + v > 1.0 {
+            u = 1.0 - u;
+            v = 1.0 - v;
+        }
+        self.bary_to_world(u, v)
+    }
+
+    fn bary_to_world(&self, u: f32, v: f32) -> Point3<f32> {
+        // Have to substract one component since cgmath points cannot by summed
+        // and there is not a cleaner method to convert to Vector3
+        (1.0 - u - v) * self.v1.pos + (u * self.v2.pos - (-v) * self.v3.pos)
+    }
 }
 
 #[derive(Debug)]
@@ -112,5 +129,11 @@ impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
         } else {
             None
         }
+    }
+}
+
+impl<'a> Hit<'a> {
+    pub fn pos(&self) -> Point3<f32> {
+        self.tri.bary_to_world(self.u, self.v)
     }
 }

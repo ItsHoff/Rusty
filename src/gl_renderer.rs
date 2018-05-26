@@ -38,6 +38,7 @@ impl GLRenderer {
                 u_light: [-1.0, 0.4, 0.9f32],
                 u_color: material.diffuse,
                 u_has_diffuse: material.has_diffuse,
+                u_has_emissive: material.has_emissive,
                 tex_diffuse: &material.diffuse_texture
             };
             target.draw(&scene.vertex_buffer, &mesh.index_buffer,

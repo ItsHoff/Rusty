@@ -13,13 +13,15 @@ use obj_load;
 pub struct Material {
     pub diffuse: [f32; 3],
     pub diffuse_image: Option<image::RgbaImage>,    // Texture on the CPU
+    pub emissive: Option<[f32; 3]>,
 }
 
 /// Material for GPU rendering
 pub struct GPUMaterial {
     pub diffuse: [f32; 3],
     pub has_diffuse: bool,
-    pub diffuse_texture: SrgbTexture2d      // Texture on the GPU
+    pub diffuse_texture: SrgbTexture2d,      // Texture on the GPU
+    pub has_emissive: bool,
 }
 
 impl Material {
@@ -30,13 +32,18 @@ impl Material {
             Some(ref tex_path) => Some(Material::load_image(tex_path)),
             None => None
         };
+        let emissive = obj_mat.c_emissive.and_then(
+            |e| if e == [0.0, 0.0, 0.0] { None }
+            else { Some(e) });
+
         Material {
             diffuse: obj_mat.c_diffuse.expect("No diffuse color!"),
             diffuse_image,
+            emissive,
         }
     }
 
-    /// Load an image at
+    /// Load an image from path
     fn load_image(path: &Path) -> image::RgbaImage {
         let tex_reader = BufReader::new(File::open(path).expect("Failed to open image!"));
         image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba()
@@ -57,6 +64,7 @@ impl Material {
             diffuse: self.diffuse,
             has_diffuse: self.diffuse_image.is_some(),
             diffuse_texture,
+            has_emissive: self.emissive.is_some(),
         }
     }
 }

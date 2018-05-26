@@ -8,14 +8,15 @@ use cgmath::Point3;
 use glium::VertexBuffer;
 use glium::backend::Facade;
 
-use vertex::Vertex;
-use triangle::{RTTriangle, RTTriangleBuilder};
+use rand::{self, prelude::*};
 
 use aabb::AABB;
 use bvh::BVH;
 use mesh::{Mesh, GPUMesh};
 use material::{Material, GPUMaterial};
 use obj_load;
+use triangle::{RTTriangle, RTTriangleBuilder};
+use vertex::Vertex;
 
 /// Scene containing all the CPU resources
 pub struct Scene {
@@ -23,6 +24,7 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub triangles: Vec<RTTriangle>,
+    pub lights: Vec<RTTriangle>,
     pub aabb: AABB,
     pub bvh: BVH
 }
@@ -42,6 +44,7 @@ impl Scene {
             meshes: Vec::new(),
             materials: Vec::new(),
             triangles: Vec::new(),
+            lights: Vec::new(),
             aabb: AABB { min: Point3::origin(), max: Point3::origin() },
             bvh: BVH::empty(),
         };
@@ -79,7 +82,7 @@ impl Scene {
             let obj_mat = obj.materials.get(&range.name)
                 .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
             let mut mesh = Mesh::new(self.materials.len());
-            self.materials.push(Material::new(obj_mat));
+            let material = Material::new(obj_mat);
             for tri in &obj.triangles[range.start_i..range.end_i] {
                 let mut tri_builder = RTTriangleBuilder::new();
                 let default_tex_coords = [0.0; 2];
@@ -110,10 +113,14 @@ impl Scene {
                         }
                     }
                 }
-                self.triangles.push(tri_builder.build(self.materials.len() - 1)
-                                    .expect("Failed to build tri!"));
+                let triangle = tri_builder.build(self.materials.len()).expect("Failed to build tri!");
+                if material.emissive.is_some() {
+                    self.lights.push(triangle.clone());
+                }
+                self.triangles.push(triangle);
             }
             if !mesh.indices.is_empty() {
+                self.materials.push(material);
                 self.meshes.push(mesh);
             }
         }
@@ -146,5 +153,11 @@ impl Scene {
     /// Get the approximate size of the scene
     pub fn size(&self) -> f32 {
         self.aabb.longest_edge()
+    }
+
+    pub fn sample_light(&self) -> Point3<f32> {
+        // TODO: handle cases with no lights
+        let i = rand::thread_rng().gen_range(0, self.lights.len());
+        self.lights[i].random_point()
     }
 }
