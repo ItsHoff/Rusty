@@ -1,13 +1,17 @@
 use std::sync::{Arc, Mutex, mpsc::{Sender, Receiver, TryRecvError}};
 
-use cgmath::{Vector4, prelude::*};
+use cgmath::{Point3, Vector4, prelude::*};
 
 use glium::Rect;
+
+use rand::{self, prelude::*};
 
 use camera::Camera;
 use pt_renderer::{Intersect, Ray, RenderCoordinator};
 use scene::Scene;
 use triangle::Hit;
+
+const EPSILON: f32 = 1e-5;
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -54,21 +58,8 @@ impl RenderWorker {
                         let ray = Ray::new(self.camera.pos, dir, 100.0);
 
                         let pixel_i = 3 * (h * rect.width + w) as usize;
-                        if let Some(hit) = self.find_hit(ray) {
-                            let light_sample = self.scene.sample_light();
-                            let hit_to_light = light_sample - hit.pos();
-                            let light_ray = Ray::new(hit.pos(), hit_to_light.normalize(),
-                                                     hit_to_light.magnitude());
-                            let e = if let Some(hit) = self.find_hit(light_ray) {
-                                if 1e-5 < hit.t && hit.t < 1.0 - 1e-5 {
-                                    0.0
-                                } else {
-                                    1.0
-                                }
-
-                            } else {
-                                1.0
-                            };
+                        if let Some(hit) = self.find_hit(&ray) {
+                            let e = self.get_shadow(&ray, &hit);
                             // TODO: This should account for sRBG
                             let mut c = hit.tri.diffuse(&self.scene.materials, hit.u, hit.v);
                             c *= dir.dot(hit.tri.normal(hit.u, hit.v)).abs();
@@ -89,7 +80,7 @@ impl RenderWorker {
         }
     }
 
-    fn find_hit(&self, ray: Ray) -> Option<Hit> {
+    fn find_hit(&self, ray: &Ray) -> Option<Hit> {
         let bvh = &self.scene.bvh;
         let mut node_stack = Vec::new();
         node_stack.push((bvh.root(), 0.0f32));
@@ -123,5 +114,35 @@ impl RenderWorker {
             }
         }
         closest_hit
+    }
+
+    fn get_shadow(&self, ray: &Ray, hit: &Hit) -> f32 {
+        if let Some(light_sample) = self.sample_light() {
+            let mut normal = hit.normal();
+            // Flip the normal if its pointing to the opposite side from the hit
+            if normal.dot(ray.dir) > 0.0 {
+                normal *= -1.0;
+            }
+            let start = hit.pos() + EPSILON * normal; // Bump the start sligtly
+            let hit_to_light = light_sample - start;
+            let shadow_ray = Ray::new(start, hit_to_light.normalize(),
+                                     hit_to_light.magnitude() - EPSILON);
+            if self.find_hit(&shadow_ray).is_some() {
+                0.0
+            } else {
+                1.0
+            }
+        } else {
+            1.0
+        }
+    }
+
+    pub fn sample_light(&self) -> Option<Point3<f32>> {
+        if self.scene.lights.is_empty() {
+            None
+        } else {
+            let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
+            Some(self.scene.lights[i].random_point())
+        }
     }
 }

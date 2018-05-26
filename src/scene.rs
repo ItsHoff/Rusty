@@ -8,8 +8,6 @@ use cgmath::Point3;
 use glium::VertexBuffer;
 use glium::backend::Facade;
 
-use rand::{self, prelude::*};
-
 use aabb::AABB;
 use bvh::BVH;
 use mesh::{Mesh, GPUMesh};
@@ -153,11 +151,5 @@ impl Scene {
     /// Get the approximate size of the scene
     pub fn size(&self) -> f32 {
         self.aabb.longest_edge()
-    }
-
-    pub fn sample_light(&self) -> Point3<f32> {
-        // TODO: handle cases with no lights
-        let i = rand::thread_rng().gen_range(0, self.lights.len());
-        self.lights[i].random_point()
     }
 }

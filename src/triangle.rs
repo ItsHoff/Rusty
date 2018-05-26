@@ -136,4 +136,8 @@ impl<'a> Hit<'a> {
     pub fn pos(&self) -> Point3<f32> {
         self.tri.bary_to_world(self.u, self.v)
     }
+
+    pub fn normal(&self) -> Vector3<f32> {
+        self.tri.normal(self.u, self.v)
+    }
 }
