@@ -1,6 +1,7 @@
 extern crate num_cpus;
 
 mod render_worker;
+mod traced_image;
 
 use std::sync::{Arc, Mutex, mpsc::{self, Sender, Receiver}};
 use std::thread::{self, JoinHandle};
@@ -10,13 +11,13 @@ use cgmath::{Vector3, Point3};
 use glium;
 use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect};
 use glium::backend::Facade;
-use glium::texture::{RawImage2d, Texture2d};
 
 use camera::Camera;
 use scene::Scene;
 use vertex::Vertex;
 
 use self::render_worker::RenderWorker;
+use self::traced_image::TracedImage;
 
 pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;
@@ -92,7 +93,7 @@ pub struct PTRenderer {
     shader: glium::Program,
     vertex_buffer: VertexBuffer<Vertex>,
     index_buffer: IndexBuffer<u32>,
-    texture: Texture2d,
+    image: TracedImage,
     coordinator: Arc<Mutex<RenderCoordinator>>,
     result_rx: Option<Receiver<(Rect, Vec<f32>)>>,
     message_txs: Vec<Sender<()>>,
@@ -122,14 +123,14 @@ impl PTRenderer {
                                             glium::index::PrimitiveType::TrianglesList,
                                             &indices)
             .expect("Failed to create index buffer!");
-        let texture = Texture2d::empty(facade, 0, 0).expect("Failed to create trace texture!");
+        let image = TracedImage::empty(facade, 0, 0);
 
         // Image shader
         let vertex_shader_src = include_str!("../shaders/image.vert");
         let fragment_shader_src = include_str!("../shaders/image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        PTRenderer { shader, vertex_buffer, index_buffer, texture,
+        PTRenderer { shader, vertex_buffer, index_buffer, image,
                      coordinator: Arc::new(Mutex::new(RenderCoordinator::new(0, 0, None))),
                      result_rx: None,
                      message_txs: Vec::new(),
@@ -140,8 +141,7 @@ impl PTRenderer {
     pub fn start_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera) {
         let width = camera.width;
         let height = camera.height;
-        let empty_image = RawImage2d::from_raw_rgb(vec![0.0; (3 * width * height) as usize], (width, height));
-        self.texture = Texture2d::new(facade, empty_image).expect("Failed to upload traced image!");
+        self.image = TracedImage::empty(facade, width, height);
         self.coordinator = Arc::new(Mutex::new(RenderCoordinator::new(width, height, None)));
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
@@ -164,11 +164,10 @@ impl PTRenderer {
     pub fn render<S: Surface>(&mut self, target: &mut S) {
         if let Some(ref rx) = self.result_rx {
             for (rect, block) in rx.try_iter().take(10) {
-                let raw_block = RawImage2d::from_raw_rgb(block, (rect.width, rect.height));
-                self.texture.write(rect, raw_block);
+                self.image.update_block(rect, block);
             }
             let uniforms = uniform! {
-                image: &self.texture,
+                image: &self.image.texture,
             };
             let draw_parameters = DrawParameters {
                 ..Default::default()
