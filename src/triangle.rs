@@ -4,7 +4,6 @@ use cgmath::{Vector3, Matrix4, Point3};
 use rand;
 
 use aabb::{self, AABB};
-use material::Material;
 use vertex::{Vertex, CGVertex};
 use pt_renderer::{Ray, Intersect};
 

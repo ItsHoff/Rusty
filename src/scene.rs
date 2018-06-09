@@ -69,9 +69,11 @@ impl Scene {
             let v = [pos_3[0] - pos_1[0],
                     pos_3[1] - pos_1[1],
                     pos_3[2] - pos_1[2]];
-            [u[1]*v[2] - u[2]*v[1],
-            u[2]*v[0] - u[0]*v[2],
-            u[0]*v[1] - u[1]*v[0]]
+            let normal = [u[1]*v[2] - u[2]*v[1],
+                          u[2]*v[0] - u[0]*v[2],
+                          u[0]*v[1] - u[1]*v[0]];
+            let length = (normal[0].powi(2) + normal[1].powi(2) + normal[2].powi(2)).sqrt();
+            [normal[0] / length, normal[1] / length, normal[2] / length]
         };
 
         // Group the polygons by materials for easy rendering
