@@ -23,7 +23,7 @@ pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Ray {
     pub orig: Point3<f32>,
     pub dir: Vector3<f32>,

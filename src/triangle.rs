@@ -43,7 +43,7 @@ pub struct RTTriangle {
     v2: CGVertex,
     v3: CGVertex,
     to_barycentric: Matrix4<f32>,
-    material_i: usize,
+    pub material_i: usize,
 }
 
 impl RTTriangle {
@@ -65,12 +65,6 @@ impl RTTriangle {
         }
     }
 
-    /// Get the diffuse color of the triangle at (u, v)
-    pub fn diffuse(&self, materials: &[Material], _u: f32, _v: f32) -> Vector3<f32> {
-        let material = &materials[self.material_i];
-        Vector3::from(material.diffuse)
-    }
-
     pub fn normal(&self, u: f32, v: f32) -> Vector3<f32> {
         let n1 = self.v1.normal;
         let n2 = self.v2.normal;
@@ -90,6 +84,10 @@ impl RTTriangle {
 
     pub fn center(&self) -> Point3<f32> {
         Point3::centroid(&[self.v1.pos, self.v2.pos, self.v3.pos])
+    }
+
+    pub fn area(&self) -> f32 {
+        0.5 / self.to_barycentric.determinant().abs()
     }
 
     pub fn random_point(&self) -> Point3<f32> {
