@@ -164,7 +164,7 @@ impl PTRenderer {
     pub fn render<S: Surface>(&mut self, target: &mut S) {
         if let Some(ref rx) = self.result_rx {
             for (rect, block) in rx.try_iter().take(10) {
-                self.image.update_block(rect, block);
+                self.image.update_block(rect, &block);
             }
             let uniforms = uniform! {
                 image: &self.image.texture,
