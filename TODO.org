@@ -1,9 +1,15 @@
 * TODO
 ** Features
-*** Lights
-*** Diffuse shading
-*** Monte Carlo tracing
 *** Benchmarking
+*** Dynamic lights
+*** Tone mapping
+*** Glossy materials
+*** Mirror reftections
+*** Transparent materials
+*** Bidirectional tracing
 ** Improvements
+*** Non lexical lifetimes
+    * http://smallcultfollowing.com/babysteps/blog/2018/06/15/mir-based-borrow-check-nll-status-update/
+*** Optimisations
 *** Arbitrary scene loading
 *** UI

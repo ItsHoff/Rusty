@@ -51,6 +51,7 @@ impl RenderWorker {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
                 for h in 0..rect.height {
                     for w in 0..rect.width {
+                        // TODO: implement multiple samples per pixel
                         let dx: f32 = rand::random();
                         let dy: f32 = rand::random();
                         let clip_x = 2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
