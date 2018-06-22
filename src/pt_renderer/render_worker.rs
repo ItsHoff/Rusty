@@ -11,7 +11,7 @@ use camera::Camera;
 use material::Material;
 use pt_renderer::{Intersect, Ray, RenderCoordinator};
 use scene::Scene;
-use triangle::Hit;
+use triangle::{Hit, RTTriangle};
 
 const EPSILON: f32 = 1e-5;
 
@@ -82,11 +82,11 @@ impl RenderWorker {
                 normal *= -1.0;
             }
             if bounce == 0 {
-                if let Some(_emissive) = material.emissive {
-                    c += normal.dot(-ray.dir).max(0.0) * Vector3::new(1.0, 1.0, 1.0);
+                if let Some(emissive) = material.emissive {
+                    c += normal.dot(-ray.dir).max(0.0) * emissive;
                 }
             }
-            let (light_pos, light_normal, light_pdf) = self.sample_light();
+            let (light, light_pos, light_normal, light_pdf) = self.sample_light();
             let bump_pos = hit.pos() + EPSILON * normal;
             let hit_to_light = light_pos - bump_pos;
             let light_dir = hit_to_light.normalize();
@@ -94,8 +94,10 @@ impl RenderWorker {
             if shadow_ray.length > 0.1 && self.find_hit(&shadow_ray).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
-                c += self.brdf(&ray, &shadow_ray, material) * cos_l * cos_t
-                    / (hit_to_light.magnitude2() * light_pdf);
+                let light_material = &self.scene.materials[light.material_i];
+                let emissive = light_material.emissive.expect("Light wasn't emissive");
+                c += emissive.mul_element_wise(self.brdf(&ray, &shadow_ray, material))
+                    * cos_l * cos_t / (hit_to_light.magnitude2() * light_pdf);
             }
             if bounce < 10 {
                 let (new_dir, pdf) = self.sample_dir(normal);
@@ -108,7 +110,7 @@ impl RenderWorker {
     }
 
     fn brdf(&self, _in_ray: &Ray, _out_ray: &Ray, material: &Material) -> Vector3<f32> {
-        Vector3::from(material.diffuse) / PI
+        material.diffuse / PI
     }
 
     fn sample_dir(&self, normal: Vector3<f32>) -> (Vector3<f32>, f32) {
@@ -126,15 +128,15 @@ impl RenderWorker {
         (x * nx + y * ny + z * normal, z / PI)
     }
 
-    pub fn sample_light(&self) -> (Point3<f32>, Vector3<f32>, f32) {
+    pub fn sample_light(&self) -> (&RTTriangle, Point3<f32>, Vector3<f32>, f32) {
         if self.scene.lights.is_empty() {
             panic!("Rendered scene has no lights!");
         } else {
             let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
             let light = &self.scene.lights[i];
             let pdf = 1.0 / (self.scene.lights.len() as f32 * light.area());
-            // TODO: take the actual normal at sampled point
-            (light.random_point(), light.normal(0.0, 0.0), pdf)
+            let (point, normal) = light.random_point();
+            (light, point, normal, pdf)
         }
     }
 

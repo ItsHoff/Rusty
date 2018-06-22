@@ -89,14 +89,14 @@ impl RTTriangle {
         0.5 / self.to_barycentric.determinant().abs()
     }
 
-    pub fn random_point(&self) -> Point3<f32> {
+    pub fn random_point(&self) -> (Point3<f32>, Vector3<f32>) {
         let mut u: f32 = rand::random();
         let mut v: f32 = rand::random();
         if u + v > 1.0 {
             u = 1.0 - u;
             v = 1.0 - v;
         }
-        self.bary_to_world(u, v)
+        (self.bary_to_world(u, v), self.normal(u, v))
     }
 
     fn bary_to_world(&self, u: f32, v: f32) -> Point3<f32> {

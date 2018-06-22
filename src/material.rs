@@ -4,6 +4,9 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
+use cgmath::Vector3;
+use cgmath::conv::*;
+
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
 
@@ -11,9 +14,9 @@ use obj_load;
 
 /// Material for CPU rendering
 pub struct Material {
-    pub diffuse: [f32; 3],
+    pub diffuse: Vector3<f32>,
     pub diffuse_image: Option<image::RgbaImage>,    // Texture on the CPU
-    pub emissive: Option<[f32; 3]>,
+    pub emissive: Option<Vector3<f32>>,
 }
 
 /// Material for GPU rendering
@@ -34,10 +37,10 @@ impl Material {
         };
         let emissive = obj_mat.c_emissive.and_then(
             |e| if e == [0.0, 0.0, 0.0] { None }
-            else { Some(e) });
+            else { Some(Vector3::from(e)) });
 
         Material {
-            diffuse: obj_mat.c_diffuse.expect("No diffuse color!"),
+            diffuse: Vector3::from(obj_mat.c_diffuse.expect("No diffuse color!")),
             diffuse_image,
             emissive,
         }
@@ -61,7 +64,7 @@ impl Material {
             None => SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!")
         };
         GPUMaterial {
-            diffuse: self.diffuse,
+            diffuse: array3(self.diffuse),
             has_diffuse: self.diffuse_image.is_some(),
             diffuse_texture,
             has_emissive: self.emissive.is_some(),
