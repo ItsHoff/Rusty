@@ -51,8 +51,10 @@ impl RenderWorker {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
                 for h in 0..rect.height {
                     for w in 0..rect.width {
-                        let clip_x = 2.0 * (rect.left + w) as f32 / width as f32 - 1.0;
-                        let clip_y = 2.0 * (rect.bottom + h) as f32 / height as f32 - 1.0;
+                        let dx: f32 = rand::random();
+                        let dy: f32 = rand::random();
+                        let clip_x = 2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
+                        let clip_y = 2.0 * ((rect.bottom + h) as f32 + dy) / height as f32 - 1.0;
                         let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                         let world_p = clip_to_world * clip_p;
                         let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
