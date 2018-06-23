@@ -10,7 +10,7 @@ use cgmath::conv::*;
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
 
-use obj_load;
+use crate::obj_load;
 
 /// Material for CPU rendering
 pub struct Material {

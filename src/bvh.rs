@@ -1,8 +1,8 @@
 use cgmath::Point3;
 
-use aabb::AABB;
-use pt_renderer::{Intersect, Ray};
-use triangle::RTTriangle;
+use crate::aabb::AABB;
+use crate::pt_renderer::{Intersect, Ray};
+use crate::triangle::RTTriangle;
 
 pub struct BVHNode {
     aabb: AABB,
@@ -34,7 +34,7 @@ impl BVHNode {
     }
 }
 
-impl<'a> Intersect<'a, f32> for BVHNode {
+impl Intersect<'a, f32> for BVHNode {
     fn intersect(&self, ray: &Ray) -> Option<f32> {
         self.aabb.intersect(ray)
     }

@@ -3,9 +3,9 @@ use cgmath::{Vector3, Matrix4, Point3};
 
 use rand;
 
-use aabb::{self, AABB};
-use vertex::{Vertex, CGVertex};
-use pt_renderer::{Ray, Intersect};
+use crate::aabb::{self, AABB};
+use crate::vertex::{Vertex, CGVertex};
+use crate::pt_renderer::{Ray, Intersect};
 
 #[derive(Default)]
 pub struct RTTriangleBuilder {
@@ -114,7 +114,7 @@ pub struct Hit<'a> {
     pub v: f32,
 }
 
-impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
+impl Intersect<'a, Hit<'a>> for RTTriangle {
     fn intersect(&self, ray: &Ray) -> Option<Hit> {
         let bary_o = self.to_barycentric * ray.orig.to_homogeneous();
         let bary_d = self.to_barycentric * ray.dir.extend(0.0);
@@ -129,7 +129,7 @@ impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
     }
 }
 
-impl<'a> Hit<'a> {
+impl Hit<'a> {
     pub fn pos(&self) -> Point3<f32> {
         self.tri.bary_to_world(self.u, self.v)
     }

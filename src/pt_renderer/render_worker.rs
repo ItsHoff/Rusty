@@ -7,11 +7,11 @@ use glium::Rect;
 
 use rand::{self, prelude::*};
 
-use camera::Camera;
-use material::Material;
-use pt_renderer::{Intersect, Ray, RenderCoordinator};
-use scene::Scene;
-use triangle::{Hit, RTTriangle};
+use crate::camera::Camera;
+use crate::material::Material;
+use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
+use crate::scene::Scene;
+use crate::triangle::{Hit, RTTriangle};
 
 const EPSILON: f32 = 1e-5;
 

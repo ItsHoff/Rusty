@@ -9,12 +9,12 @@ use std::thread::{self, JoinHandle};
 use cgmath::{Vector3, Point3};
 
 use glium;
-use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect};
+use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect, uniform};
 use glium::backend::Facade;
 
-use camera::Camera;
-use scene::Scene;
-use vertex::Vertex;
+use crate::camera::Camera;
+use crate::scene::Scene;
+use crate::vertex::Vertex;
 
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
@@ -126,8 +126,8 @@ impl PTRenderer {
         let image = TracedImage::empty(facade, 0, 0);
 
         // Image shader
-        let vertex_shader_src = include_str!("../shaders/image.vert");
-        let fragment_shader_src = include_str!("../shaders/image.frag");
+        let vertex_shader_src = include_str!("shaders/image.vert");
+        let fragment_shader_src = include_str!("shaders/image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
         PTRenderer { shader, vertex_buffer, index_buffer, image,

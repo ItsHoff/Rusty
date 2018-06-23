@@ -1,11 +1,11 @@
 use cgmath::conv::*;
 
 use glium;
-use glium::{DrawParameters, Surface};
+use glium::{DrawParameters, Surface, uniform};
 use glium::backend::Facade;
 
-use camera::Camera;
-use scene::GPUScene;
+use crate::camera::Camera;
+use crate::scene::GPUScene;
 
 pub struct GLRenderer {
     shader: glium::Program,

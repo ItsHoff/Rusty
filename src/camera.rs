@@ -8,7 +8,7 @@ use cgmath::{Point3, Vector3, Matrix4, Matrix3, Rad};
 
 use glium::glutin::{MouseButton, VirtualKeyCode};
 
-use input::InputState;
+use crate::input::InputState;
 
 /// Representation of a camera
 #[derive(Clone)]

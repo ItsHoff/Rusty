@@ -1,7 +1,7 @@
 use cgmath::prelude::*;
 use cgmath::Point3;
 
-use pt_renderer::{Intersect, Ray};
+use crate::pt_renderer::{Intersect, Ray};
 
 #[derive(Clone)]
 pub struct AABB {
@@ -65,7 +65,7 @@ impl AABB {
     }
 }
 
-impl<'a> Intersect<'a, f32> for AABB {
+impl Intersect<'a, f32> for AABB {
     fn intersect(&self, ray: &Ray) -> Option<f32> {
         let t1 = (self.min - ray.orig).mul_element_wise(ray.reciprocal_dir);
         let t2 = (self.max - ray.orig).mul_element_wise(ray.reciprocal_dir);

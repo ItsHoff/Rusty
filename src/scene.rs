@@ -8,13 +8,13 @@ use cgmath::Point3;
 use glium::VertexBuffer;
 use glium::backend::Facade;
 
-use aabb::AABB;
-use bvh::BVH;
-use mesh::{Mesh, GPUMesh};
-use material::{Material, GPUMaterial};
-use obj_load;
-use triangle::{RTTriangle, RTTriangleBuilder};
-use vertex::Vertex;
+use crate::aabb::AABB;
+use crate::bvh::BVH;
+use crate::mesh::{Mesh, GPUMesh};
+use crate::material::{Material, GPUMaterial};
+use crate::obj_load;
+use crate::triangle::{RTTriangle, RTTriangleBuilder};
+use crate::vertex::Vertex;
 
 /// Scene containing all the CPU resources
 pub struct Scene {
@@ -80,7 +80,7 @@ impl Scene {
         let mut vertex_map = HashMap::new();
         for range in &obj.material_ranges {
             let obj_mat = obj.materials.get(&range.name)
-                .expect(&::std::fmt::format(format_args!("Couldn't find material {}!", range.name)));
+                .unwrap_or_else(|| panic!("Couldn't find material {}!", range.name));
             let mut mesh = Mesh::new(self.materials.len());
             let material = Material::new(obj_mat);
             for tri in &obj.triangles[range.start_i..range.end_i] {

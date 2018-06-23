@@ -1,10 +1,7 @@
+#![feature(rust_2018_preview)]
+#![feature(rust_2018_idioms)]
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-
-#[macro_use]
-extern crate glium;
-extern crate cgmath;
-extern crate rand;
 
 mod aabb;
 mod bvh;
@@ -29,11 +26,11 @@ use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyC
 
 use cgmath::Vector3;
 
-use camera::Camera;
-use gl_renderer::GLRenderer;
-use input::InputState;
-use pt_renderer::PTRenderer;
-use scene::{Scene, GPUScene};
+use crate::camera::Camera;
+use crate::gl_renderer::GLRenderer;
+use crate::input::InputState;
+use crate::pt_renderer::PTRenderer;
+use crate::scene::{Scene, GPUScene};
 
 fn load_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Camera) {
     let scene = Scene::new(path);
