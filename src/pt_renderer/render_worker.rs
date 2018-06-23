@@ -7,6 +7,7 @@ use glium::Rect;
 
 use rand::{self, prelude::*};
 
+use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
@@ -38,6 +39,7 @@ impl RenderWorker {
             (coordinator.width, coordinator.height)
         };
         let clip_to_world = self.camera.get_world_to_clip().invert().unwrap();
+        let mut node_stack: Vec<(&BVHNode, f32)> = Vec::new();
         loop {
             match self.message_rx.try_recv() {
                 Err(TryRecvError::Empty) => (),
@@ -61,7 +63,7 @@ impl RenderWorker {
                         let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
                             .normalize();
                         let ray = Ray::new(self.camera.pos, dir, 100.0);
-                        let c = self.trace_ray(&ray, 0);
+                        let c = self.trace_ray(&ray, &mut node_stack, 0);
                         let pixel_i = 3 * (h * rect.width + w) as usize;
                         block[pixel_i]     = c.x;
                         block[pixel_i + 1] = c.y;
@@ -75,9 +77,9 @@ impl RenderWorker {
         }
     }
 
-    fn trace_ray(&self, ray: &Ray, bounce: u32) -> Vector3<f32> {
+    fn trace_ray(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Vector3<f32> {
         let mut c = Vector3::zero();
-        if let Some(hit) = self.find_hit(&ray) {
+        if let Some(hit) = self.find_hit(&ray, node_stack) {
             let material = &self.scene.materials[hit.tri.material_i];
             let mut normal = hit.normal();
             // Flip the normal if its pointing to the opposite side from the hit
@@ -94,7 +96,7 @@ impl RenderWorker {
             let hit_to_light = light_pos - bump_pos;
             let light_dir = hit_to_light.normalize();
             let shadow_ray = Ray::new(bump_pos, light_dir, hit_to_light.magnitude() - EPSILON);
-            if shadow_ray.length > 0.1 && self.find_hit(&shadow_ray).is_none() {
+            if shadow_ray.length > 0.1 && self.find_hit(&shadow_ray, node_stack).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
                 let light_material = &self.scene.materials[light.material_i];
@@ -106,7 +108,7 @@ impl RenderWorker {
                 let (new_dir, pdf) = self.sample_dir(normal);
                 let new_ray = Ray::new(bump_pos, new_dir, 100.0);
                 c += normal.dot(new_dir) * self.brdf(&ray, &new_ray, material)
-                    .mul_element_wise(self.trace_ray(&new_ray, bounce + 1)) / pdf;
+                    .mul_element_wise(self.trace_ray(&new_ray, node_stack, bounce + 1)) / pdf;
             }
         }
         c
@@ -143,9 +145,8 @@ impl RenderWorker {
         }
     }
 
-    fn find_hit(&self, ray: &Ray) -> Option<Hit> {
+    fn find_hit(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
         let bvh = &self.scene.bvh;
-        let mut node_stack = Vec::new();
         node_stack.push((bvh.root(), 0.0f32));
         let mut closest_hit: Option<Hit> = None;
         while let Some((node, t)) = node_stack.pop() {
