@@ -53,17 +53,23 @@ impl RenderWorker {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
                 for h in 0..rect.height {
                     for w in 0..rect.width {
-                        // TODO: implement multiple samples per pixel
-                        let dx: f32 = rand::random();
-                        let dy: f32 = rand::random();
-                        let clip_x = 2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
-                        let clip_y = 2.0 * ((rect.bottom + h) as f32 + dy) / height as f32 - 1.0;
-                        let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
-                        let world_p = clip_to_world * clip_p;
-                        let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
-                            .normalize();
-                        let ray = Ray::new(self.camera.pos, dir, 100.0);
-                        let c = self.trace_ray(&ray, &mut node_stack, 0);
+                        let samples_per_dir = 2u32;
+                        let mut c = Vector3::zero();
+                        for j in 0..samples_per_dir {
+                            for i in 0..samples_per_dir {
+                                let dx = (i as f32 + rand::random::<f32>()) / samples_per_dir as f32;
+                                let dy = (j as f32 + rand::random::<f32>()) / samples_per_dir as f32;
+                                let clip_x = 2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
+                                let clip_y = 2.0 * ((rect.bottom + h) as f32 + dy) / height as f32 - 1.0;
+                                let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
+                                let world_p = clip_to_world * clip_p;
+                                let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
+                                    .normalize();
+                                let ray = Ray::new(self.camera.pos, dir, 100.0);
+                                c += self.trace_ray(&ray, &mut node_stack, 0);
+                            }
+                        }
+                        c /= samples_per_dir.pow(2) as f32;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
                         block[pixel_i]     = c.x;
                         block[pixel_i + 1] = c.y;
