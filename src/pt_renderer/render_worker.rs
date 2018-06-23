@@ -15,6 +15,9 @@ use crate::scene::Scene;
 use crate::triangle::{Hit, RTTriangle};
 
 const EPSILON: f32 = 1e-5;
+const _EB: f32 = 5.0; // Desired expectation value of bounces
+// The matching survival probability from negative binomial distribution
+const RR_PROB: f32 = _EB / (_EB + 1.0);
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -110,8 +113,10 @@ impl RenderWorker {
                 c += emissive.mul_element_wise(self.brdf(&ray, &shadow_ray, material))
                     * cos_l * cos_t / (hit_to_light.magnitude2() * light_pdf);
             }
-            if bounce < 10 {
-                let (new_dir, pdf) = self.sample_dir(normal);
+            let rr: f32 = rand::random();
+            if rr < RR_PROB {
+                let (new_dir, mut pdf) = self.sample_dir(normal);
+                pdf *= RR_PROB;
                 let new_ray = Ray::new(bump_pos, new_dir, 100.0);
                 c += normal.dot(new_dir) * self.brdf(&ray, &new_ray, material)
                     .mul_element_wise(self.trace_ray(&new_ray, node_stack, bounce + 1)) / pdf;
