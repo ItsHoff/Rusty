@@ -1,5 +1,6 @@
 #![feature(rust_2018_preview)]
 #![feature(rust_2018_idioms)]
+#![feature(nll)]
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
