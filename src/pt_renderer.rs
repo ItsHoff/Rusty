@@ -3,6 +3,7 @@ extern crate num_cpus;
 mod render_worker;
 mod traced_image;
 
+use std::path::Path;
 use std::sync::{Arc, Mutex, mpsc::{self, Sender, Receiver}};
 use std::thread::{self, JoinHandle};
 
@@ -204,6 +205,42 @@ impl PTRenderer {
         }
     }
 
+    // TODO: Refactor the common offline and online paths
+    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: u32) {
+        let width = camera.width;
+        let height = camera.height;
+        self.image = TracedImage::empty(width, height);
+        self.coordinator = Arc::new(Mutex::new(
+            RenderCoordinator::new(width, height, Some(iterations))));
+
+        let (result_tx, result_rx) = mpsc::channel();
+        self.result_rx = Some(result_rx);
+        for _ in 0..num_cpus::get_physical() {
+            let result_tx = result_tx.clone();
+            let (message_tx, message_rx) = mpsc::channel();
+            self.message_txs.push(message_tx);
+            let coordinator = self.coordinator.clone();
+            let camera = camera.clone();
+            let scene = scene.clone();
+            let handle = thread::spawn(move|| {
+                let worker = RenderWorker::new(scene.clone(), camera.clone(), coordinator.clone(),
+                                               message_rx, result_tx);
+                worker.run();
+            });
+            self.thread_handles.push(handle);
+        }
+
+        // Wait for all the threads to finish
+        for handle in self.thread_handles.drain(..) {
+            handle.join().unwrap();
+        }
+
+        for (rect, block) in self.result_rx.as_ref().unwrap().try_iter() {
+            self.image.update_block(rect, &block);
+        }
+
+    }
+
     pub fn render<S: Surface>(&mut self, target: &mut S) {
         if let Some(ref rx) = self.result_rx {
             let visualizer = self.visualizer.as_mut().unwrap();
@@ -224,5 +261,9 @@ impl PTRenderer {
         }
         // Drop channels after join so stop messages are properly reveived
         self.message_txs.clear();
+    }
+
+    pub fn save_image(&self, path: &Path) {
+        self.image.save_image(path);
     }
 }

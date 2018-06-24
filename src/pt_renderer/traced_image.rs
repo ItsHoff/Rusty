@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use glium::{Rect, texture::RawImage2d};
 
 pub struct TracedImage {
@@ -36,5 +38,15 @@ impl TracedImage {
 
     pub fn get_texture_source(&self) -> RawImage2d<f32> {
         RawImage2d::from_raw_rgb(self.raw_image.clone(), (self.width, self.height))
+    }
+
+    pub fn save_image(&self, path: &Path) {
+        let mapped_image: Vec<u8> = self.raw_image.iter().map(
+            |p| (255.0 * p.powf(1.0 / 2.2).min(1.0)) as u8).collect();
+        let image = image::DynamicImage::ImageRgb8(
+            image::RgbImage::from_raw(self.width, self.height, mapped_image).unwrap());
+        let image = image.flipv();
+        println!("Saving image: {:?}", path);
+        image.save(path).unwrap();
     }
 }

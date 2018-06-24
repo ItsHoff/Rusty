@@ -33,16 +33,55 @@ use crate::input::InputState;
 use crate::pt_renderer::PTRenderer;
 use crate::scene::{Scene, GPUScene};
 
-fn load_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Camera) {
+fn load_offline_scene(path: &Path) -> (Arc<Scene>, Camera) {
     let scene = Scene::new(path);
-    let gpu_scene = scene.upload_data(facade);
     let mut camera = Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
                                  Vector3::new(0.0, 0.0, -1.0f32));
     camera.set_scale(scene.size());
-    (Arc::new(scene), gpu_scene, camera)
+    (Arc::new(scene), camera)
+}
+
+fn load_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Camera) {
+    let (scene, camera) = load_offline_scene(path);
+    let gpu_scene = scene.upload_data(facade);
+    (scene, gpu_scene, camera)
 }
 
 fn main() {
+    if std::env::args().count() > 1 {
+        offline_render();
+    } else {
+        online_render();
+    }
+}
+
+fn offline_render() {
+    let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let scenes: Vec<PathBuf> =
+        [ root_path.join("scenes/plane.obj"),
+          root_path.join("scenes/cornell-box/CornellBox-Original.obj"),
+          root_path.join("scenes/cornell-box/CornellBox-Glossy.obj"),
+          root_path.join("scenes/cornell-box/CornellBox-Water.obj"), ]
+        .to_vec();
+
+    let mut pt_renderer = PTRenderer::new();
+    let save_path = root_path.join("images");
+    if !save_path.exists() {
+        std::fs::create_dir_all(save_path.clone()).unwrap();
+    }
+    for scene_path in scenes {
+        let (scene, mut camera) = load_offline_scene(&scene_path);
+        camera.update_viewport((600, 400));
+        pt_renderer.offline_render(&scene, &camera, 2);
+        let file_name = scene_path.file_name().unwrap().to_str().unwrap();
+        let scene_name = file_name.split('.').next().unwrap();
+        let mut save_file = String::from(scene_name);
+        save_file.push_str(".png");
+        pt_renderer.save_image(&save_path.join(save_file));
+    }
+}
+
+fn online_render() {
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new();
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
