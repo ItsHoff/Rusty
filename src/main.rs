@@ -64,7 +64,7 @@ fn main() {
     let (mut scene, mut gpu_scene, mut camera) =
         load_scene(&scenes[&VirtualKeyCode::Key1], &display);
     let gl_renderer = GLRenderer::new(&display);
-    let mut pt_renderer = PTRenderer::new(&display);
+    let mut pt_renderer = PTRenderer::new();
 
     let mut input = InputState::new();
     let mut trace = false;

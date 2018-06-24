@@ -10,6 +10,7 @@ use cgmath::{Vector3, Point3};
 
 use glium;
 use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect, uniform};
+use glium::texture::{Texture2d, RawImage2d};
 use glium::backend::Facade;
 
 use crate::camera::Camera;
@@ -89,19 +90,15 @@ impl RenderCoordinator {
     }
 }
 
-pub struct PTRenderer {
+struct PTVisualizer {
     shader: glium::Program,
     vertex_buffer: VertexBuffer<Vertex>,
     index_buffer: IndexBuffer<u32>,
-    image: TracedImage,
-    coordinator: Arc<Mutex<RenderCoordinator>>,
-    result_rx: Option<Receiver<(Rect, Vec<f32>)>>,
-    message_txs: Vec<Sender<()>>,
-    thread_handles: Vec<JoinHandle<()>>,
+    texture: Texture2d,
 }
 
-impl PTRenderer {
-    pub fn new<F: Facade>(facade: &F) -> PTRenderer {
+impl PTVisualizer {
+    fn new<F: Facade>(facade: &F, width: u32, height: u32) -> PTVisualizer {
         let vertices = vec!(
             Vertex { pos: [-1.0, -1.0, 0.0],
                      normal: [0.0, 0.0, 0.0],
@@ -123,14 +120,54 @@ impl PTRenderer {
                                             glium::index::PrimitiveType::TrianglesList,
                                             &indices)
             .expect("Failed to create index buffer!");
-        let image = TracedImage::empty(facade, 0, 0);
 
         // Image shader
         let vertex_shader_src = include_str!("shaders/image.vert");
         let fragment_shader_src = include_str!("shaders/image.frag");
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
-        PTRenderer { shader, vertex_buffer, index_buffer, image,
+
+        let texture = Texture2d::empty(facade, width, height).unwrap();
+
+        PTVisualizer {
+            shader, vertex_buffer, index_buffer, texture,
+        }
+    }
+
+    fn render<S: Surface>(&self, target: &mut S) {
+        let uniforms = uniform! {
+            image: &self.texture,
+        };
+        let draw_parameters = DrawParameters {
+            ..Default::default()
+        };
+        target.draw(&self.vertex_buffer, &self.index_buffer, &self.shader,
+                    &uniforms, &draw_parameters).unwrap();
+    }
+
+    fn new_texture<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>) {
+        self.texture = Texture2d::new(facade, texture_source).unwrap();
+    }
+
+    fn update_texture(&mut self, rect: Rect, texture_block: RawImage2d<f32>) {
+        self.texture.write(rect, texture_block);
+    }
+}
+
+pub struct PTRenderer {
+    visualizer: Option<PTVisualizer>,
+    image: TracedImage,
+    coordinator: Arc<Mutex<RenderCoordinator>>,
+    result_rx: Option<Receiver<(Rect, Vec<f32>)>>,
+    message_txs: Vec<Sender<()>>,
+    thread_handles: Vec<JoinHandle<()>>,
+}
+
+impl PTRenderer {
+    pub fn new() -> PTRenderer {
+        let image = TracedImage::empty(0, 0);
+        PTRenderer { visualizer: None,
+                     image,
                      coordinator: Arc::new(Mutex::new(RenderCoordinator::new(0, 0, None))),
                      result_rx: None,
                      message_txs: Vec::new(),
@@ -141,8 +178,14 @@ impl PTRenderer {
     pub fn start_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera) {
         let width = camera.width;
         let height = camera.height;
-        self.image = TracedImage::empty(facade, width, height);
+        self.image = TracedImage::empty(width, height);
         self.coordinator = Arc::new(Mutex::new(RenderCoordinator::new(width, height, None)));
+        if let Some(visualizer) = &mut self.visualizer {
+            visualizer.new_texture(facade, self.image.get_texture_source());
+        } else {
+            self.visualizer = Some(PTVisualizer::new(facade, width, height));
+        }
+
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
         for _ in 0..num_cpus::get_physical() {
@@ -163,17 +206,12 @@ impl PTRenderer {
 
     pub fn render<S: Surface>(&mut self, target: &mut S) {
         if let Some(ref rx) = self.result_rx {
+            let visualizer = self.visualizer.as_mut().unwrap();
             for (rect, block) in rx.try_iter().take(10) {
-                self.image.update_block(rect, &block);
+                let (rect, texture_block) = self.image.update_block(rect, &block);
+                visualizer.update_texture(rect, texture_block);
             }
-            let uniforms = uniform! {
-                image: &self.image.texture,
-            };
-            let draw_parameters = DrawParameters {
-                ..Default::default()
-            };
-            target.draw(&self.vertex_buffer, &self.index_buffer, &self.shader,
-                        &uniforms, &draw_parameters).unwrap();
+            visualizer.render(target);
         }
     }
 
