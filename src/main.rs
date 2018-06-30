@@ -79,7 +79,13 @@ fn offline_render() {
         camera.update_viewport((600, 400));
         let render_start = Instant::now();
         pt_renderer.offline_render(&scene, &camera, 2);
-        println!("Scene {} rendered in {:#?}", scene_name, render_start.elapsed());
+        let render_duration = render_start.elapsed();
+        let ray_count = pt_renderer.get_ray_count();
+        let float_time = render_duration.as_secs() as f64
+            + f64::from(render_duration.subsec_nanos()) / 1_000_000.0;
+        let ray_speed = ray_count as f64 / float_time;
+        println!("Scene {} rendered in {:#?}", scene_name, render_duration);
+        println!("{:.0} rays / sec", ray_speed);
         let mut save_file = String::from(scene_name);
         save_file.push_str(".png");
         pt_renderer.save_image(&save_path.join(save_file));

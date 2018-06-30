@@ -4,7 +4,10 @@ mod render_worker;
 mod traced_image;
 
 use std::path::Path;
-use std::sync::{Arc, Mutex, mpsc::{self, Sender, Receiver}};
+use std::sync::{Arc, Mutex,
+                mpsc::{self, Sender, Receiver},
+                atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering},
+};
 use std::thread::{self, JoinHandle};
 
 use cgmath::{Vector3, Point3};
@@ -162,6 +165,7 @@ pub struct PTRenderer {
     result_rx: Option<Receiver<(Rect, Vec<f32>)>>,
     message_txs: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
+    ray_count: Arc<AtomicUsize>,
 }
 
 impl PTRenderer {
@@ -173,6 +177,7 @@ impl PTRenderer {
                      result_rx: None,
                      message_txs: Vec::new(),
                      thread_handles: Vec::new(),
+                     ray_count: Arc::new(ATOMIC_USIZE_INIT),
         }
     }
 
@@ -182,6 +187,7 @@ impl PTRenderer {
         self.image = TracedImage::empty(width, height);
         self.coordinator = Arc::new(Mutex::new(
             RenderCoordinator::new(width, height, iterations)));
+        self.ray_count.store(0, Ordering::SeqCst);
 
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
@@ -190,11 +196,12 @@ impl PTRenderer {
             let (message_tx, message_rx) = mpsc::channel();
             self.message_txs.push(message_tx);
             let coordinator = self.coordinator.clone();
+            let ray_count = self.ray_count.clone();
             let camera = camera.clone();
             let scene = scene.clone();
             let handle = thread::spawn(move|| {
                 let worker = RenderWorker::new(scene.clone(), camera.clone(), coordinator.clone(),
-                                               message_rx, result_tx);
+                                               message_rx, result_tx, ray_count);
                 worker.run();
             });
             self.thread_handles.push(handle);
@@ -249,5 +256,9 @@ impl PTRenderer {
 
     pub fn save_image(&self, path: &Path) {
         self.image.save_image(path);
+    }
+
+    pub fn get_ray_count(&self) -> usize {
+        self.ray_count.load(Ordering::Relaxed)
     }
 }

@@ -1,5 +1,8 @@
 use std::f32::consts::PI;
-use std::sync::{Arc, Mutex, mpsc::{Sender, Receiver, TryRecvError}};
+use std::sync::{Arc, Mutex,
+                mpsc::{Sender, Receiver, TryRecvError},
+                atomic::{AtomicUsize, Ordering},
+};
 
 use cgmath::{Point3, Vector3, Vector4, prelude::*};
 
@@ -25,14 +28,17 @@ pub struct RenderWorker {
     coordinator: Arc<Mutex<RenderCoordinator>>,
     message_rx: Receiver<()>,
     result_tx: Sender<(Rect, Vec<f32>)>,
+    ray_count: Arc<AtomicUsize>,
 }
 
 impl RenderWorker {
     pub fn new(scene: Arc<Scene>, camera: Camera, coordinator: Arc<Mutex<RenderCoordinator>>,
-               message_rx: Receiver<()>, result_tx: Sender<(Rect, Vec<f32>)>) -> RenderWorker {
+               message_rx: Receiver<()>, result_tx: Sender<(Rect, Vec<f32>)>,
+               ray_count: Arc<AtomicUsize>) -> RenderWorker {
         RenderWorker {
             scene, camera, coordinator,
             message_rx, result_tx,
+            ray_count,
         }
     }
 
@@ -161,6 +167,7 @@ impl RenderWorker {
     }
 
     fn find_hit(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
+        self.ray_count.fetch_add(1, Ordering::Relaxed);
         let bvh = &self.scene.bvh;
         node_stack.push((bvh.root(), 0.0f32));
         let mut closest_hit: Option<Hit> = None;
