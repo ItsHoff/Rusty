@@ -138,7 +138,7 @@ fn online_render() {
                                       virtual_keycode: Some(VirtualKeyCode::Space), ..} => {
                             trace = !trace;
                             if trace {
-                                pt_renderer.start_render(&display, &scene, &camera);
+                                pt_renderer.online_render(&display, &scene, &camera);
                             } else {
                                 pt_renderer.stop_threads();
                             }

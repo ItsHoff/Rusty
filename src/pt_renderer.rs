@@ -176,16 +176,12 @@ impl PTRenderer {
         }
     }
 
-    pub fn start_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera) {
+    fn start_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: Option<u32>) {
         let width = camera.width;
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
-        self.coordinator = Arc::new(Mutex::new(RenderCoordinator::new(width, height, None)));
-        if let Some(visualizer) = &mut self.visualizer {
-            visualizer.new_texture(facade, self.image.get_texture_source());
-        } else {
-            self.visualizer = Some(PTVisualizer::new(facade, width, height));
-        }
+        self.coordinator = Arc::new(Mutex::new(
+            RenderCoordinator::new(width, height, iterations)));
 
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
@@ -205,30 +201,18 @@ impl PTRenderer {
         }
     }
 
-    // TODO: Refactor the common offline and online paths
-    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: u32) {
-        let width = camera.width;
-        let height = camera.height;
-        self.image = TracedImage::empty(width, height);
-        self.coordinator = Arc::new(Mutex::new(
-            RenderCoordinator::new(width, height, Some(iterations))));
-
-        let (result_tx, result_rx) = mpsc::channel();
-        self.result_rx = Some(result_rx);
-        for _ in 0..num_cpus::get_physical() {
-            let result_tx = result_tx.clone();
-            let (message_tx, message_rx) = mpsc::channel();
-            self.message_txs.push(message_tx);
-            let coordinator = self.coordinator.clone();
-            let camera = camera.clone();
-            let scene = scene.clone();
-            let handle = thread::spawn(move|| {
-                let worker = RenderWorker::new(scene.clone(), camera.clone(), coordinator.clone(),
-                                               message_rx, result_tx);
-                worker.run();
-            });
-            self.thread_handles.push(handle);
+    pub fn online_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera) {
+        self.start_render(scene, camera, None);
+        // Create visualizer after staring render so we have the new image source
+        if let Some(visualizer) = &mut self.visualizer {
+            visualizer.new_texture(facade, self.image.get_texture_source());
+        } else {
+            self.visualizer = Some(PTVisualizer::new(facade, camera.width, camera.height));
         }
+    }
+
+    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: u32) {
+        self.start_render(scene, camera, Some(iterations));
 
         // Wait for all the threads to finish
         for handle in self.thread_handles.drain(..) {
