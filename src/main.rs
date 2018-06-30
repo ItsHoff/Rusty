@@ -20,6 +20,7 @@ mod vertex;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Instant;
 
 use glium::Surface;
 use glium::backend::Facade;
@@ -70,11 +71,15 @@ fn offline_render() {
         std::fs::create_dir_all(save_path.clone()).unwrap();
     }
     for scene_path in scenes {
-        let (scene, mut camera) = load_offline_scene(&scene_path);
-        camera.update_viewport((600, 400));
-        pt_renderer.offline_render(&scene, &camera, 2);
         let file_name = scene_path.file_name().unwrap().to_str().unwrap();
         let scene_name = file_name.split('.').next().unwrap();
+        let load_start = Instant::now();
+        let (scene, mut camera) = load_offline_scene(&scene_path);
+        println!("Scene {} loaded in {:#?}", scene_name, load_start.elapsed());
+        camera.update_viewport((600, 400));
+        let render_start = Instant::now();
+        pt_renderer.offline_render(&scene, &camera, 2);
+        println!("Scene {} rendered in {:#?}", scene_name, render_start.elapsed());
         let mut save_file = String::from(scene_name);
         save_file.push_str(".png");
         pt_renderer.save_image(&save_path.join(save_file));
