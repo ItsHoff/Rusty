@@ -16,7 +16,7 @@ use crate::color::Color;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
-use crate::triangle::{Hit, RTTriangle};
+use crate::triangle::Hit;
 
 const EPSILON: f32 = 1e-5;
 const _EB: f32 = 5.0; // Desired expectation value of bounces
@@ -111,7 +111,7 @@ impl RenderWorker {
                     c += normal.dot(-ray.dir).max(0.0) * emissive;
                 }
             }
-            let (light, light_pos, light_normal, light_pdf) = self.sample_light();
+            let (emissive, light_pos, light_normal, light_pdf) = self.sample_light();
             let bump_pos = hit.pos() + EPSILON * normal;
             let hit_to_light = light_pos - bump_pos;
             let light_dir = hit_to_light.normalize();
@@ -119,8 +119,6 @@ impl RenderWorker {
             if shadow_ray.length > 0.1 && self.find_hit(&shadow_ray, node_stack).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
-                let light_material = &self.scene.materials[light.material_i];
-                let emissive = light_material.emissive.expect("Light wasn't emissive");
                 c += emissive * self.brdf(&ray, &shadow_ray, material)
                     * cos_l * cos_t / (hit_to_light.magnitude2() * light_pdf);
             }
@@ -155,16 +153,17 @@ impl RenderWorker {
         (x * nx + y * ny + z * normal, z / PI)
     }
 
-    pub fn sample_light(&self) -> (&RTTriangle, Point3<f32>, Vector3<f32>, f32) {
+    pub fn sample_light(&self) -> (Color, Point3<f32>, Vector3<f32>, f32) {
         if self.scene.lights.is_empty() {
-            // TODO: Use camera as a point light
-            panic!("Rendered scene has no lights!");
+            (10.0 * Color::white(), self.camera.pos, self.camera.dir, 1.0)
         } else {
             let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
             let light = &self.scene.lights[i];
             let pdf = 1.0 / (self.scene.lights.len() as f32 * light.area());
             let (point, normal) = light.random_point();
-            (light, point, normal, pdf)
+            let light_material = &self.scene.materials[light.material_i];
+            let emissive = light_material.emissive.expect("Light wasn't emissive");
+            (emissive, point, normal, pdf)
         }
     }
 
