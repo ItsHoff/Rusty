@@ -8,8 +8,12 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn zero() -> Color {
+    pub fn black() -> Color {
         Color { r: 0.0, g: 0.0, b: 0.0 }
+    }
+
+    pub fn white() -> Color {
+        Color { r: 1.0, g: 1.0, b: 1.0 }
     }
 }
 

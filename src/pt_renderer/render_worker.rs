@@ -68,7 +68,7 @@ impl RenderWorker {
                 for h in 0..rect.height {
                     for w in 0..rect.width {
                         let samples_per_dir = 2u32;
-                        let mut c = Color::zero();
+                        let mut c = Color::black();
                         for j in 0..samples_per_dir {
                             for i in 0..samples_per_dir {
                                 let dx = (i as f32 + rand::random::<f32>()) / samples_per_dir as f32;
@@ -98,7 +98,7 @@ impl RenderWorker {
     }
 
     fn trace_ray(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
-        let mut c = Color::zero();
+        let mut c = Color::black();
         if let Some(hit) = self.find_hit(&ray, node_stack) {
             let material = &self.scene.materials[hit.tri.material_i];
             let mut normal = hit.normal();
