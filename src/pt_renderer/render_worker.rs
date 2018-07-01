@@ -12,6 +12,7 @@ use rand::{self, prelude::*};
 
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
+use crate::color::Color;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
@@ -67,7 +68,7 @@ impl RenderWorker {
                 for h in 0..rect.height {
                     for w in 0..rect.width {
                         let samples_per_dir = 2u32;
-                        let mut c = Vector3::zero();
+                        let mut c = Color::zero();
                         for j in 0..samples_per_dir {
                             for i in 0..samples_per_dir {
                                 let dx = (i as f32 + rand::random::<f32>()) / samples_per_dir as f32;
@@ -84,9 +85,9 @@ impl RenderWorker {
                         }
                         c /= samples_per_dir.pow(2) as f32;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
-                        block[pixel_i]     = c.x;
-                        block[pixel_i + 1] = c.y;
-                        block[pixel_i + 2] = c.z;
+                        block[pixel_i]     = c.r;
+                        block[pixel_i + 1] = c.g;
+                        block[pixel_i + 2] = c.b;
                     }
                 }
                 self.result_tx.send((rect, block)).expect("Receiver closed!");
@@ -96,8 +97,8 @@ impl RenderWorker {
         }
     }
 
-    fn trace_ray(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Vector3<f32> {
-        let mut c = Vector3::zero();
+    fn trace_ray(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
+        let mut c = Color::zero();
         if let Some(hit) = self.find_hit(&ray, node_stack) {
             let material = &self.scene.materials[hit.tri.material_i];
             let mut normal = hit.normal();
@@ -120,7 +121,7 @@ impl RenderWorker {
                 let cos_t = normal.dot(light_dir).max(0.0);
                 let light_material = &self.scene.materials[light.material_i];
                 let emissive = light_material.emissive.expect("Light wasn't emissive");
-                c += emissive.mul_element_wise(self.brdf(&ray, &shadow_ray, material))
+                c += emissive * self.brdf(&ray, &shadow_ray, material)
                     * cos_l * cos_t / (hit_to_light.magnitude2() * light_pdf);
             }
             let rr: f32 = rand::random();
@@ -129,13 +130,13 @@ impl RenderWorker {
                 pdf *= RR_PROB;
                 let new_ray = Ray::new(bump_pos, new_dir, 100.0);
                 c += normal.dot(new_dir) * self.brdf(&ray, &new_ray, material)
-                    .mul_element_wise(self.trace_ray(&new_ray, node_stack, bounce + 1)) / pdf;
+                    * self.trace_ray(&new_ray, node_stack, bounce + 1) / pdf;
             }
         }
         c
     }
 
-    fn brdf(&self, _in_ray: &Ray, _out_ray: &Ray, material: &Material) -> Vector3<f32> {
+    fn brdf(&self, _in_ray: &Ray, _out_ray: &Ray, material: &Material) -> Color {
         material.diffuse / PI
     }
 
@@ -156,6 +157,7 @@ impl RenderWorker {
 
     pub fn sample_light(&self) -> (&RTTriangle, Point3<f32>, Vector3<f32>, f32) {
         if self.scene.lights.is_empty() {
+            // TODO: Use camera as a point light
             panic!("Rendered scene has no lights!");
         } else {
             let i = rand::thread_rng().gen_range(0, self.scene.lights.len());

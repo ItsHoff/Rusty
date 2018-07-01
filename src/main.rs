@@ -7,6 +7,7 @@
 mod aabb;
 mod bvh;
 mod camera;
+mod color;
 mod gl_renderer;
 mod input;
 mod material;

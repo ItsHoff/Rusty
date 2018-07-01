@@ -4,19 +4,19 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-use cgmath::Vector3;
 use cgmath::conv::*;
 
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
 
 use crate::obj_load;
+use crate::color::Color;
 
 /// Material for CPU rendering
 pub struct Material {
-    pub diffuse: Vector3<f32>,
+    pub diffuse: Color,
     pub diffuse_image: Option<image::RgbaImage>,    // Texture on the CPU
-    pub emissive: Option<Vector3<f32>>,
+    pub emissive: Option<Color>,
 }
 
 /// Material for GPU rendering
@@ -37,10 +37,10 @@ impl Material {
         };
         let emissive = obj_mat.c_emissive.and_then(
             |e| if e == [0.0, 0.0, 0.0] { None }
-            else { Some(Vector3::from(e)) });
+            else { Some(Color::from(e)) });
 
         Material {
-            diffuse: Vector3::from(obj_mat.c_diffuse.expect("No diffuse color!")),
+            diffuse: Color::from(obj_mat.c_diffuse.expect("No diffuse color!")),
             diffuse_image,
             emissive,
         }
