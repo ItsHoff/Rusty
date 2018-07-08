@@ -2,3 +2,4 @@ target
 *.lock
 .vs/
 images/
+.DS_Store
