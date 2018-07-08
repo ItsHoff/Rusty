@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
+use cgmath::Point2;
 use cgmath::conv::*;
 
 use glium::backend::Facade;
@@ -68,6 +69,18 @@ impl Material {
             has_diffuse: self.diffuse_image.is_some(),
             diffuse_texture,
             has_emissive: self.emissive.is_some(),
+        }
+    }
+
+    pub fn diffuse(&self, tex_coords: Point2<f32>) -> Color {
+        if let Some(tex) = &self.diffuse_image {
+            let (width, height) = tex.dimensions();
+            let x = (tex_coords.x.mod_euc(1.0) * (width - 1) as f32).round() as u32;
+            let y = ((1.0 - tex_coords.y.mod_euc(1.0)) * (height - 1) as f32).round() as u32;
+            let p = tex.get_pixel(x, y);
+            Color::from(p)
+        } else {
+            self.diffuse
         }
     }
 }

@@ -1,5 +1,5 @@
 use cgmath::prelude::*;
-use cgmath::{Vector3, Matrix4, Point3};
+use cgmath::{Vector3, Matrix4, Point3, Point2};
 
 use rand;
 
@@ -64,11 +64,18 @@ impl RTTriangle {
         }
     }
 
-    pub fn normal(&self, u: f32, v: f32) -> Vector3<f32> {
+    fn normal(&self, u: f32, v: f32) -> Vector3<f32> {
         let n1 = self.v1.normal;
         let n2 = self.v2.normal;
         let n3 = self.v3.normal;
         (1.0 - u - v) * n1 + u * n2 + v * n3
+    }
+
+    fn tex_coords(&self, u: f32, v: f32) -> Point2<f32> {
+        let t1 = self.v1.tex_coords;
+        let t2 = self.v2.tex_coords;
+        let t3 = self.v3.tex_coords;
+        (1.0 - u - v) * t1 + (u * t2 - (-v) * t3)
     }
 
     pub fn aabb(&self) -> AABB {
@@ -96,10 +103,10 @@ impl RTTriangle {
             u = 1.0 - u;
             v = 1.0 - v;
         }
-        (self.bary_to_world(u, v), self.normal(u, v))
+        (self.pos(u, v), self.normal(u, v))
     }
 
-    fn bary_to_world(&self, u: f32, v: f32) -> Point3<f32> {
+    fn pos(&self, u: f32, v: f32) -> Point3<f32> {
         // Have to substract one component since cgmath points cannot by summed
         // and there is not a cleaner method to convert to Vector3
         (1.0 - u - v) * self.v1.pos + (u * self.v2.pos - (-v) * self.v3.pos)
@@ -131,10 +138,14 @@ impl Intersect<'a, Hit<'a>> for RTTriangle {
 
 impl Hit<'a> {
     pub fn pos(&self) -> Point3<f32> {
-        self.tri.bary_to_world(self.u, self.v)
+        self.tri.pos(self.u, self.v)
     }
 
     pub fn normal(&self) -> Vector3<f32> {
         self.tri.normal(self.u, self.v)
+    }
+
+    pub fn tex_coords(&self) -> Point2<f32> {
+        self.tri.tex_coords(self.u, self.v)
     }
 }

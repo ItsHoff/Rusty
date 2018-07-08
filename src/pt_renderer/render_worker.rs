@@ -119,7 +119,7 @@ impl RenderWorker {
             if shadow_ray.length > 0.1 && self.find_hit(&shadow_ray, node_stack).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
-                c += emissive * self.brdf(&ray, &shadow_ray, material)
+                c += emissive * self.brdf(&hit, &ray, &shadow_ray, material)
                     * cos_l * cos_t / (hit_to_light.magnitude2() * light_pdf);
             }
             let rr: f32 = rand::random();
@@ -127,15 +127,16 @@ impl RenderWorker {
                 let (new_dir, mut pdf) = self.sample_dir(normal);
                 pdf *= RR_PROB;
                 let new_ray = Ray::new(bump_pos, new_dir, 100.0);
-                c += normal.dot(new_dir) * self.brdf(&ray, &new_ray, material)
+                c += normal.dot(new_dir) * self.brdf(&hit, &ray, &new_ray, material)
                     * self.trace_ray(&new_ray, node_stack, bounce + 1) / pdf;
             }
         }
         c
     }
 
-    fn brdf(&self, _in_ray: &Ray, _out_ray: &Ray, material: &Material) -> Color {
-        material.diffuse / PI
+    fn brdf(&self, hit: &Hit, _in_ray: &Ray, _out_ray: &Ray, material: &Material) -> Color {
+        let tex_coords = hit.tex_coords();
+        material.diffuse(tex_coords) / PI
     }
 
     fn sample_dir(&self, normal: Vector3<f32>) -> (Vector3<f32>, f32) {

@@ -65,6 +65,16 @@ impl Mul<Color> for f32 {
     }
 }
 
+impl From<&image::Rgba<u8>> for Color {
+    // This does automatic gamma correction since we assume
+    // that the input image is in SRGB
+    fn from(rgba: &image::Rgba<u8>) -> Color {
+        let arr: Vec<f32> = rgba.data.into_iter()
+            .map( |c| (f32::from(*c) / 255.0).powf(2.2) ).collect();
+        Color { r: arr[0], g: arr[1], b: arr[2] }
+    }
+}
+
 impl From<[f32; 3]> for Color {
     fn from(arr: [f32; 3]) -> Color {
         Color { r: arr[0], g: arr[1], b: arr[2] }
