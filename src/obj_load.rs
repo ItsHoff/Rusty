@@ -232,7 +232,7 @@ fn parse_float(split_line: &mut SplitWhitespace) -> Result<f32, Box<Error>> {
 }
 
 /// Parse two floats from the split input line
-#[cfg_attr(feature="clippy", allow(needless_range_loop))]
+#[cfg_attr(feature="cargo-clippy", allow(needless_range_loop))]
 fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>> {
     let mut float2 = [0.0f32; 2];
     for i in 0..2 {
@@ -243,7 +243,7 @@ fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>
 }
 
 /// Parse three floats from the split input line
-#[cfg_attr(feature="clippy", allow(needless_range_loop))]
+#[cfg_attr(feature="cargo-clippy", allow(needless_range_loop))]
 fn parse_float3(split_line: &mut SplitWhitespace) -> Result<[f32; 3], Box<Error>> {
     let mut float3 = [0.0f32; 3];
     for i in 0..3 {

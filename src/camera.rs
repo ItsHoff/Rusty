@@ -106,7 +106,7 @@ impl Camera {
     }
 
     /// Move camera based on input event
-    #[cfg_attr(feature="clippy", allow(single_match))]
+    #[cfg_attr(feature="cargo-clippy", allow(single_match))]
     pub fn process_input(&mut self, input: &InputState) {
         let dt = input.last_reset.elapsed();
         let time_scale = (dt.as_secs() as f32 * 1e9 + dt.subsec_nanos() as f32) / 1e8;

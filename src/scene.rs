@@ -34,7 +34,6 @@ pub struct GPUScene {
     pub vertex_buffer: VertexBuffer<Vertex>,
 }
 
-#[cfg_attr(feature="clippy", allow(needless_range_loop))]
 impl Scene {
     pub fn new(scene_path: &Path) -> Scene {
         let mut scene = Scene {
