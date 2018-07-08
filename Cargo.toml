@@ -7,11 +7,11 @@ version = "0.1.0"
 authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 
 [dependencies]
-cgmath = "0.16.0"
+cgmath = "0.16.1"
 glium = "0.21.0"
 image = "0.19.0"
 num_cpus = "1.8.0"
-rand = "0.5.0"
+rand = "0.5.3"
 
 [profile.release]
 debug = true
