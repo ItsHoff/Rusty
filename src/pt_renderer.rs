@@ -59,7 +59,7 @@ impl RenderCoordinator {
     fn new(width: u32, height: u32, max_iterations: Option<u32>) -> RenderCoordinator {
         RenderCoordinator {
             width, height, max_iterations,
-            end_x: 0, start_y: 0, end_y: 0, iteration: 0
+            end_x: 0, start_y: 0, end_y: 0, iteration: 1
         }
     }
 
