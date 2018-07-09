@@ -75,7 +75,8 @@ fn offline_render() {
         let scene_name = file_name.split('.').next().unwrap();
         let load_start = Instant::now();
         let (scene, mut camera) = load_offline_scene(&scene_path);
-        println!("Scene {} loaded in {:#?}", scene_name, load_start.elapsed());
+        println!("\n{}:", scene_name);
+        println!("    loaded in {:#?}", load_start.elapsed());
         camera.update_viewport((600, 400));
         let render_start = Instant::now();
         pt_renderer.offline_render(&scene, &camera, 2);
@@ -84,8 +85,9 @@ fn offline_render() {
         let float_time = render_duration.as_secs() as f64
             + f64::from(render_duration.subsec_nanos()) / 1_000_000_000.0;
         let ray_speed = ray_count as f64 / float_time;
-        println!("Scene {} rendered in {:#?}", scene_name, render_duration);
-        println!("{:.0} rays / sec, {} total rays", ray_speed, ray_count);
+        println!("    rendered in {:#?}", render_duration);
+        println!("    {} total rays", ray_count);
+        println!("    {:.0} rays / sec", ray_speed);
         let mut save_file = String::from(scene_name);
         save_file.push_str(".png");
         pt_renderer.save_image(&save_path.join(save_file));
