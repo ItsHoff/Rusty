@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, Div, DivAssign, Mul};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul};
 
 #[derive(Clone, Copy)]
 pub struct Color {
@@ -14,6 +14,16 @@ impl Color {
 
     pub fn white() -> Color {
         Color { r: 1.0, g: 1.0, b: 1.0 }
+    }
+}
+
+impl Add for Color {
+    type Output = Color;
+
+    fn add(self, rhs: Color) -> Color {
+        Color { r: self.r + rhs.r,
+                g: self.g + rhs.g,
+                b: self.b + rhs.b }
     }
 }
 

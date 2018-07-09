@@ -75,10 +75,27 @@ impl Material {
     pub fn diffuse(&self, tex_coords: Point2<f32>) -> Color {
         if let Some(tex) = &self.diffuse_image {
             let (width, height) = tex.dimensions();
-            let x = (tex_coords.x.mod_euc(1.0) * (width - 1) as f32).round() as u32;
-            let y = ((1.0 - tex_coords.y.mod_euc(1.0)) * (height - 1) as f32).round() as u32;
-            let p = tex.get_pixel(x, y);
-            Color::from(p)
+            let x = tex_coords.x.mod_euc(1.0) * (width - 1) as f32;
+            let y = (1.0 - tex_coords.y.mod_euc(1.0)) * (height - 1) as f32;
+            let x_fract = x.fract();
+            let y_fract = y.fract();
+            let (left, right) = if x >= (width - 1) as f32{
+                (width - 1, width - 1)
+            } else {
+                (x.floor() as u32, x.ceil() as u32)
+            };
+            let (top, bottom) = if y >= (height - 1) as f32{
+                (height - 1, height - 1)
+            } else {
+                (y.floor() as u32, y.ceil() as u32)
+            };
+            let tl = Color::from(tex.get_pixel(left, top));
+            let bl = Color::from(tex.get_pixel(left, bottom));
+            let tr = Color::from(tex.get_pixel(right, top));
+            let br = Color::from(tex.get_pixel(right, bottom));
+            let top_c = x_fract * tr + (1.0 - x_fract) * tl;
+            let bottom_c = x_fract * br + (1.0 - x_fract) * bl;
+            y_fract * bottom_c + (1.0 - y_fract) * top_c
         } else {
             self.diffuse
         }
