@@ -18,15 +18,20 @@ mod triangle;
 mod vertex;
 
 use std::collections::HashMap;
+use std::fmt::Write as FmtWrite;
+use std::fs::File;
+use std::io::Write as IoWrite;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 
+use cgmath::Vector3;
+
+use chrono::Local;
+
 use glium::Surface;
 use glium::backend::Facade;
 use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
-
-use cgmath::Vector3;
 
 use crate::camera::Camera;
 use crate::gl_renderer::GLRenderer;
@@ -66,32 +71,44 @@ fn offline_render() {
         .to_vec();
 
     let mut pt_renderer = PTRenderer::new();
-    let save_path = root_path.join("images");
+    let save_path = root_path.join("results");
     if !save_path.exists() {
         std::fs::create_dir_all(save_path.clone()).unwrap();
     }
+    let mut combined_info = String::new();
     for scene_path in scenes {
         let file_name = scene_path.file_name().unwrap().to_str().unwrap();
         let scene_name = file_name.split('.').next().unwrap();
+
         let load_start = Instant::now();
         let (scene, mut camera) = load_offline_scene(&scene_path);
-        println!("\n{}:", scene_name);
-        println!("    loaded in {:#?}", load_start.elapsed());
+        let load_duration = load_start.elapsed();
+
         camera.update_viewport((600, 400));
         let render_start = Instant::now();
         pt_renderer.offline_render(&scene, &camera, 2);
         let render_duration = render_start.elapsed();
         let ray_count = pt_renderer.get_ray_count();
+
+        let mut info_string = String::new();
         let float_time = render_duration.as_secs() as f64
             + f64::from(render_duration.subsec_nanos()) / 1_000_000_000.0;
         let ray_speed = ray_count as f64 / float_time;
-        println!("    rendered in {:#?}", render_duration);
-        println!("    {} total rays", ray_count);
-        println!("    {:.0} rays / sec", ray_speed);
+        write!(&mut info_string, "\n{}:\n", scene_name).unwrap();
+        write!(&mut info_string, "    loaded in {:#?}\n", load_duration).unwrap();
+        write!(&mut info_string, "    rendered in {:#?}\n", render_duration).unwrap();
+        write!(&mut info_string, "    {} total rays\n", ray_count).unwrap();
+        write!(&mut info_string, "    {:.0} rays / sec\n", ray_speed).unwrap();
+        println!("{}", info_string);
+        combined_info.push_str(&info_string);
+
         let mut save_file = String::from(scene_name);
         save_file.push_str(".png");
         pt_renderer.save_image(&save_path.join(save_file));
     }
+    let timing_path = save_path.join(Local::now().format("timing_%F_%H%M%S.txt").to_string());
+    let mut timing_file = File::create(timing_path).unwrap();
+    timing_file.write_all(&combined_info.into_bytes()).unwrap();
 }
 
 fn online_render() {
