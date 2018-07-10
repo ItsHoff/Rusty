@@ -156,7 +156,7 @@ impl RenderWorker {
 
     pub fn sample_light(&self) -> (Color, Point3<f32>, Vector3<f32>, f32) {
         if self.scene.lights.is_empty() {
-            let light_intensity = 10.0 * self.camera.scale.powi(2);
+            let light_intensity = 10.0 * self.camera.scale;
             (light_intensity * Color::white(), self.camera.pos, self.camera.dir, 1.0)
         } else {
             let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
