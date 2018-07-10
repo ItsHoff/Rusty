@@ -175,7 +175,7 @@ impl RenderWorker {
         let mut closest_hit: Option<Hit> = None;
         while let Some((node, t)) = node_stack.pop() {
             // We've already found closer hit
-            if closest_hit.as_ref().map_or(false, |hit| hit.t <= t) { continue }
+            if closest_hit.as_ref().map_or(false, |closest| closest.t <= t) { continue }
             if node.is_leaf() {
                 for tri in &self.scene.triangles[node.start_i..node.end_i] {
                     if let Some(hit) = tri.intersect(&ray) {
