@@ -1,5 +1,3 @@
-extern crate image;
-
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -9,6 +7,8 @@ use cgmath::conv::*;
 
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
+
+use image::ImageFormat;
 
 use crate::obj_load;
 use crate::color::Color;
@@ -49,8 +49,23 @@ impl Material {
 
     /// Load an image from path
     fn load_image(path: &Path) -> image::RgbaImage {
-        let tex_reader = BufReader::new(File::open(path).expect("Failed to open image!"));
-        image::load(tex_reader, image::PNG).expect("Failed to load image!").to_rgba()
+        let image_format = match path.extension().unwrap().to_str().unwrap() {
+            "png" => ImageFormat::PNG,
+            "jpg" | "jpeg" => ImageFormat::JPEG,
+            "gif" => ImageFormat::GIF,
+            "webp" => ImageFormat::WEBP,
+            "pnm" => ImageFormat::PNM,
+            "tiff" => ImageFormat::TIFF,
+            "tga" => ImageFormat::TGA,
+            "bmp" => ImageFormat::BMP,
+            "ico" => ImageFormat::ICO,
+            "hdr" => ImageFormat::HDR,
+            ext @ _ => panic!("Unknown image extension {}", ext),
+        };
+        // TODO: dont panic just warn and ignore texture
+        let tex_reader = BufReader::new(File::open(path).unwrap_or_else(
+            |_| panic!("Failed to open image {:?}!", path)));
+        image::load(tex_reader, image_format).expect("Failed to load image!").to_rgba()
     }
 
     /// Upload textures to the GPU
