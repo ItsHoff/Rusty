@@ -79,7 +79,7 @@ impl RenderWorker {
                                 let world_p = clip_to_world * clip_p;
                                 let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
                                     .normalize();
-                                let ray = Ray::new(self.camera.pos, dir, 100.0);
+                                let ray = Ray::new(self.camera.pos, dir, 10.0 * self.camera.scale);
                                 c += self.trace_ray(&ray, &mut node_stack, 0);
                             }
                         }
@@ -126,7 +126,7 @@ impl RenderWorker {
             if rr < RR_PROB {
                 let (new_dir, mut pdf) = self.sample_dir(normal);
                 pdf *= RR_PROB;
-                let new_ray = Ray::new(bump_pos, new_dir, 100.0);
+                let new_ray = Ray::new(bump_pos, new_dir, 10.0 * self.camera.scale);
                 c += normal.dot(new_dir) * self.brdf(&hit, &ray, &new_ray, material)
                     * self.trace_ray(&new_ray, node_stack, bounce + 1) / pdf;
             }

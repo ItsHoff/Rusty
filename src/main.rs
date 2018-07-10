@@ -63,6 +63,7 @@ fn main() {
 
 fn offline_render() {
     let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    // TODO: set better camera pos for sibenik
     let scenes: Vec<PathBuf> =
         [ root_path.join("scenes/plane.obj"),
           root_path.join("scenes/cornell-box/CornellBox-Glossy.obj"),
@@ -128,7 +129,9 @@ fn online_render() {
          (VirtualKeyCode::Key5, root_path.join("scenes/cornell-box/CornellBox-Glossy.obj")),
          (VirtualKeyCode::Key6, root_path.join("scenes/cornell-box/CornellBox-Water.obj")),
          (VirtualKeyCode::Key7, root_path.join("scenes/nanosuit/nanosuit.obj")),
-         (VirtualKeyCode::Key8, root_path.join("scenes/sibenik/sibenik.obj"))]
+         (VirtualKeyCode::Key8, root_path.join("scenes/sibenik/sibenik.obj")),
+         (VirtualKeyCode::Key9, root_path.join("scenes/crytek-sponza/sponza.obj")),
+        ]
         .iter().cloned().collect();
 
     let (mut scene, mut gpu_scene, mut camera) =
