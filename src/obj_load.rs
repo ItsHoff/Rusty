@@ -259,6 +259,16 @@ fn parse_string(split_line: &mut SplitWhitespace) -> Result<String, Box<Error>> 
     Ok(string.to_string())
 }
 
+/// Parse a path from the split input line
+fn parse_path(split_line: &mut SplitWhitespace) -> Result<PathBuf, Box<Error>> {
+    let path_str = try!(parse_string(split_line));
+    let mut path = PathBuf::new();
+    for part in path_str.split(|c| c == '/' || c == '\\') {
+        path.push(part);
+    }
+    Ok(path)
+}
+
 /// Parse a polygon from the split input line
 fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState)
               -> Result<Polygon, Box<Error>> {
@@ -321,7 +331,7 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                     let group_name = try!(parse_string(&mut split_line));
                     state.current_group = Some(Range::new(&group_name, obj.triangles.len()));
                 },
-                "mtllib" => state.mat_libs.push(obj_dir.join(try!(parse_string(&mut split_line)))),
+                "mtllib" => state.mat_libs.push(obj_dir.join(try!(parse_path(&mut split_line)))),
                 "s" => {
                     let val = try!(parse_string(&mut split_line));
                     if val == "off" || val == "0" {
@@ -437,42 +447,42 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                 "map_Ka" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_ambient = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_ambient = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "map_Kd" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_diffuse = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_diffuse = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "map_Ks" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_specular = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_specular = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "map_Ns" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_shininess = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_shininess = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "map_d" | "map_Tr" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_opacity = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_opacity = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "disp" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_disp = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_disp = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "decal" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_decal = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_decal = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 "bump" | "map_Bump" | "map_bump" => {
                     let material = try!(current_material.as_mut()
                                         .ok_or("Found material properties before newmtl!"));
-                    material.tex_bump = Some(matlib_dir.join(try!(parse_string(&mut split_line))));
+                    material.tex_bump = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
                 },
                 _ => {
                     if !key.starts_with('#') {
