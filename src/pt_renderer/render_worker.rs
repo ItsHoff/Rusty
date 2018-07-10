@@ -192,13 +192,34 @@ impl RenderWorker {
                     }
                 }
             } else {
-                // TODO: put closest hit on top of the stack
-                let (left, right) = bvh.get_children(node).expect("Non leaf node had no child nodes!");
-                if let Some(t_left) = left.intersect(&ray) {
-                    node_stack.push((left, t_left));
-                }
-                if let Some(t_right) = right.intersect(&ray) {
-                    node_stack.push((right, t_right));
+                let (left, right) = bvh.get_children(node)
+                    .expect("Non leaf node had no child nodes!");
+                if true { // not sorted
+                    if let Some(t_left) = left.intersect(&ray) {
+                        node_stack.push((left, t_left));
+                    }
+                    if let Some(t_right) = right.intersect(&ray) {
+                        node_stack.push((right, t_right));
+                    }
+                } else { // sort nodes
+                    let left_intersect = left.intersect(&ray);
+                    let right_intersect = right.intersect(&ray);
+                    if let Some(t_left) = left_intersect {
+                        if let Some(t_right) = right_intersect {
+                            // Put the closer hit on top
+                            if t_left >= t_right {
+                                node_stack.push((left, t_left));
+                                node_stack.push((right, t_right));
+                            } else {
+                                node_stack.push((right, t_right));
+                                node_stack.push((left, t_left));
+                            }
+                        } else {
+                            node_stack.push((left, t_left));
+                        }
+                    } else if let Some(t_right) = right_intersect {
+                        node_stack.push((right, t_right));
+                    }
                 }
             }
         }
