@@ -65,10 +65,11 @@ fn offline_render() {
     let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let scenes: Vec<PathBuf> =
         [ root_path.join("scenes/plane.obj"),
-          root_path.join("scenes/cornell-box/CornellBox-Original.obj"),
           root_path.join("scenes/cornell-box/CornellBox-Glossy.obj"),
-          root_path.join("scenes/cornell-box/CornellBox-Water.obj"), ]
-        .to_vec();
+          root_path.join("scenes/cornell-box/CornellBox-Water.obj"),
+          root_path.join("scenes/nanosuit/nanosuit.obj"),
+          root_path.join("scenes/sibenik/sibenik.obj"),
+        ].to_vec();
 
     let mut pt_renderer = PTRenderer::new();
     let save_path = root_path.join("results");
