@@ -77,11 +77,22 @@ impl Scene {
 
         // Group the polygons by materials for easy rendering
         let mut vertex_map = HashMap::new();
+        let mut material_map = HashMap::new();
         for range in &obj.material_ranges {
-            let obj_mat = obj.materials.get(&range.name)
-                .unwrap_or_else(|| panic!("Couldn't find material {}!", range.name));
-            let mut mesh = Mesh::new(self.materials.len());
-            let material = Material::new(obj_mat);
+            let material_i = match material_map.get(&range.name) {
+                Some(&i) => i,
+                None => {
+                    let obj_mat = obj.materials.get(&range.name)
+                        .unwrap_or_else(|| panic!("Couldn't find material {}!", range.name));
+                    let material = Material::new(obj_mat);
+                    let i = self.materials.len();
+                    self.materials.push(material);
+                    material_map.insert(&range.name, i);
+                    i
+                }
+            };
+            let material = &self.materials[material_i];
+            let mut mesh = Mesh::new(material_i);
             for tri in &obj.triangles[range.start_i..range.end_i] {
                 let mut tri_builder = RTTriangleBuilder::new();
                 let default_tex_coords = [0.0; 2];
@@ -112,14 +123,13 @@ impl Scene {
                         }
                     }
                 }
-                let triangle = tri_builder.build(self.materials.len()).expect("Failed to build tri!");
+                let triangle = tri_builder.build(material_i).expect("Failed to build tri!");
                 if material.emissive.is_some() {
                     self.lights.push(triangle.clone());
                 }
                 self.triangles.push(triangle);
             }
             if !mesh.indices.is_empty() {
-                self.materials.push(material);
                 self.meshes.push(mesh);
             }
         }
