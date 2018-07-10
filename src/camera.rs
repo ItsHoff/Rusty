@@ -30,7 +30,7 @@ pub struct Camera {
     /// Far plane of the camera
     far: f32,
     /// Size of the scene
-    scale: f32
+    pub scale: f32
 }
 
 
