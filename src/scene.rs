@@ -52,7 +52,7 @@ impl Scene {
 
     /// Load a scene from the given path
     fn load_scene(&mut self, scene_path: &Path) {
-        let obj = obj_load::load_obj(scene_path).expect("Failed to load.");
+        let obj = obj_load::load_obj(scene_path).expect("Failed to load scene");
 
         // Closure to calculate planar normal for a triangle
         let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {

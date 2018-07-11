@@ -220,67 +220,68 @@ impl ParseState {
 }
 
 /// Parse a single integer from the split input line
-fn parse_int(split_line: &mut SplitWhitespace) -> Result<u32, Box<Error>> {
-    let item = try!(split_line.next().ok_or("Expected value after key"));
-    Ok(try!(item.parse()))
+fn parse_int(split_line: &mut SplitWhitespace) -> Option<u32> {
+    let item = split_line.next()?;
+    item.parse().ok()
 }
 
 /// Parse a single float from the split input line
-fn parse_float(split_line: &mut SplitWhitespace) -> Result<f32, Box<Error>> {
-    let item = try!(split_line.next().ok_or("Expected value after key"));
-    Ok(try!(item.parse()))
+fn parse_float(split_line: &mut SplitWhitespace) -> Option<f32> {
+    let item = split_line.next()?;
+    item.parse().ok()
 }
 
 /// Parse two floats from the split input line
 #[cfg_attr(feature="cargo-clippy", allow(needless_range_loop))]
-fn parse_float2(split_line: &mut SplitWhitespace) -> Result<[f32; 2], Box<Error>> {
+fn parse_float2(split_line: &mut SplitWhitespace) -> Option<[f32; 2]> {
     let mut float2 = [0.0f32; 2];
     for i in 0..2 {
-        let item = try!(split_line.next().ok_or("Float 2 didn't have 2 floats"));
-        float2[i] = try!(item.parse());
+        let item = split_line.next()?;
+        float2[i] = item.parse().ok()?;
     }
-    Ok(float2)
+    Some(float2)
 }
 
 /// Parse three floats from the split input line
 #[cfg_attr(feature="cargo-clippy", allow(needless_range_loop))]
-fn parse_float3(split_line: &mut SplitWhitespace) -> Result<[f32; 3], Box<Error>> {
+fn parse_float3(split_line: &mut SplitWhitespace) -> Option<[f32; 3]> {
     let mut float3 = [0.0f32; 3];
     for i in 0..3 {
-        let item = try!(split_line.next().ok_or("Float 3 didn't have 3 floats"));
-        float3[i] = try!(item.parse());
+        let item = split_line.next()?;
+        float3[i] = item.parse().ok()?;
     }
-    Ok(float3)
+    Some(float3)
 }
 
 /// Parse a string from the split input line
-fn parse_string(split_line: &mut SplitWhitespace) -> Result<String, Box<Error>> {
-    let string = try!(split_line.next().ok_or("Couldnt not find string."));
-    Ok(string.to_string())
+fn parse_string(split_line: &mut SplitWhitespace) -> Option<String> {
+    let string = split_line.next()?;
+    Some(string.to_string())
 }
 
 /// Parse a path from the split input line
-fn parse_path(split_line: &mut SplitWhitespace) -> Result<PathBuf, Box<Error>> {
-    let path_str = try!(parse_string(split_line));
+fn parse_path(split_line: &mut SplitWhitespace) -> Option<PathBuf> {
+    let path_str = parse_string(split_line)?;
     let mut path = PathBuf::new();
     for part in path_str.split(|c| c == '/' || c == '\\') {
         path.push(part);
     }
-    Ok(path)
+    Some(path)
 }
 
 /// Parse a polygon from the split input line
 fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState)
-              -> Result<Polygon, Box<Error>> {
+              -> Option<Polygon> {
     let mut polygon = Polygon::new(state);
     for item in split_line {
         let mut index_vertex = IndexVertex::new();
         for (i, num) in item.split('/').enumerate() {
             if i >= 3 {
+                println!("Vertex with more than three properties");
                 break;
             }
             if num != "" {
-                let num: isize = try!(num.parse());
+                let num: isize = num.parse().ok()?;
                 if num < 0 {
                     match i {
                         0 => index_vertex.pos_i = (obj.positions.len() as isize + num) as usize,
@@ -300,8 +301,12 @@ fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseSt
         }
         polygon.index_vertices.push(index_vertex);
     }
-    // TODO: Sanity check
-    Ok(polygon)
+    if polygon.index_vertices.len() > 2 {
+        Some(polygon)
+    } else {
+        println!("Polygon with less than three vertices");
+        None
+    }
 }
 
 /// Load an object found at the given path
@@ -318,26 +323,33 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
         if let Some(key) = split_line.next() {
             match key {
                 "f" => {
-                    let polygon = try!(parse_polygon(&mut split_line, &obj, &state));
-                    // Auto convert to triangles
-                    // TODO: Make triangle conversion optional
-                    obj.triangles.append(&mut polygon.to_triangles());
+                    if let Some(polygon) = parse_polygon(&mut split_line, &obj, &state) {
+                        // Auto convert to triangles
+                        // TODO: Make triangle conversion optional
+                        obj.triangles.append(&mut polygon.to_triangles());
+                    }
                 },
                 "g" | "o" => {
                     if let Some(mut range) = state.current_group {
                         range.end_i = obj.triangles.len();
                         obj.group_ranges.push(range);
                     };
-                    let group_name = try!(parse_string(&mut split_line));
+                    let group_name = parse_string(&mut split_line)
+                        .ok_or("Got a group without a name")?;
                     state.current_group = Some(Range::new(&group_name, obj.triangles.len()));
                 },
-                "mtllib" => state.mat_libs.push(obj_dir.join(try!(parse_path(&mut split_line)))),
+                "mtllib" => {
+                    if let Some(path) = parse_path(&mut split_line) {
+                        state.mat_libs.push(obj_dir.join(path));
+                    }
+                }
                 "s" => {
-                    let val = try!(parse_string(&mut split_line));
+                    let val = parse_string(&mut split_line)
+                        .ok_or("Empty smoothing group definition")?;
                     if val == "off" || val == "0" {
                         state.current_smoothing_group = None;
                     } else {
-                        state.current_smoothing_group = Some(try!(val.parse()));
+                        state.current_smoothing_group = Some(val.parse()?);
                     }
                 }
                 "usemtl" => {
@@ -345,12 +357,25 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
                         range.end_i = obj.triangles.len();
                         obj.material_ranges.push(range);
                     };
-                    let material_name = try!(parse_string(&mut split_line));
+                    let material_name = parse_string(&mut split_line)
+                        .ok_or("Tried to use material with no name")?;
                     state.current_material = Some(Range::new(&material_name, obj.triangles.len()));
                 },
-                "v" => obj.positions.push(try!(parse_float3(&mut split_line))),
-                "vn" => obj.normals.push(try!(parse_float3(&mut split_line))),
-                "vt" => obj.tex_coords.push(try!(parse_float2(&mut split_line))),
+                "v" => {
+                    if let Some(pos) = parse_float3(&mut split_line) {
+                        obj.positions.push(pos);
+                    }
+                }
+                "vn" => {
+                    if let Some(normal) = parse_float3(&mut split_line) {
+                        obj.normals.push(normal);
+                    }
+                }
+                "vt" => {
+                    if let Some(tex_coord) = parse_float2(&mut split_line) {
+                        obj.tex_coords.push(tex_coord);
+                    }
+                }
                 _ => {
                     if !key.starts_with('#') {
                         println!("Unrecognised key {}", key);
@@ -370,7 +395,7 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
     };
     // Load materials
     for matlib in state.mat_libs {
-        obj.materials = try!(load_matlib(&obj_dir.join(matlib)));
+        obj.materials = load_matlib(&obj_dir.join(matlib))?;
     }
     Ok(obj)
 }
@@ -383,110 +408,85 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
     let matlib_file = try!(File::open(matlib_path));
     let matlib_reader = BufReader::new(matlib_file);
     for line in matlib_reader.lines() {
-        let line = line.expect("Failed to unwrap line");
+        let line = line.unwrap();
         let mut split_line = line.split_whitespace();
         // Find the keyword of the line
         if let Some(key) = split_line.next() {
-            match key {
-                "newmtl" => {
-                    if let Some(material) = current_material {
-                        materials.insert(material.name.clone(), material);
-                    }
-                    current_material = Some(Material::new(&try!(parse_string(&mut split_line))));
+            if key == "newmtl" {
+                if let Some(material) = current_material {
+                    materials.insert(material.name.clone(), material);
                 }
-                "Ka" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.c_ambient = Some(try!(parse_float3(&mut split_line)));
-                },
-                "Kd" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.c_diffuse = Some(try!(parse_float3(&mut split_line)));
-                },
-                "Ks" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.c_specular = Some(try!(parse_float3(&mut split_line)));
-                },
-                "Tf" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.c_translucency = Some(try!(parse_float3(&mut split_line)));
-                },
-                "Ke" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.c_emissive = Some(try!(parse_float3(&mut split_line)));
-                },
-                "illum" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.illumination_model = Some(try!(parse_int(&mut split_line)));
-                },
-                "d" | "Tr" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.opacity = Some(try!(parse_float(&mut split_line)));
-                },
-                "Ns" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.shininess = Some(try!(parse_float(&mut split_line)));
-                },
-                "sharpness" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.sharpness = Some(try!(parse_float(&mut split_line)));
-                },
-                "Ni" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.refraction_i = Some(try!(parse_float(&mut split_line)));
-                },
-                "map_Ka" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_ambient = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "map_Kd" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_diffuse = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "map_Ks" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_specular = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "map_Ns" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_shininess = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "map_d" | "map_Tr" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_opacity = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "disp" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_disp = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "decal" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_decal = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                "bump" | "map_Bump" | "map_bump" => {
-                    let material = try!(current_material.as_mut()
-                                        .ok_or("Found material properties before newmtl!"));
-                    material.tex_bump = Some(matlib_dir.join(try!(parse_path(&mut split_line))));
-                },
-                _ => {
-                    if !key.starts_with('#') {
-                        println!("Unrecognised material key {}", key);
+                let material_name = parse_string(&mut split_line)
+                    .ok_or("Tried to define a material with no name")?;
+                current_material = Some(Material::new(&material_name));
+            } else if !key.starts_with('#') {
+                let material = current_material.as_mut()
+                    .ok_or("Found material properties before newmtl!")?;
+                match key {
+                    "Ka" => {
+                        material.c_ambient = parse_float3(&mut split_line);
+                    },
+                    "Kd" => {
+                        material.c_diffuse = parse_float3(&mut split_line);
+                    },
+                    "Ks" => {
+                        material.c_specular = parse_float3(&mut split_line);
+                    },
+                    "Tf" => {
+                        material.c_translucency = parse_float3(&mut split_line);
+                    },
+                    "Ke" => {
+                        material.c_emissive = parse_float3(&mut split_line);
+                    },
+                    "illum" => {
+                        material.illumination_model = parse_int(&mut split_line);
+                    },
+                    "d" | "Tr" => {
+                        material.opacity = parse_float(&mut split_line);
+                    },
+                    "Ns" => {
+                        material.shininess = parse_float(&mut split_line);
+                    },
+                    "sharpness" => {
+                        material.sharpness = parse_float(&mut split_line);
+                    },
+                    "Ni" => {
+                        material.refraction_i = parse_float(&mut split_line);
+                    },
+                    "map_Ka" => {
+                        material.tex_ambient = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "map_Kd" => {
+                        material.tex_diffuse = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "map_Ks" => {
+                        material.tex_specular = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "map_Ns" => {
+                        material.tex_shininess = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "map_d" | "map_Tr" | "map_opacity" => {
+                        material.tex_opacity = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "disp" => {
+                        material.tex_disp = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "decal" => {
+                        material.tex_decal = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    "bump" | "map_Bump" | "map_bump" => {
+                        material.tex_bump = parse_path(&mut split_line)
+                            .map(|path| matlib_dir.join(path));
+                    },
+                    _ => {
+                        println!("Unrecognised material key: {}", key);
                     }
                 }
             }
