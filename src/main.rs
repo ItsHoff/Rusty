@@ -124,14 +124,15 @@ fn online_render() {
     // TODO: Enable use of arbitrary scene
     let scenes: HashMap<VirtualKeyCode, PathBuf> =
         [(VirtualKeyCode::Key1, root_path.join("scenes/plane.obj")),
-         (VirtualKeyCode::Key2, root_path.join("scenes/cornell/cornell.obj")),
-         (VirtualKeyCode::Key3, root_path.join("scenes/cornell/cornell_chesterfield.obj")),
-         (VirtualKeyCode::Key4, root_path.join("scenes/cornell-box/CornellBox-Original.obj")),
-         (VirtualKeyCode::Key5, root_path.join("scenes/cornell-box/CornellBox-Glossy.obj")),
-         (VirtualKeyCode::Key6, root_path.join("scenes/cornell-box/CornellBox-Water.obj")),
-         (VirtualKeyCode::Key7, root_path.join("scenes/nanosuit/nanosuit.obj")),
-         (VirtualKeyCode::Key8, root_path.join("scenes/sibenik/sibenik.obj")),
-         (VirtualKeyCode::Key9, root_path.join("scenes/crytek-sponza/sponza.obj")),
+         (VirtualKeyCode::Key2, root_path.join("scenes/cornell/cornell_chesterfield.obj")),
+         (VirtualKeyCode::Key3, root_path.join("scenes/cornell-box/CornellBox-Original.obj")),
+         (VirtualKeyCode::Key4, root_path.join("scenes/cornell-box/CornellBox-Glossy.obj")),
+         (VirtualKeyCode::Key5, root_path.join("scenes/cornell-box/CornellBox-Water.obj")),
+         (VirtualKeyCode::Key6, root_path.join("scenes/indirect-test/indirect-test_tex.obj")),
+         (VirtualKeyCode::Key7, root_path.join("scenes/conference-new/conference.obj")),
+         (VirtualKeyCode::Key8, root_path.join("scenes/nanosuit/nanosuit.obj")),
+         (VirtualKeyCode::Key9, root_path.join("scenes/sibenik/sibenik.obj")),
+         (VirtualKeyCode::Key0, root_path.join("scenes/crytek-sponza/sponza.obj")),
         ]
         .iter().cloned().collect();
 
