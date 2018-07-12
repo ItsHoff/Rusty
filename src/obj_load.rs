@@ -453,7 +453,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                     "Ni" => {
                         material.refraction_i = parse_float(&mut split_line);
                     },
-                    "map_Ka" => {
+                    "map_Ka" | "map_kA" => {
                         material.tex_ambient = parse_path(&mut split_line)
                             .map(|path| matlib_dir.join(path));
                     },
@@ -461,7 +461,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                         material.tex_diffuse = parse_path(&mut split_line)
                             .map(|path| matlib_dir.join(path));
                     },
-                    "map_Ks" => {
+                    "map_Ks" | "map_kS" => {
                         material.tex_specular = parse_path(&mut split_line)
                             .map(|path| matlib_dir.join(path));
                     },
@@ -485,6 +485,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                         material.tex_bump = parse_path(&mut split_line)
                             .map(|path| matlib_dir.join(path));
                     },
+                    "refl" => {}, // TODO: reflection maps
                     _ => {
                         println!("Unrecognised material key: {}", key);
                     }
