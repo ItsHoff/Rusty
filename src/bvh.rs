@@ -94,17 +94,11 @@ impl BVH {
     }
 
     pub fn get_children(&self, node: &BVHNode) -> Option<(&BVHNode, &BVHNode)> {
-        let left = if let Some(left_i) = node.left_child_i {
-            &self.nodes[left_i]
+        if let Some(left_i) = node.left_child_i {
+            Some((&self.nodes[left_i], &self.nodes[node.right_child_i.unwrap()]))
         } else {
-            return None;
-        };
-        let right = if let Some(right_i) = node.right_child_i {
-            &self.nodes[right_i]
-        } else {
-            return None;
-        };
-        Some((left, right))
+            None
+        }
     }
 
     pub fn root(&self) -> &BVHNode {
