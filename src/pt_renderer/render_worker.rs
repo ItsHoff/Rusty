@@ -116,7 +116,7 @@ impl RenderWorker {
             let hit_to_light = light_pos - bump_pos;
             let light_dir = hit_to_light.normalize();
             let shadow_ray = Ray::new(bump_pos, light_dir, hit_to_light.magnitude() - EPSILON);
-            if shadow_ray.length > 0.1 && self.find_hit(&shadow_ray, node_stack).is_none() {
+            if self.find_hit(&shadow_ray, node_stack).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
                 c += emissive * self.brdf(&hit, &ray, &shadow_ray, material)
