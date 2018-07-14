@@ -188,8 +188,18 @@ fn find_spatial_median(triangles: &[RTTriangle], axis_i: usize) -> usize {
 fn find_sah_split(triangles: &[RTTriangle]) -> Option<usize> {
     let mut min_score = std::f32::MAX;
     let mut min_i = 0;
-    for i in 0..triangles.len() - 1 {
-        let score = compute_sah(triangles.split_at(i));
+    let mut right_bbs = Vec::with_capacity(triangles.len());
+    right_bbs.push(triangles.last().unwrap().aabb());
+    for i in 1..triangles.len() {
+        let mut new_bb = right_bbs[i - 1].clone();
+        new_bb.add_aabb(&triangles[triangles.len() - 1 - i].aabb());
+        right_bbs.push(new_bb);
+    }
+    let mut left_bb = AABB::empty();
+    for i in 0..triangles.len() {
+        left_bb.add_aabb(&triangles[i].aabb());
+        let right_bb = &right_bbs[right_bbs.len() - 1 - i];
+        let score = i as f32 * left_bb.area() + (triangles.len() - i) as f32 * right_bb.area();
         if score < min_score {
             min_score = score;
             min_i = i;
@@ -200,10 +210,4 @@ fn find_sah_split(triangles: &[RTTriangle]) -> Option<usize> {
     } else {
         Some(min_i)
     }
-}
-
-fn compute_sah((left, right): (&[RTTriangle], &[RTTriangle])) -> f32 {
-    let left_bb = AABB::from_triangles(left);
-    let right_bb = AABB::from_triangles(right);
-    left.len() as f32 * left_bb.area() + right.len() as f32 * right_bb.area()
 }
