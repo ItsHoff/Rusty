@@ -2,6 +2,7 @@ use cgmath::prelude::*;
 use cgmath::Point3;
 
 use crate::pt_renderer::{Intersect, Ray};
+use crate::triangle::RTTriangle;
 
 #[derive(Clone)]
 pub struct AABB {
@@ -9,23 +10,19 @@ pub struct AABB {
     pub max: Point3<f32>,
 }
 
-pub fn min_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {
-    let mut p_min = Point3::max_value();
-    for i in 0..3 {
-        p_min[i] = p1[i].min(p2[i]);
-    }
-    p_min
-}
-
-pub fn max_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {
-    let mut p_max = Point3::min_value();
-    for i in 0..3 {
-        p_max[i] = p1[i].max(p2[i]);
-    }
-    p_max
-}
-
 impl AABB {
+    pub fn empty() -> AABB {
+        AABB { min: Point3::max_value(), max: Point3::min_value() }
+    }
+
+    pub fn from_triangles(triangles: &[RTTriangle]) -> AABB {
+        let mut aabb = Self::empty();
+        for tri in triangles {
+            aabb.add_aabb(&tri.aabb());
+        }
+        aabb
+    }
+
     /// Update the bounding box with new position
     pub fn add_point(&mut self, new_pos: &Point3<f32>) {
         self.min = min_point(&self.min, new_pos);
@@ -40,6 +37,9 @@ impl AABB {
 
     /// Get the center of the scene as defined by the bounding box
     pub fn center(&self) -> Point3<f32> {
+        if self.max.x < self.min.x {
+            panic!("Tried to get center of an empty AABB");
+        }
         Point3::midpoint(self.min, self.max)
     }
 
@@ -63,14 +63,21 @@ impl AABB {
         }
         index
     }
+
+    pub fn area(&self) -> f32 {
+        let lengths = self.max - self.min;
+        2.0 * (lengths.x * lengths.y +
+               lengths.y * lengths.z +
+               lengths.z * lengths.x).max(0.0)
+    }
 }
 
 impl Intersect<'a, f32> for AABB {
     fn intersect(&self, ray: &Ray) -> Option<f32> {
         let t1 = (self.min - ray.orig).mul_element_wise(ray.reciprocal_dir);
         let t2 = (self.max - ray.orig).mul_element_wise(ray.reciprocal_dir);
-        let mut start = ::std::f32::MIN;
-        let mut end = ::std::f32::MAX;
+        let mut start = std::f32::MIN;
+        let mut end = std::f32::MAX;
         for i in 0..3 {
             if ray.dir[i] == 0.0 && (ray.orig[i] < self.min[i] || ray.orig[i] > self.max[i]) {
                 // Can't hit
@@ -89,4 +96,20 @@ impl Intersect<'a, f32> for AABB {
             None
         }
     }
+}
+
+pub fn min_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {
+    let mut p_min = Point3::max_value();
+    for i in 0..3 {
+        p_min[i] = p1[i].min(p2[i]);
+    }
+    p_min
+}
+
+pub fn max_point(p1: &Point3<f32>, p2: &Point3<f32>) -> Point3<f32> {
+    let mut p_max = Point3::min_value();
+    for i in 0..3 {
+        p_max[i] = p1[i].max(p2[i]);
+    }
+    p_max
 }

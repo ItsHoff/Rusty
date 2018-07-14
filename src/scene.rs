@@ -46,7 +46,7 @@ impl Scene {
             bvh: BVH::empty(),
         };
         scene.load_scene(scene_path);
-        scene.bvh = BVH::build_object_median(&mut scene.triangles);
+        scene.bvh = BVH::build_sah(&mut scene.triangles);
         scene
     }
 
