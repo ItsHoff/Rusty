@@ -60,7 +60,7 @@ impl Material {
             "bmp" => ImageFormat::BMP,
             "ico" => ImageFormat::ICO,
             "hdr" => ImageFormat::HDR,
-            ext @ _ => panic!("Unknown image extension {}", ext),
+            ext => panic!("Unknown image extension {}", ext),
         };
         // TODO: dont panic just warn and ignore texture
         let tex_reader = BufReader::new(File::open(path).unwrap_or_else(

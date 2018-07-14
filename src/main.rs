@@ -97,11 +97,11 @@ fn offline_render() {
         let float_time = render_duration.as_secs() as f64
             + f64::from(render_duration.subsec_nanos()) / 1_000_000_000.0;
         let ray_speed = ray_count as f64 / float_time;
-        write!(&mut info_string, "\n{}:\n", scene_name).unwrap();
-        write!(&mut info_string, "    loaded in {:#?}\n", load_duration).unwrap();
-        write!(&mut info_string, "    rendered in {:#?}\n", render_duration).unwrap();
-        write!(&mut info_string, "    {} total rays\n", ray_count).unwrap();
-        write!(&mut info_string, "    {:.0} rays / sec\n", ray_speed).unwrap();
+        writeln!(&mut info_string, "\n{}:", scene_name).unwrap();
+        writeln!(&mut info_string, "    loaded in {:#?}", load_duration).unwrap();
+        writeln!(&mut info_string, "    rendered in {:#?}", render_duration).unwrap();
+        writeln!(&mut info_string, "    {} total rays", ray_count).unwrap();
+        writeln!(&mut info_string, "    {:.0} rays / sec", ray_speed).unwrap();
         println!("{}", info_string);
         combined_info.push_str(&info_string);
 
