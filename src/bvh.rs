@@ -1,5 +1,3 @@
-use cgmath::Point3;
-
 use crate::aabb::AABB;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::triangle::RTTriangle;
@@ -13,14 +11,14 @@ pub struct BVHNode {
 }
 
 impl BVHNode {
-    fn new(indices: &[usize], aabbs: &[AABB], start_i: usize, end_i: usize) -> BVHNode {
+    fn new(triangles: &[RTTriangle], start_i: usize, end_i: usize) -> BVHNode {
         let mut node = BVHNode {
-            aabb: aabbs[indices[start_i]].clone(),
+            aabb: triangles[start_i].aabb(),
             start_i, end_i,
             left_child_i: None, right_child_i: None
         };
-        for &i in indices[(start_i + 1)..end_i].iter() {
-            node.aabb.add_aabb(&aabbs[i]);
+        for tri in triangles[(start_i + 1)..end_i].iter() {
+            node.aabb.add_aabb(&tri.aabb());
         }
         node
     }
@@ -52,43 +50,36 @@ impl BVH {
     }
 
     pub fn build_object_median(triangles: &mut Vec<RTTriangle>) -> BVH {
-        let mut indices: Vec<usize> = (0..triangles.len()).collect();
-        let aabbs: Vec<AABB> = triangles.iter().map(|t| t.aabb()).collect();
-        let centers: Vec<Point3<f32>> = triangles.into_iter().map(|t| t.center()).collect();
         let mut nodes = Vec::with_capacity(f32::log2(triangles.len() as f32) as usize);
-        nodes.push(BVHNode::new(&indices, &aabbs, 0, triangles.len()));
+        nodes.push(BVHNode::new(triangles, 0, triangles.len()));
         let mut split_stack = vec![0usize];
 
         while let Some(node_i) = split_stack.pop() {
             let start_i = nodes[node_i].start_i;
             let end_i = nodes[node_i].end_i;
             let axis_i = nodes[node_i].aabb.longest_edge_i();
-            indices[start_i..end_i]
-                .sort_unstable_by(|&i1, &i2| {
-                    let c1 = centers[i1][axis_i];
-                    let c2 = centers[i2][axis_i];
+            triangles[start_i..end_i]
+                .sort_unstable_by(|ref tri1, ref tri2| {
+                    let c1 = tri1.center()[axis_i];
+                    let c2 = tri2.center()[axis_i];
                     c1.partial_cmp(&c2).unwrap()
                 });
             let mid_i = (start_i + end_i) / 2;
 
-            let left_child = BVHNode::new(&indices, &aabbs, start_i, mid_i);
+            let left_child = BVHNode::new(triangles, start_i, mid_i);
             nodes[node_i].left_child_i = Some(nodes.len());
             if left_child.size() > MAX_LEAF_SIZE {
                 split_stack.push(nodes.len());
             }
             nodes.push(left_child);
 
-            let right_child = BVHNode::new(&indices, &aabbs, mid_i, end_i);
+            let right_child = BVHNode::new(triangles, mid_i, end_i);
             nodes[node_i].right_child_i = Some(nodes.len());
             if right_child.size() > MAX_LEAF_SIZE {
                 split_stack.push(nodes.len());
             }
             nodes.push(right_child);
         }
-
-        // Make triangles ordering match indices ordering
-        // TODO: This could be done better
-        *triangles = indices.iter().map(|&i| triangles[i].clone()).collect();
         nodes.shrink_to_fit();
         BVH { nodes }
     }
