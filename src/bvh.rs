@@ -59,7 +59,7 @@ impl BVH {
             let end_i = nodes[node_i].end_i;
             let axis_i = nodes[node_i].aabb.longest_edge_i();
             triangles[start_i..end_i]
-                .sort_unstable_by(|ref tri1, ref tri2| {
+                .sort_unstable_by(|tri1, tri2| {
                     let c1 = tri1.center()[axis_i];
                     let c2 = tri2.center()[axis_i];
                     c1.partial_cmp(&c2).unwrap()
@@ -94,7 +94,7 @@ impl BVH {
             let end_i = nodes[node_i].end_i;
             let axis_i = nodes[node_i].aabb.longest_edge_i();
             triangles[start_i..end_i]
-                .sort_unstable_by(|ref tri1, ref tri2| {
+                .sort_unstable_by(|tri1, tri2| {
                     let c1 = tri1.center()[axis_i];
                     let c2 = tri2.center()[axis_i];
                     c1.partial_cmp(&c2).unwrap()
@@ -128,14 +128,7 @@ impl BVH {
         while let Some(node_i) = split_stack.pop() {
             let start_i = nodes[node_i].start_i;
             let end_i = nodes[node_i].end_i;
-            let axis_i = nodes[node_i].aabb.longest_edge_i();
-            triangles[start_i..end_i]
-                .sort_unstable_by(|ref tri1, ref tri2| {
-                    let c1 = tri1.center()[axis_i];
-                    let c2 = tri2.center()[axis_i];
-                    c1.partial_cmp(&c2).unwrap()
-                });
-            let mid_i = if let Some(offset) = find_sah_split(&triangles[start_i..end_i]) {
+            let mid_i = if let Some(offset) = find_sah_split(&mut triangles[start_i..end_i]) {
                 start_i + offset
             } else {
                 continue;
@@ -185,29 +178,45 @@ fn find_spatial_median(triangles: &[RTTriangle], axis_i: usize) -> usize {
     }
 }
 
-fn find_sah_split(triangles: &[RTTriangle]) -> Option<usize> {
+fn find_sah_split(triangles: &mut [RTTriangle]) -> Option<usize> {
     let mut min_score = std::f32::MAX;
+    let mut min_axis = 0;
     let mut min_i = 0;
-    let mut right_bbs = Vec::with_capacity(triangles.len());
-    right_bbs.push(triangles.last().unwrap().aabb());
-    for i in 1..triangles.len() {
-        let mut new_bb = right_bbs[i - 1].clone();
-        new_bb.add_aabb(&triangles[triangles.len() - 1 - i].aabb());
-        right_bbs.push(new_bb);
-    }
-    let mut left_bb = AABB::empty();
-    for i in 0..triangles.len() {
-        left_bb.add_aabb(&triangles[i].aabb());
-        let right_bb = &right_bbs[right_bbs.len() - 1 - i];
-        let score = i as f32 * left_bb.area() + (triangles.len() - i) as f32 * right_bb.area();
-        if score < min_score {
-            min_score = score;
-            min_i = i;
+    for axis in 0..3 {
+        triangles.sort_unstable_by(|tri1, tri2| {
+                let c1 = tri1.center()[axis];
+                let c2 = tri2.center()[axis];
+                c1.partial_cmp(&c2).unwrap()
+            });
+        let mut right_bbs = Vec::with_capacity(triangles.len());
+        right_bbs.push(triangles.last().unwrap().aabb());
+        for i in 1..triangles.len() {
+            let mut new_bb = right_bbs[i - 1].clone();
+            new_bb.add_aabb(&triangles[triangles.len() - 1 - i].aabb());
+            right_bbs.push(new_bb);
+        }
+        let mut left_bb = AABB::empty();
+        for i in 0..triangles.len() {
+            left_bb.add_aabb(&triangles[i].aabb());
+            let right_bb = &right_bbs[right_bbs.len() - 1 - i];
+            let score = i as f32 * left_bb.area() + (triangles.len() - i) as f32 * right_bb.area();
+            if score < min_score {
+                min_score = score;
+                min_axis = axis;
+                min_i = i;
+            }
         }
     }
     if min_i == 0 {
         None
     } else {
+        if min_axis != 2 {
+            triangles.sort_unstable_by(|tri1, tri2| {
+                let c1 = tri1.center()[min_axis];
+                let c2 = tri2.center()[min_axis];
+                c1.partial_cmp(&c2).unwrap()
+            });
+        }
         Some(min_i)
     }
 }

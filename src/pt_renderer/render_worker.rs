@@ -18,6 +18,7 @@ use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
 use crate::triangle::Hit;
 
+// TODO: tune EPSILON since crytek-sponza has shadow acne
 const EPSILON: f32 = 1e-5;
 const _EB: f32 = 5.0; // Desired expectation value of bounces
 // The matching survival probability from negative binomial distribution
