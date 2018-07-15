@@ -138,7 +138,7 @@ impl BVH {
             let mid_i = if let Some(offset) = find_sah_split(&triangles[start_i..end_i]) {
                 start_i + offset
             } else {
-                break;
+                continue;
             };
 
             let left_child = BVHNode::new(triangles, start_i, mid_i);
