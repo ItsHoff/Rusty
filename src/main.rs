@@ -46,6 +46,7 @@ fn load_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Came
 
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
+        Some("all") => benchmark::benchmark_all(),
         Some("bvh") => benchmark::benchmark_bvh_build(),
         Some("render") => benchmark::benchmark_render(),
         Some(unknown) => println!("Unknown benchmark {}", unknown),

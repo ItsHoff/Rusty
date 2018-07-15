@@ -27,6 +27,13 @@ fn extract_scene_name(path: &Path) -> &str {
     file_name.split('.').next().unwrap()
 }
 
+pub fn benchmark_all() {
+    println!("\nBVH benchmark:");
+    benchmark_bvh_build();
+    println!("\nRender benchmark:");
+    benchmark_render();
+}
+
 pub fn benchmark_bvh_build() {
     let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let scenes: Vec<PathBuf> =
