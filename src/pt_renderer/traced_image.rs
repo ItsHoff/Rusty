@@ -46,7 +46,6 @@ impl TracedImage {
         let image = image::DynamicImage::ImageRgb8(
             image::RgbImage::from_raw(self.width, self.height, mapped_image).unwrap());
         let image = image.flipv();
-        println!("Saving image: {:?}", path);
         image.save(path).unwrap();
     }
 }

@@ -9,7 +9,7 @@ use glium::VertexBuffer;
 use glium::backend::Facade;
 
 use crate::aabb::AABB;
-use crate::bvh::BVH;
+use crate::bvh::{BVH, SplitMode};
 use crate::mesh::{Mesh, GPUMesh};
 use crate::material::{Material, GPUMaterial};
 use crate::obj_load;
@@ -46,7 +46,21 @@ impl Scene {
             bvh: BVH::empty(),
         };
         scene.load_scene(scene_path);
-        scene.bvh = BVH::build_sah(&mut scene.triangles);
+        scene.bvh = BVH::build(&mut scene.triangles, SplitMode::SAH);
+        scene
+    }
+
+    pub fn without_bvh(scene_path: &Path) -> Scene {
+        let mut scene = Scene {
+            vertices: Vec::new(),
+            meshes: Vec::new(),
+            materials: Vec::new(),
+            triangles: Vec::new(),
+            lights: Vec::new(),
+            aabb: AABB { min: Point3::origin(), max: Point3::origin() },
+            bvh: BVH::empty(),
+        };
+        scene.load_scene(scene_path);
         scene
     }
 
