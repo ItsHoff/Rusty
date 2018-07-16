@@ -14,7 +14,7 @@ use cgmath::{Vector3, Point3};
 
 use glium;
 use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect, uniform};
-use glium::texture::{Texture2d, RawImage2d};
+use glium::texture::{Texture2d, RawImage2d, MipmapsOption, UncompressedFloatFormat};
 use glium::backend::Facade;
 
 use crate::camera::Camera;
@@ -101,8 +101,14 @@ struct PTVisualizer {
     texture: Texture2d,
 }
 
+fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Texture2d {
+    Texture2d::with_format(facade, texture_source,
+                           UncompressedFloatFormat::F32F32F32,
+                           MipmapsOption::NoMipmap).unwrap()
+}
+
 impl PTVisualizer {
-    fn new<F: Facade>(facade: &F, width: u32, height: u32) -> PTVisualizer {
+    fn new<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> PTVisualizer {
         let vertices = vec!(
             Vertex { pos: [-1.0, -1.0, 0.0],
                      normal: [0.0, 0.0, 0.0],
@@ -131,7 +137,7 @@ impl PTVisualizer {
         let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
             .expect("Failed to create program!");
 
-        let texture = Texture2d::empty(facade, width, height).unwrap();
+        let texture = create_texture(facade, texture_source);
 
         PTVisualizer {
             shader, vertex_buffer, index_buffer, texture,
@@ -150,7 +156,7 @@ impl PTVisualizer {
     }
 
     fn new_texture<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>) {
-        self.texture = Texture2d::new(facade, texture_source).unwrap();
+        self.texture = create_texture(facade, texture_source);
     }
 
     fn update_texture(&mut self, rect: Rect, texture_block: RawImage2d<f32>) {
@@ -210,11 +216,10 @@ impl PTRenderer {
 
     pub fn online_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera) {
         self.start_render(scene, camera, None);
-        // Create visualizer after staring render so we have the new image source
         if let Some(visualizer) = &mut self.visualizer {
             visualizer.new_texture(facade, self.image.get_texture_source());
         } else {
-            self.visualizer = Some(PTVisualizer::new(facade, camera.width, camera.height));
+            self.visualizer = Some(PTVisualizer::new(facade, self.image.get_texture_source()));
         }
     }
 
