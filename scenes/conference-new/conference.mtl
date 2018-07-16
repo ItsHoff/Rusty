@@ -131,7 +131,7 @@ Ka 0 0 0
 Kd 0.4 0.4 0.4
 d 1
 Ks 1 1 1
-#Ke 1000 4000 1000
+Ke 1000 4000 1000
 Ns 32 background of exit sign
 
 
