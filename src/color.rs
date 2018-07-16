@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -14,6 +14,12 @@ impl Color {
 
     pub fn white() -> Color {
         Color { r: 1.0, g: 1.0, b: 1.0 }
+    }
+
+    pub fn from_srgb(rgba: image::Rgba<u8>) -> Color {
+        let arr: Vec<f32> = rgba.data.into_iter()
+            .map( |c| (f32::from(*c) / 255.0).powf(2.2) ).collect();
+        Color { r: arr[0], g: arr[1], b: arr[2] }
     }
 }
 
@@ -72,16 +78,6 @@ impl Mul<Color> for f32 {
 
     fn mul(self, rhs: Color) -> Self::Output {
         rhs * self
-    }
-}
-
-impl From<&image::Rgba<u8>> for Color {
-    // This does automatic gamma correction since we assume
-    // that the input image is in SRGB
-    fn from(rgba: &image::Rgba<u8>) -> Color {
-        let arr: Vec<f32> = rgba.data.into_iter()
-            .map( |c| (f32::from(*c) / 255.0).powf(2.2) ).collect();
-        Color { r: arr[0], g: arr[1], b: arr[2] }
     }
 }
 

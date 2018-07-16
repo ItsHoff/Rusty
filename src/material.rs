@@ -104,10 +104,10 @@ impl Material {
             } else {
                 (y.floor() as u32, y.ceil() as u32)
             };
-            let tl = Color::from(tex.get_pixel(left, top));
-            let bl = Color::from(tex.get_pixel(left, bottom));
-            let tr = Color::from(tex.get_pixel(right, top));
-            let br = Color::from(tex.get_pixel(right, bottom));
+            let tl = Color::from_srgb(*tex.get_pixel(left, top));
+            let bl = Color::from_srgb(*tex.get_pixel(left, bottom));
+            let tr = Color::from_srgb(*tex.get_pixel(right, top));
+            let br = Color::from_srgb(*tex.get_pixel(right, bottom));
             let top_c = x_fract * tr + (1.0 - x_fract) * tl;
             let bottom_c = x_fract * br + (1.0 - x_fract) * bl;
             y_fract * bottom_c + (1.0 - y_fract) * top_c
