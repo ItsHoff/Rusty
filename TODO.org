@@ -1,18 +1,14 @@
-* TODO
-** Features
-*** Benchmarking
+* Features
+** Dynamic lights
+** Glossy materials
+** Mirror reflections
+** Transparent materials
+** Bidirectional tracing
+* Improvements
+** Benchmarking
     * https://doc.rust-lang.org/book/second-edition/ch11-01-writing-tests.html
     * https://doc.rust-lang.org/unstable-book/library-features/test.html
     * http://seenaburns.com/benchmarking-rust-with-cargo-bench/
-*** Dynamic lights
-*** Tone mapping
-*** Glossy materials
-*** Mirror reftections
-*** Transparent materials
-*** Bidirectional tracing
-** Improvements
-*** Non lexical lifetimes
-    * http://smallcultfollowing.com/babysteps/blog/2018/06/15/mir-based-borrow-check-nll-status-update/
-*** Optimisations
-*** Arbitrary scene loading
-*** UI
+** Optimisations
+** Arbitrary scene loading
+** UI
