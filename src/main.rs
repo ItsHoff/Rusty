@@ -61,18 +61,19 @@ fn default_render() {
     let display = glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
     let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let scene_dir = root_path.join("scenes");
     // TODO: Enable use of arbitrary scene
     let scenes: HashMap<VirtualKeyCode, PathBuf> =
-        [(VirtualKeyCode::Key1, root_path.join("scenes/plane.obj")),
-         (VirtualKeyCode::Key2, root_path.join("scenes/cornell/cornell_chesterfield.obj")),
-         (VirtualKeyCode::Key3, root_path.join("scenes/cornell-box/CornellBox-Original.obj")),
-         (VirtualKeyCode::Key4, root_path.join("scenes/cornell-box/CornellBox-Glossy.obj")),
-         (VirtualKeyCode::Key5, root_path.join("scenes/cornell-box/CornellBox-Water.obj")),
-         (VirtualKeyCode::Key6, root_path.join("scenes/indirect-test/indirect-test_tex.obj")),
-         (VirtualKeyCode::Key7, root_path.join("scenes/conference-new/conference.obj")),
-         (VirtualKeyCode::Key8, root_path.join("scenes/nanosuit/nanosuit.obj")),
-         (VirtualKeyCode::Key9, root_path.join("scenes/sibenik/sibenik.obj")),
-         (VirtualKeyCode::Key0, root_path.join("scenes/crytek-sponza/sponza.obj")),
+        [(VirtualKeyCode::Key1, scene_dir.join("plane.obj")),
+         (VirtualKeyCode::Key2, scene_dir.join("cornell").join("cornell_chesterfield.obj")),
+         (VirtualKeyCode::Key3, scene_dir.join("cornell-box").join("CornellBox-Original.obj")),
+         (VirtualKeyCode::Key4, scene_dir.join("cornell-box").join("CornellBox-Glossy.obj")),
+         (VirtualKeyCode::Key5, scene_dir.join("cornell-box").join("CornellBox-Water.obj")),
+         (VirtualKeyCode::Key6, scene_dir.join("indirect-test").join("indirect-test_tex.obj")),
+         (VirtualKeyCode::Key7, scene_dir.join("conference-new").join("conference.obj")),
+         (VirtualKeyCode::Key8, scene_dir.join("nanosuit").join("nanosuit.obj")),
+         (VirtualKeyCode::Key9, scene_dir.join("sibenik").join("sibenik.obj")),
+         (VirtualKeyCode::Key0, scene_dir.join("crytek-sponza").join("sponza.obj")),
         ]
         .iter().cloned().collect();
 
