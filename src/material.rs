@@ -33,7 +33,7 @@ impl Material {
     pub fn new(obj_mat: &obj_load::Material) -> Material {
         // Create diffuse texture and load it to the GPU
         let diffuse_image = match obj_mat.tex_diffuse {
-            Some(ref tex_path) => Some(Material::load_image(tex_path)),
+            Some(ref tex_path) => load_image(tex_path),
             None => None
         };
         let emissive = obj_mat.c_emissive.and_then(
@@ -45,27 +45,6 @@ impl Material {
             diffuse_image,
             emissive,
         }
-    }
-
-    /// Load an image from path
-    fn load_image(path: &Path) -> image::RgbaImage {
-        let image_format = match path.extension().unwrap().to_str().unwrap() {
-            "png" => ImageFormat::PNG,
-            "jpg" | "jpeg" => ImageFormat::JPEG,
-            "gif" => ImageFormat::GIF,
-            "webp" => ImageFormat::WEBP,
-            "pnm" => ImageFormat::PNM,
-            "tiff" => ImageFormat::TIFF,
-            "tga" => ImageFormat::TGA,
-            "bmp" => ImageFormat::BMP,
-            "ico" => ImageFormat::ICO,
-            "hdr" => ImageFormat::HDR,
-            ext => panic!("Unknown image extension {}", ext),
-        };
-        // TODO: dont panic just warn and ignore texture
-        let tex_reader = BufReader::new(File::open(path).unwrap_or_else(
-            |_| panic!("Failed to open image {:?}!", path)));
-        image::load(tex_reader, image_format).expect("Failed to load image!").to_rgba()
     }
 
     /// Upload textures to the GPU
@@ -114,5 +93,39 @@ impl Material {
         } else {
             self.diffuse
         }
+    }
+}
+
+/// Load an image from path
+fn load_image(path: &Path) -> Option<image::RgbaImage> {
+    let image_format = match path.extension().unwrap().to_str().unwrap() {
+        "png" => ImageFormat::PNG,
+        "jpg" | "jpeg" => ImageFormat::JPEG,
+        "gif" => ImageFormat::GIF,
+        "webp" => ImageFormat::WEBP,
+        "pnm" => ImageFormat::PNM,
+        "tiff" => ImageFormat::TIFF,
+        "tga" => ImageFormat::TGA,
+        "bmp" => ImageFormat::BMP,
+        "ico" => ImageFormat::ICO,
+        "hdr" => ImageFormat::HDR,
+        ext => {
+            println!("Unknown image extension {}", ext);
+            return None;
+        },
+    };
+    let tex_reader = match File::open(path) {
+        Ok(file) => BufReader::new(file),
+        Err(err) => {
+            println!("Failed to open image {:?}: {}", path, err);
+            return None;
+        },
+    };
+    match image::load(tex_reader, image_format) {
+        Ok(image) => Some(image.to_rgba()),
+        Err(err) => {
+            println!("Failed to open image {:?}: {}", path, err);
+            None
+        },
     }
 }
