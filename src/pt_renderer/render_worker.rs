@@ -196,6 +196,7 @@ impl RenderWorker {
                 let (left, right) = bvh.get_children(node)
                     .expect("Non leaf node had no child nodes!");
                 // TODO: benchmark this properly on the larger scenes
+                // TODO: Could this work without pushing the next node to the stack
                 if false { // not sorted
                     if let Some(t_left) = left.intersect(&ray) {
                         node_stack.push((left, t_left));

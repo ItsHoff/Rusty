@@ -24,6 +24,7 @@ use crate::vertex::Vertex;
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
 
+// TODO: add intersectP?
 pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;
 }

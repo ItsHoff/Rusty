@@ -9,6 +9,33 @@
     * https://doc.rust-lang.org/book/second-edition/ch11-01-writing-tests.html
     * https://doc.rust-lang.org/unstable-book/library-features/test.html
     * http://seenaburns.com/benchmarking-rust-with-cargo-bench/
-** Optimisations
+** Implement post processing for offline images
+  * Preferably use the same shaders rather than doing this on the cpu
+** Concurrent data structures
+  * https://github.com/crossbeam-rs/crossbeam
 ** Arbitrary scene loading
 ** UI
+* Optimizations
+** Parallel building of BVH
+** Change work distribution to use atomic counter and one to one mapping to a block
+** Precompute negative components of ray direction
+** Pure hit tests without extra info
+  * Can stop when any hit is found instead of finding the closests
+** Would AABB on invidual triangles save work
+** Spatial curves for 2d vector ordering
+  * Hilbert / Morton
+** Examine cache effiency
+  * size
+  * organization (hot & cold)
+  * alignment
+* Nice to have
+** Other shapes
+** Alternate input formats (glTF)
+** Get texture mapping debug texture somewhere
+** More robust floating point error handling
+** Posibility to switch between floats and doubles
+** HDR image formats
+  * Does OpenGL support HDR output?
+* Extras
+** Internal linear algebra
+** Spectral rendering

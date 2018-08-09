@@ -82,6 +82,7 @@ impl Intersect<'a, f32> for AABB {
             if ray.dir[i] == 0.0 && (ray.orig[i] < self.min[i] || ray.orig[i] > self.max[i]) {
                 // Can't hit
                 return None;
+            // TODO: Precompute these
             } else if ray.dir[i] < 0.0 {
                 start = start.max(t2[i]);
                 end = end.min(t1[i]);

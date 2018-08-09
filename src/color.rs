@@ -41,6 +41,8 @@ impl AddAssign for Color {
     }
 }
 
+// TODO: Combine assing and new
+// TODO: Compute only single reciprocal
 impl Div<f32> for Color {
     type Output = Color;
 
