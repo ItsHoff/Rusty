@@ -17,32 +17,15 @@ mod obj_load;
 mod pt_renderer;
 mod scene;
 mod triangle;
+mod util;
 mod vertex;
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-
-use cgmath::Vector3;
-
 use glium::Surface;
-use glium::backend::Facade;
 use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
 
-use crate::camera::Camera;
 use crate::gl_renderer::GLRenderer;
 use crate::input::InputState;
 use crate::pt_renderer::PTRenderer;
-use crate::scene::{Scene, GPUScene};
-
-fn load_scene<F: Facade>(path: &Path, facade: &F) -> (Arc<Scene>, GPUScene, Camera) {
-    let scene = Scene::new(path);
-    let mut camera = Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                 Vector3::new(0.0, 0.0, -1.0f32));
-    camera.set_scale(scene.size());
-    let gpu_scene = scene.upload_data(facade);
-    (Arc::new(scene), gpu_scene, camera)
-}
 
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
@@ -60,25 +43,7 @@ fn default_render() {
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
     let display = glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
-    let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let scene_dir = root_path.join("scenes");
-    // TODO: Enable use of arbitrary scene
-    let scenes: HashMap<VirtualKeyCode, PathBuf> =
-        [(VirtualKeyCode::Key1, scene_dir.join("plane.obj")),
-         (VirtualKeyCode::Key2, scene_dir.join("cornell").join("cornell_chesterfield.obj")),
-         (VirtualKeyCode::Key3, scene_dir.join("cornell-box").join("CornellBox-Original.obj")),
-         (VirtualKeyCode::Key4, scene_dir.join("cornell-box").join("CornellBox-Glossy.obj")),
-         (VirtualKeyCode::Key5, scene_dir.join("cornell-box").join("CornellBox-Water.obj")),
-         (VirtualKeyCode::Key6, scene_dir.join("indirect-test").join("indirect-test_tex.obj")),
-         (VirtualKeyCode::Key7, scene_dir.join("conference-new").join("conference.obj")),
-         (VirtualKeyCode::Key8, scene_dir.join("nanosuit").join("nanosuit.obj")),
-         (VirtualKeyCode::Key9, scene_dir.join("sibenik").join("sibenik.obj")),
-         (VirtualKeyCode::Key0, scene_dir.join("crytek-sponza").join("sponza.obj")),
-        ]
-        .iter().cloned().collect();
-
-    let (mut scene, mut gpu_scene, mut camera) =
-        load_scene(&scenes[&VirtualKeyCode::Key1], &display);
+    let (mut scene, mut gpu_scene, mut camera) = util::load_scene(VirtualKeyCode::Key1, &display).unwrap();
     let gl_renderer = GLRenderer::new(&display);
     let mut pt_renderer = PTRenderer::new();
 
@@ -118,9 +83,8 @@ fn default_render() {
                             }
                         },
                         KeyboardInput{state: ElementState::Pressed,
-                                      virtual_keycode: Some(ref keycode), ..} => {
-                            if let Some(scene_to_load) = scenes.get(keycode) {
-                                let res = load_scene(scene_to_load, &display);
+                                      virtual_keycode: Some(keycode), ..} => {
+                            if let Some(res) = util::load_scene(keycode, &display) {
                                 scene = res.0;
                                 gpu_scene = res.1;
                                 camera = res.2;
