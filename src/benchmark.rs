@@ -1,26 +1,15 @@
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::Instant;
-
-use cgmath::Vector3;
 
 use chrono::Local;
 
 use prettytable::{Table, cell, row};
 
 use crate::bvh::{BVH, SplitMode};
-use crate::camera::Camera;
 use crate::pt_renderer::PTRenderer;
 use crate::scene::Scene;
-
-fn load_scene(path: &Path) -> (Arc<Scene>, Camera) {
-    let scene = Scene::new(path);
-    let mut camera = Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                 Vector3::new(0.0, 0.0, -1.0f32));
-    camera.set_scale(scene.size());
-    (Arc::new(scene), camera)
-}
+use crate::util;
 
 fn extract_scene_name(path: &Path) -> &str {
     let file_name = path.file_name().unwrap().to_str().unwrap();
@@ -72,14 +61,7 @@ pub fn benchmark_bvh_build() {
 
 pub fn benchmark_render() {
     let root_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    // TODO: set better camera pos for sibenik
-    let scenes: Vec<PathBuf> =
-        [root_path.join("scenes/plane.obj"),
-         root_path.join("scenes/cornell-box/CornellBox-Glossy.obj"),
-         root_path.join("scenes/cornell-box/CornellBox-Water.obj"),
-         root_path.join("scenes/nanosuit/nanosuit.obj"),
-         root_path.join("scenes/sibenik/sibenik.obj"),
-        ].to_vec();
+    let scenes = ["plane", "cornell-glossy", "cornell-water", "nanosuit", "sibenik",];
 
     let mut pt_renderer = PTRenderer::new();
     let mut info_table = Table::new();
@@ -88,10 +70,9 @@ pub fn benchmark_render() {
     if !save_path.exists() {
         std::fs::create_dir_all(save_path.clone()).unwrap();
     }
-    for scene_path in scenes {
-        let scene_name = extract_scene_name(&scene_path);
+    for scene_name in &scenes {
         println!("{}...", scene_name);
-        let (scene, mut camera) = load_scene(&scene_path);
+        let (scene, mut camera) = util::load_benchmark_scene(scene_name);
         camera.update_viewport((600, 400));
 
         let render_start = Instant::now();
@@ -106,7 +87,7 @@ pub fn benchmark_render() {
                                 format!("{:#.2?}", render_duration),
                                 format!("{:.2}", mrps)));
 
-        let mut save_file = String::from(scene_name);
+        let mut save_file = scene_name.to_string();
         save_file.push_str(".png");
         pt_renderer.save_image(&save_path.join(save_file));
     }
