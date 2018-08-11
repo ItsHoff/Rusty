@@ -13,6 +13,7 @@ use crate::bvh::{BVH, SplitMode};
 use crate::mesh::{Mesh, GPUMesh};
 use crate::material::{Material, GPUMaterial};
 use crate::obj_load;
+use crate::stats::Timer;
 use crate::triangle::{RTTriangle, RTTriangleBuilder};
 use crate::vertex::Vertex;
 
@@ -69,6 +70,7 @@ impl Scene {
         let obj = obj_load::load_obj(scene_path)
             .unwrap_or_else(|err| panic!("Failed to load scene {:?}: {}", scene_path, err));
 
+        let _timer = Timer::new("Convert scene");
         // Closure to calculate planar normal for a triangle
         let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {
             let pos_i1 = triangle.index_vertices[0].pos_i;
@@ -152,6 +154,7 @@ impl Scene {
 
     /// Load the textures + vertex and index buffers to the GPU
     pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUScene {
+        let _timer = Timer::new("Upload data");
         let vertex_buffer = VertexBuffer::new(facade, &self.vertices)
                                   .expect("Failed to create vertex buffer!");
         let mut meshes = Vec::new();

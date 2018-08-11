@@ -16,6 +16,7 @@ mod mesh;
 mod obj_load;
 mod pt_renderer;
 mod scene;
+mod stats;
 mod triangle;
 mod util;
 mod vertex;
@@ -26,6 +27,7 @@ use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyC
 use crate::gl_renderer::GLRenderer;
 use crate::input::InputState;
 use crate::pt_renderer::PTRenderer;
+use crate::stats::Timer;
 
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
@@ -35,9 +37,11 @@ fn main() {
         Some(unknown) => println!("Unknown benchmark {}", unknown),
         None => default_render(),
     }
+    stats::print_stats();
 }
 
 fn default_render() {
+    let _timer = Timer::new("Total");
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new();
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
@@ -50,6 +54,7 @@ fn default_render() {
     let mut input = InputState::new();
     let mut trace = false;
     let mut quit = false;
+    let mut render_timer = None;
 
     loop {
         let mut target = display.draw();
@@ -77,9 +82,12 @@ fn default_render() {
                                       virtual_keycode: Some(VirtualKeyCode::Space), ..} => {
                             trace = !trace;
                             if trace {
+                                render_timer = Some(Timer::new("Render"));
+                                let _timer = Timer::new("Render start");
                                 pt_renderer.online_render(&display, &scene, &camera);
                             } else {
                                 pt_renderer.stop_threads();
+                                render_timer = None;
                             }
                         },
                         KeyboardInput{state: ElementState::Pressed,

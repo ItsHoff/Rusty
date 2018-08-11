@@ -1,5 +1,6 @@
 use crate::aabb::AABB;
 use crate::pt_renderer::{Intersect, Ray};
+use crate::stats::Timer;
 use crate::triangle::RTTriangle;
 
 pub struct BVHNode {
@@ -58,6 +59,7 @@ impl BVH {
     }
 
     pub fn build(triangles: &mut Vec<RTTriangle>, split_mode: SplitMode) -> BVH {
+        let _timer = Timer::new("BVH build");
         match split_mode {
             SplitMode::Object => build_object_median(triangles),
             SplitMode::Spatial => build_spatial_median(triangles),

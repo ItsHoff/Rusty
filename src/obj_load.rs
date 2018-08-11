@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 use std::str::SplitWhitespace;
 use std::vec::Vec;
 
+use crate::stats::Timer;
+
 /// Indices of vertex attributes in attribute vectors
 #[derive(Debug, Default, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct IndexVertex {
@@ -311,6 +313,7 @@ fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseSt
 
 /// Load an object found at the given path
 pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
+    let _timer = Timer::new("Load obj");
     let mut obj = Object::new();
     let mut state = ParseState::new();
     let obj_dir = try!(obj_path.parent().ok_or("Couldn't get object directory"));

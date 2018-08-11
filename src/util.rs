@@ -9,6 +9,7 @@ use glium::glutin::VirtualKeyCode;
 
 use crate::camera::Camera;
 use crate::scene::{Scene, GPUScene};
+use crate::stats::Timer;
 
 lazy_static::lazy_static! {
     static ref SCENE_LIBRARY: SceneLibrary = {
@@ -89,6 +90,7 @@ impl SceneLibrary {
 
 pub fn load_scene<F: Facade>(key: VirtualKeyCode, facade: &F) -> Option<(Arc<Scene>, GPUScene, Camera)> {
     let info = SCENE_LIBRARY.get_with_key(key)?;
+    let _timer = Timer::new(&format!("Load {}", info.name));
     let scene = Scene::new(&info.path);
     let mut camera = match info.camera_pos {
         CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0f32)),
