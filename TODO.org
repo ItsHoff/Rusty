@@ -26,13 +26,19 @@
   * Can stop when any hit is found instead of finding the closests
 ** Would AABB on invidual triangles save work
 ** Spatial curves for 2d vector ordering
+  * e.g. textures
   * Hilbert / Morton
 ** Examine cache effiency
   * size
   * organization (hot & cold)
   * alignment
 * Nice to have
+** Better filtering and reconstruction
 ** Other shapes
+** Alternate cameras
+  * thin lenses
+  * thick lenses
+  * lens systems
 ** Alternate input formats (glTF)
 ** Get texture mapping debug texture somewhere
 ** More robust floating point error handling
