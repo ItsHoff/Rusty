@@ -312,7 +312,7 @@ fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseSt
 }
 
 /// Load an object found at the given path
-pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
+pub fn load_obj(obj_path: &Path) -> Result<Object, Box<dyn Error>> {
     let _timer = Timer::new("Load obj");
     let mut obj = Object::new();
     let mut state = ParseState::new();
@@ -404,7 +404,7 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<Error>> {
 }
 
 /// Load materials from the material library to a map
-pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<Error>> {
+pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<dyn Error>> {
     let mut materials = HashMap::new();
     let mut current_material: Option<Material> = None;
     let matlib_dir = try!(matlib_path.parent().ok_or("Couldn't get material directory"));

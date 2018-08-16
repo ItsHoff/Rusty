@@ -1,5 +1,3 @@
-extern crate num_cpus;
-
 mod render_worker;
 mod traced_image;
 
