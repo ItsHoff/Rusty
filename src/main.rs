@@ -1,6 +1,4 @@
 #![feature(rust_2018_preview)]
-#![feature(rust_2018_idioms)]
-#![feature(nll)]
 #![feature(euclidean_division)]
 #![feature(try_trait)]
 

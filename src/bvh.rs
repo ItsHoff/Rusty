@@ -33,7 +33,7 @@ impl BVHNode {
     }
 }
 
-impl Intersect<'a, f32> for BVHNode {
+impl Intersect<'_, f32> for BVHNode {
     fn intersect(&self, ray: &Ray) -> Option<f32> {
         self.aabb.intersect(ray)
     }

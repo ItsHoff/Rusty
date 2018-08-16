@@ -121,7 +121,7 @@ pub struct Hit<'a> {
     pub v: f32,
 }
 
-impl Intersect<'a, Hit<'a>> for RTTriangle {
+impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
     fn intersect(&self, ray: &Ray) -> Option<Hit> {
         let bary_o = self.to_barycentric * ray.orig.to_homogeneous();
         let bary_d = self.to_barycentric * ray.dir.extend(0.0);
@@ -136,7 +136,7 @@ impl Intersect<'a, Hit<'a>> for RTTriangle {
     }
 }
 
-impl Hit<'a> {
+impl Hit<'_> {
     pub fn pos(&self) -> Point3<f32> {
         self.tri.pos(self.u, self.v)
     }

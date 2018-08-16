@@ -98,7 +98,7 @@ impl RenderWorker {
         }
     }
 
-    fn trace_ray(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
+    fn trace_ray<'a>(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
         let mut c = Color::black();
         if let Some(hit) = self.find_hit(&ray, node_stack) {
             let material = &self.scene.materials[hit.tri.material_i];
@@ -170,7 +170,7 @@ impl RenderWorker {
         }
     }
 
-    fn find_hit(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
+    fn find_hit<'a>(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
         self.ray_count.fetch_add(1, Ordering::Relaxed);
         let bvh = &self.scene.bvh;
         node_stack.push((bvh.root(), 0.0f32));
