@@ -37,7 +37,7 @@ fn main() {
 }
 
 fn benchmark() {
-    let scenes = ["plane", "cornell-glossy", "cornell-water", "nanosuit", "sibenik",];
+    let scenes = ["plane", "cornell-glossy", "cornell-water", "conference", "sibenik",];
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let save_dir = root_dir.join("results");
     std::fs::create_dir_all(save_dir.clone()).unwrap();
