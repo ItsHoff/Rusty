@@ -1,6 +1,5 @@
 * Fixes
 ** Shadow acne in sponza
-** Crash on scene load
 * Features
 ** Dynamic lights
 ** Glossy materials

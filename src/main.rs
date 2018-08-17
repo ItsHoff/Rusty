@@ -90,8 +90,6 @@ fn online_render() {
         }
         target.finish().unwrap();
 
-        // TODO: Fix crash when tracing is started during scene load
-        //   * Camera is missing viewport info immediately after load when the tracing starts
         events_loop.poll_events(|event| {
             input.update(&event);
             match event {
