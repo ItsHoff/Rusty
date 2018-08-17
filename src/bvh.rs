@@ -1,6 +1,6 @@
 use crate::aabb::AABB;
 use crate::pt_renderer::{Intersect, Ray};
-use crate::stats::Timer;
+use crate::stats;
 use crate::triangle::RTTriangle;
 
 pub struct BVHNode {
@@ -24,7 +24,7 @@ impl BVHNode {
         node
     }
 
-    fn size(&self) -> usize {
+    fn n_tris(&self) -> usize {
         self.end_i - self.start_i
     }
 
@@ -59,12 +59,14 @@ impl BVH {
     }
 
     pub fn build(triangles: &mut Vec<RTTriangle>, split_mode: SplitMode) -> BVH {
-        let _timer = Timer::new("BVH build");
-        match split_mode {
+        stats::start_bvh();
+        let bvh = match split_mode {
             SplitMode::Object => build_object_median(triangles),
             SplitMode::Spatial => build_spatial_median(triangles),
             SplitMode::SAH => build_sah(triangles),
-        }
+        };
+        stats::stop_bvh(&bvh);
+        bvh
     }
 
     pub fn get_children(&self, node: &BVHNode) -> Option<(&BVHNode, &BVHNode)> {
@@ -81,6 +83,10 @@ impl BVH {
 
     pub fn size(&self) -> usize {
         self.nodes.len()
+    }
+
+    pub fn n_tris(&self) -> usize {
+        self.root().n_tris()
     }
 }
 
@@ -103,14 +109,14 @@ fn build_object_median(triangles: &mut Vec<RTTriangle>) -> BVH {
 
         let left_child = BVHNode::new(triangles, start_i, mid_i);
         nodes[node_i].left_child_i = Some(nodes.len());
-        if left_child.size() > MAX_LEAF_SIZE {
+        if left_child.n_tris() > MAX_LEAF_SIZE {
             split_stack.push(nodes.len());
         }
         nodes.push(left_child);
 
         let right_child = BVHNode::new(triangles, mid_i, end_i);
         nodes[node_i].right_child_i = Some(nodes.len());
-        if right_child.size() > MAX_LEAF_SIZE {
+        if right_child.n_tris() > MAX_LEAF_SIZE {
             split_stack.push(nodes.len());
         }
         nodes.push(right_child);
@@ -139,14 +145,14 @@ fn build_spatial_median(triangles: &mut Vec<RTTriangle>) -> BVH {
 
         let left_child = BVHNode::new(triangles, start_i, mid_i);
         nodes[node_i].left_child_i = Some(nodes.len());
-        if left_child.size() > MAX_LEAF_SIZE {
+        if left_child.n_tris() > MAX_LEAF_SIZE {
             split_stack.push(nodes.len());
         }
         nodes.push(left_child);
 
         let right_child = BVHNode::new(triangles, mid_i, end_i);
         nodes[node_i].right_child_i = Some(nodes.len());
-        if right_child.size() > MAX_LEAF_SIZE {
+        if right_child.n_tris() > MAX_LEAF_SIZE {
             split_stack.push(nodes.len());
         }
         nodes.push(right_child);
@@ -171,14 +177,14 @@ fn build_sah(triangles: &mut Vec<RTTriangle>) -> BVH {
 
         let left_child = BVHNode::new(triangles, start_i, mid_i);
         nodes[node_i].left_child_i = Some(nodes.len());
-        if left_child.size() > MAX_LEAF_SIZE {
+        if left_child.n_tris() > MAX_LEAF_SIZE {
             split_stack.push(nodes.len());
         }
         nodes.push(left_child);
 
         let right_child = BVHNode::new(triangles, mid_i, end_i);
         nodes[node_i].right_child_i = Some(nodes.len());
-        if right_child.size() > MAX_LEAF_SIZE {
+        if right_child.n_tris() > MAX_LEAF_SIZE {
             split_stack.push(nodes.len());
         }
         nodes.push(right_child);

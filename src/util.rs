@@ -9,7 +9,7 @@ use glium::glutin::VirtualKeyCode;
 
 use crate::camera::Camera;
 use crate::scene::{Scene, GPUScene};
-use crate::stats::Timer;
+use crate::stats;
 
 lazy_static::lazy_static! {
     static ref SCENE_LIBRARY: SceneLibrary = {
@@ -54,7 +54,6 @@ enum CameraPos {
 }
 
 struct SceneInfo {
-    name: String,
     path: PathBuf,
     camera_pos: CameraPos,
 }
@@ -74,23 +73,22 @@ impl SceneLibrary {
         if let Some(code) = key {
             self.key_map.insert(code, name.clone());
         }
-        let info = SceneInfo { name: name.clone(), path, camera_pos };
+        let info = SceneInfo { path, camera_pos };
         self.scene_map.insert(name, info);
     }
 
-    pub fn get_with_name(&self, name: &str) -> Option<&SceneInfo> {
+    pub fn get(&self, name: &str) -> Option<&SceneInfo> {
         self.scene_map.get(name)
     }
 
-    pub fn get_with_key(&self, key: VirtualKeyCode) -> Option<&SceneInfo> {
-        let name = self.key_map.get(&key)?;
-        self.get_with_name(name)
+    pub fn key_to_name(&self, key: VirtualKeyCode) -> Option<&String> {
+        self.key_map.get(&key)
     }
 }
 
-pub fn load_scene<F: Facade>(key: VirtualKeyCode, facade: &F) -> Option<(Arc<Scene>, GPUScene, Camera)> {
-    let info = SCENE_LIBRARY.get_with_key(key)?;
-    let _timer = Timer::new(&format!("Load {}", info.name));
+pub fn load_cpu_scene(name: &str) -> (Arc<Scene>, Camera) {
+    let _t = stats::time("Load");
+    let info = SCENE_LIBRARY.get(name).unwrap();
     let scene = Scene::new(&info.path);
     let mut camera = match info.camera_pos {
         CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0f32)),
@@ -98,19 +96,15 @@ pub fn load_scene<F: Facade>(key: VirtualKeyCode, facade: &F) -> Option<(Arc<Sce
                                  Vector3::new(0.0, 0.0, -1.0f32)),
     };
     camera.set_scale(scene.size());
-    let gpu_scene = scene.upload_data(facade);
-    println!("Loaded scene {}", info.name);
-    Some((Arc::new(scene), gpu_scene, camera))
+    camera.update_viewport((600, 400));
+    (Arc::new(scene), camera)
 }
 
-pub fn load_benchmark_scene(name: &str) -> (Arc<Scene>, Camera) {
-    let info = SCENE_LIBRARY.get_with_name(name).unwrap();
-    let scene = Scene::new(&info.path);
-    let mut camera = match info.camera_pos {
-        CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0f32)),
-        CameraPos::Offset => Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                 Vector3::new(0.0, 0.0, -1.0f32)),
-    };
-    camera.set_scale(scene.size());
-    (Arc::new(scene), camera)
+pub fn load_gpu_scene<F: Facade>(key: VirtualKeyCode, facade: &F) -> Option<(Arc<Scene>, GPUScene, Camera)> {
+    let name = SCENE_LIBRARY.key_to_name(key)?;
+    stats::new_scene(name);
+    let (scene, camera) = load_cpu_scene(name);
+    let gpu_scene = scene.upload_data(facade);
+    println!("Loaded scene {}", name);
+    Some((scene, gpu_scene, camera))
 }

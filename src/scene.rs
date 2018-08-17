@@ -13,7 +13,7 @@ use crate::bvh::{BVH, SplitMode};
 use crate::mesh::{Mesh, GPUMesh};
 use crate::material::{Material, GPUMaterial};
 use crate::obj_load;
-use crate::stats::Timer;
+use crate::stats;
 use crate::triangle::{RTTriangle, RTTriangleBuilder};
 use crate::vertex::Vertex;
 
@@ -51,26 +51,12 @@ impl Scene {
         scene
     }
 
-    pub fn without_bvh(scene_path: &Path) -> Scene {
-        let mut scene = Scene {
-            vertices: Vec::new(),
-            meshes: Vec::new(),
-            materials: Vec::new(),
-            triangles: Vec::new(),
-            lights: Vec::new(),
-            aabb: AABB { min: Point3::origin(), max: Point3::origin() },
-            bvh: BVH::empty(),
-        };
-        scene.load_scene(scene_path);
-        scene
-    }
-
     /// Load a scene from the given path
     fn load_scene(&mut self, scene_path: &Path) {
         let obj = obj_load::load_obj(scene_path)
             .unwrap_or_else(|err| panic!("Failed to load scene {:?}: {}", scene_path, err));
 
-        let _timer = Timer::new("Convert scene");
+        let mut _t = stats::time("Convert scene");
         // Closure to calculate planar normal for a triangle
         let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {
             let pos_i1 = triangle.index_vertices[0].pos_i;
@@ -154,7 +140,7 @@ impl Scene {
 
     /// Load the textures + vertex and index buffers to the GPU
     pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUScene {
-        let _timer = Timer::new("Upload data");
+        let _t = stats::time("Upload data");
         let vertex_buffer = VertexBuffer::new(facade, &self.vertices)
                                   .expect("Failed to create vertex buffer!");
         let mut meshes = Vec::new();

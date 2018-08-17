@@ -8,10 +8,7 @@
 ** Transparent materials
 ** Bidirectional tracing
 * Improvements
-** Benchmarking
-    * https://doc.rust-lang.org/book/second-edition/ch11-01-writing-tests.html
-    * https://doc.rust-lang.org/unstable-book/library-features/test.html
-    * http://seenaburns.com/benchmarking-rust-with-cargo-bench/
+** Stat prints for online rendering
 ** Implement post processing for offline images
   * Preferably use the same shaders rather than doing this on the cpu
 ** Concurrent data structures

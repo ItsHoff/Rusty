@@ -17,6 +17,7 @@ use glium::backend::Facade;
 
 use crate::camera::Camera;
 use crate::scene::Scene;
+use crate::stats;
 use crate::vertex::Vertex;
 
 use self::render_worker::RenderWorker;
@@ -187,6 +188,7 @@ impl PTRenderer {
     }
 
     fn start_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: Option<u32>) {
+        stats::start_render();
         let width = camera.width;
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
@@ -230,10 +232,11 @@ impl PTRenderer {
             handle.join().unwrap();
         }
 
+        // TODO: update image during render
         for (rect, block) in self.result_rx.as_ref().unwrap().try_iter() {
             self.image.update_block(rect, &block);
         }
-
+        stats::stop_render(self.ray_count.load(Ordering::Relaxed));
     }
 
     pub fn render<S: Surface>(&mut self, target: &mut S) {
@@ -254,15 +257,14 @@ impl PTRenderer {
         for handle in self.thread_handles.drain(..) {
             handle.join().unwrap();
         }
-        // Drop channels after join so stop messages are properly reveived
+        // Drop channels only after join to make sure
+        // that stop messages are properly received
         self.message_txs.clear();
+        stats::stop_render(self.ray_count.load(Ordering::Relaxed));
     }
 
     pub fn save_image(&self, path: &Path) {
         self.image.save_image(path);
     }
 
-    pub fn get_ray_count(&self) -> usize {
-        self.ray_count.load(Ordering::Relaxed)
-    }
 }
