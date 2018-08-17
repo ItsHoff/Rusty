@@ -28,19 +28,21 @@ pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Ray {
     pub orig: Point3<f32>,
     pub dir: Vector3<f32>,
-    // For more efficient ray plane intersections
-    pub reciprocal_dir: Vector3<f32>,
     pub length: f32,
+    // For more efficient ray box intersections
+    pub reciprocal_dir: Vector3<f32>,
+    pub neg_dir: [bool; 3],
 }
 
 impl Ray {
     fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
         let reciprocal_dir = 1.0 / dir;
-        Ray { orig, dir, reciprocal_dir, length }
+        let neg_dir = [dir.x < 0.0, dir.y < 0.0, dir.z < 0.0];
+        Ray { orig, dir, length, reciprocal_dir, neg_dir, }
     }
 }
 

@@ -17,10 +17,8 @@
 * Optimizations
 ** Parallel building of BVH
 ** Change work distribution to use atomic counter and one to one mapping to a block
-** Precompute negative components of ray direction
 ** Pure hit tests without extra info
   * Can stop when any hit is found instead of finding the closests
-** Would AABB on invidual triangles save work
 ** Spatial curves for 2d vector ordering
   * e.g. textures
   * Hilbert / Morton
