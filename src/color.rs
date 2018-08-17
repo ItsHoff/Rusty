@@ -42,11 +42,9 @@ impl Add for Color {
     type Output = Color;
 
     fn add(self, rhs: Color) -> Color {
-        Color {
-            r: self.r + rhs.r,
-            g: self.g + rhs.g,
-            b: self.b + rhs.b,
-        }
+        let mut c = self.clone();
+        c += rhs;
+        c
     }
 }
 
@@ -58,25 +56,22 @@ impl AddAssign for Color {
     }
 }
 
-// TODO: Combine assing and new
-// TODO: Compute only single reciprocal
 impl Div<f32> for Color {
     type Output = Color;
 
     fn div(self, rhs: f32) -> Self::Output {
-        Color {
-            r: self.r / rhs,
-            g: self.g / rhs,
-            b: self.b / rhs,
-        }
+        let mut c = self.clone();
+        c /= rhs;
+        c
     }
 }
 
 impl DivAssign<f32> for Color {
     fn div_assign(&mut self, rhs: f32) {
-        self.r /= rhs;
-        self.g /= rhs;
-        self.b /= rhs;
+        let recip = rhs.recip();
+        self.r *= recip;
+        self.g *= recip;
+        self.b *= recip;
     }
 }
 
