@@ -80,8 +80,8 @@ impl RenderWorker {
                                 let world_p = clip_to_world * clip_p;
                                 let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
                                     .normalize();
-                                let ray = Ray::new(self.camera.pos, dir, 10.0 * self.camera.scale);
-                                c += self.trace_ray(&ray, &mut node_stack, 0);
+                                let ray = Ray::new(self.camera.pos, dir, std::f32::INFINITY);
+                                c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }
                         c /= samples_per_dir.pow(2) as f32;
@@ -98,9 +98,9 @@ impl RenderWorker {
         }
     }
 
-    fn trace_ray<'a>(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
+    fn trace_ray<'a>(&'a self, mut ray: Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
         let mut c = Color::black();
-        if let Some(hit) = self.find_hit(&ray, node_stack) {
+        if let Some(hit) = self.find_hit(&mut ray, node_stack) {
             let material = &self.scene.materials[hit.tri.material_i];
             let mut normal = hit.normal();
             // Flip the normal if its pointing to the opposite side from the hit
@@ -116,8 +116,8 @@ impl RenderWorker {
             let bump_pos = hit.pos() + EPSILON * normal;
             let hit_to_light = light_pos - bump_pos;
             let light_dir = hit_to_light.normalize();
-            let shadow_ray = Ray::new(bump_pos, light_dir, hit_to_light.magnitude() - EPSILON);
-            if self.find_hit(&shadow_ray, node_stack).is_none() {
+            let mut shadow_ray = Ray::new(bump_pos, light_dir, hit_to_light.magnitude() - EPSILON);
+            if self.find_hit(&mut shadow_ray, node_stack).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
                 c += emissive * self.brdf(&hit, &ray, &shadow_ray, material)
@@ -129,7 +129,7 @@ impl RenderWorker {
                 pdf *= RR_PROB;
                 let new_ray = Ray::new(bump_pos, new_dir, 10.0 * self.camera.scale);
                 c += normal.dot(new_dir) * self.brdf(&hit, &ray, &new_ray, material)
-                    * self.trace_ray(&new_ray, node_stack, bounce + 1) / pdf;
+                    * self.trace_ray(new_ray, node_stack, bounce + 1) / pdf;
             }
         }
         c
@@ -170,7 +170,7 @@ impl RenderWorker {
         }
     }
 
-    fn find_hit<'a>(&'a self, ray: &Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
+    fn find_hit<'a>(&'a self, ray: &mut Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
         self.ray_count.fetch_add(1, Ordering::Relaxed);
         let bvh = &self.scene.bvh;
         node_stack.push((bvh.root(), 0.0f32));
@@ -181,15 +181,8 @@ impl RenderWorker {
             if node.is_leaf() {
                 for tri in &self.scene.triangles[node.start_i..node.end_i] {
                     if let Some(hit) = tri.intersect(&ray) {
-                        if let Some(closest) = closest_hit.take() {
-                            if hit.t < closest.t {
-                                closest_hit = Some(hit);
-                            } else {
-                                closest_hit = Some(closest);
-                            }
-                        } else {
-                            closest_hit = Some(hit);
-                        }
+                        ray.length = hit.t;
+                        closest_hit = Some(hit);
                     }
                 }
             } else {
