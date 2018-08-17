@@ -2,18 +2,19 @@ mod render_worker;
 mod traced_image;
 
 use std::path::Path;
-use std::sync::{Arc, Mutex,
-                mpsc::{self, Sender, Receiver},
-                atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering},
+use std::sync::{
+    atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
+    mpsc::{self, Receiver, Sender},
+    Arc, Mutex,
 };
 use std::thread::{self, JoinHandle};
 
-use cgmath::{Vector3, Point3};
+use cgmath::{Point3, Vector3};
 
 use glium;
-use glium::{VertexBuffer, IndexBuffer, Surface, DrawParameters, Rect, uniform};
-use glium::texture::{Texture2d, RawImage2d, MipmapsOption, UncompressedFloatFormat};
 use glium::backend::Facade;
+use glium::texture::{MipmapsOption, RawImage2d, Texture2d, UncompressedFloatFormat};
+use glium::{uniform, DrawParameters, IndexBuffer, Rect, Surface, VertexBuffer};
 
 use crate::camera::Camera;
 use crate::scene::Scene;
@@ -42,7 +43,13 @@ impl Ray {
     fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
         let reciprocal_dir = 1.0 / dir;
         let neg_dir = [dir.x < 0.0, dir.y < 0.0, dir.z < 0.0];
-        Ray { orig, dir, length, reciprocal_dir, neg_dir, }
+        Ray {
+            orig,
+            dir,
+            length,
+            reciprocal_dir,
+            neg_dir,
+        }
     }
 }
 
@@ -60,8 +67,13 @@ pub struct RenderCoordinator {
 impl RenderCoordinator {
     fn new(width: u32, height: u32, max_iterations: Option<u32>) -> RenderCoordinator {
         RenderCoordinator {
-            width, height, max_iterations,
-            end_x: 0, start_y: 0, end_y: 0, iteration: 1
+            width,
+            height,
+            max_iterations,
+            end_x: 0,
+            start_y: 0,
+            end_y: 0,
+            iteration: 1,
         }
     }
 
@@ -85,14 +97,12 @@ impl RenderCoordinator {
         }
         let start_x = self.end_x;
         self.end_x = (start_x + block_width).min(self.width);
-        Some (
-            Rect {
-                left: start_x,
-                bottom: self.start_y,
-                width: self.end_x - start_x,
-                height: self.end_y - self.start_y,
-            }
-        )
+        Some(Rect {
+            left: start_x,
+            bottom: self.start_y,
+            width: self.end_x - start_x,
+            height: self.end_y - self.start_y,
+        })
     }
 }
 
@@ -104,45 +114,59 @@ struct PTVisualizer {
 }
 
 fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Texture2d {
-    Texture2d::with_format(facade, texture_source,
-                           UncompressedFloatFormat::F32F32F32,
-                           MipmapsOption::NoMipmap).unwrap()
+    Texture2d::with_format(
+        facade,
+        texture_source,
+        UncompressedFloatFormat::F32F32F32,
+        MipmapsOption::NoMipmap,
+    ).unwrap()
 }
 
 impl PTVisualizer {
     fn new<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> PTVisualizer {
-        let vertices = vec!(
-            Vertex { pos: [-1.0, -1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [0.0, 0.0] },
-            Vertex { pos: [1.0, -1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [1.0, 0.0] },
-            Vertex { pos: [1.0, 1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [1.0, 1.0] },
-            Vertex { pos: [-1.0, 1.0, 0.0],
-                     normal: [0.0, 0.0, 0.0],
-                     tex_coords: [0.0, 1.0] },
-        );
-        let vertex_buffer = VertexBuffer::new(facade, &vertices)
-            .expect("Failed to create vertex buffer!");
-        let indices = vec!(0, 1, 2, 0, 2, 3);
-        let index_buffer = IndexBuffer::new(facade,
-                                            glium::index::PrimitiveType::TrianglesList,
-                                            &indices)
-            .expect("Failed to create index buffer!");
+        let vertices = vec![
+            Vertex {
+                pos: [-1.0, -1.0, 0.0],
+                normal: [0.0, 0.0, 0.0],
+                tex_coords: [0.0, 0.0],
+            },
+            Vertex {
+                pos: [1.0, -1.0, 0.0],
+                normal: [0.0, 0.0, 0.0],
+                tex_coords: [1.0, 0.0],
+            },
+            Vertex {
+                pos: [1.0, 1.0, 0.0],
+                normal: [0.0, 0.0, 0.0],
+                tex_coords: [1.0, 1.0],
+            },
+            Vertex {
+                pos: [-1.0, 1.0, 0.0],
+                normal: [0.0, 0.0, 0.0],
+                tex_coords: [0.0, 1.0],
+            },
+        ];
+        let vertex_buffer =
+            VertexBuffer::new(facade, &vertices).expect("Failed to create vertex buffer!");
+        let indices = vec![0, 1, 2, 0, 2, 3];
+        let index_buffer =
+            IndexBuffer::new(facade, glium::index::PrimitiveType::TrianglesList, &indices)
+                .expect("Failed to create index buffer!");
 
         // Image shader
         let vertex_shader_src = include_str!("shaders/image.vert");
         let fragment_shader_src = include_str!("shaders/image.frag");
-        let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
-            .expect("Failed to create program!");
+        let shader =
+            glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+                .expect("Failed to create program!");
 
         let texture = create_texture(facade, texture_source);
 
         PTVisualizer {
-            shader, vertex_buffer, index_buffer, texture,
+            shader,
+            vertex_buffer,
+            index_buffer,
+            texture,
         }
     }
 
@@ -153,8 +177,14 @@ impl PTVisualizer {
         let draw_parameters = DrawParameters {
             ..Default::default()
         };
-        target.draw(&self.vertex_buffer, &self.index_buffer, &self.shader,
-                    &uniforms, &draw_parameters).unwrap();
+        target
+            .draw(
+                &self.vertex_buffer,
+                &self.index_buffer,
+                &self.shader,
+                &uniforms,
+                &draw_parameters,
+            ).unwrap();
     }
 
     fn new_texture<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>) {
@@ -179,13 +209,14 @@ pub struct PTRenderer {
 impl PTRenderer {
     pub fn new() -> PTRenderer {
         let image = TracedImage::empty(0, 0);
-        PTRenderer { visualizer: None,
-                     image,
-                     coordinator: Arc::new(Mutex::new(RenderCoordinator::new(0, 0, None))),
-                     result_rx: None,
-                     message_txs: Vec::new(),
-                     thread_handles: Vec::new(),
-                     ray_count: Arc::new(ATOMIC_USIZE_INIT),
+        PTRenderer {
+            visualizer: None,
+            image,
+            coordinator: Arc::new(Mutex::new(RenderCoordinator::new(0, 0, None))),
+            result_rx: None,
+            message_txs: Vec::new(),
+            thread_handles: Vec::new(),
+            ray_count: Arc::new(ATOMIC_USIZE_INIT),
         }
     }
 
@@ -194,8 +225,9 @@ impl PTRenderer {
         let width = camera.width;
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
-        self.coordinator = Arc::new(Mutex::new(
-            RenderCoordinator::new(width, height, iterations)));
+        self.coordinator = Arc::new(Mutex::new(RenderCoordinator::new(
+            width, height, iterations,
+        )));
         self.ray_count.store(0, Ordering::SeqCst);
 
         let (result_tx, result_rx) = mpsc::channel();
@@ -208,9 +240,15 @@ impl PTRenderer {
             let ray_count = self.ray_count.clone();
             let camera = camera.clone();
             let scene = scene.clone();
-            let handle = thread::spawn(move|| {
-                let worker = RenderWorker::new(scene.clone(), camera.clone(), coordinator.clone(),
-                                               message_rx, result_tx, ray_count);
+            let handle = thread::spawn(move || {
+                let worker = RenderWorker::new(
+                    scene.clone(),
+                    camera.clone(),
+                    coordinator.clone(),
+                    message_rx,
+                    result_tx,
+                    ray_count,
+                );
                 worker.run();
             });
             self.thread_handles.push(handle);
@@ -268,5 +306,4 @@ impl PTRenderer {
     pub fn save_image(&self, path: &Path) {
         self.image.save_image(path);
     }
-
 }

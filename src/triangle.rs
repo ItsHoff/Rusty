@@ -1,11 +1,11 @@
 use cgmath::prelude::*;
-use cgmath::{Vector3, Matrix4, Point3, Point2};
+use cgmath::{Matrix4, Point2, Point3, Vector3};
 
 use rand;
 
 use crate::aabb::{self, AABB};
-use crate::vertex::{Vertex, CGVertex};
-use crate::pt_renderer::{Ray, Intersect};
+use crate::pt_renderer::{Intersect, Ray};
+use crate::vertex::{CGVertex, Vertex};
 
 #[derive(Default)]
 pub struct RTTriangleBuilder {
@@ -14,7 +14,9 @@ pub struct RTTriangleBuilder {
 
 impl RTTriangleBuilder {
     pub fn new() -> RTTriangleBuilder {
-        RTTriangleBuilder { ..Default::default() }
+        RTTriangleBuilder {
+            ..Default::default()
+        }
     }
 
     pub fn add_vertex(&mut self, vertex: Vertex) {
@@ -29,7 +31,7 @@ impl RTTriangleBuilder {
                 CGVertex::from(self.vertices[0]),
                 CGVertex::from(self.vertices[1]),
                 CGVertex::from(self.vertices[2]),
-                material_i
+                material_i,
             ))
         }
     }
@@ -51,16 +53,21 @@ impl RTTriangle {
         let p2 = v2.pos;
         let p3 = v3.pos;
         let z = (p2 - p1).cross(p3 - p1).normalize();
-        let from_barycentric = Matrix4::from_cols((p2-p1).extend(0.0),
-                                                  (p3-p1).extend(0.0),
-                                                  z.extend(0.0),
-                                                  p1.to_homogeneous());
-        let to_barycentric = from_barycentric.invert()
+        let from_barycentric = Matrix4::from_cols(
+            (p2 - p1).extend(0.0),
+            (p3 - p1).extend(0.0),
+            z.extend(0.0),
+            p1.to_homogeneous(),
+        );
+        let to_barycentric = from_barycentric
+            .invert()
             .expect("Non invertible barycentric tranform");
         RTTriangle {
-            v1, v2, v3,
+            v1,
+            v2,
+            v3,
             to_barycentric,
-            material_i
+            material_i,
         }
     }
 
@@ -129,7 +136,7 @@ impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
         let u = bary_o.x + t * bary_d.x;
         let v = bary_o.y + t * bary_d.y;
         if u >= 0.0 && v >= 0.0 && u + v <= 1.0 && t > 0.0 && t < ray.length {
-            Some ( Hit { tri: self, t, u, v } )
+            Some(Hit { tri: self, t, u, v })
         } else {
             None
         }

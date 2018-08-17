@@ -22,8 +22,8 @@ use std::path::{Path, PathBuf};
 
 use chrono::Local;
 
+use glium::glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use glium::Surface;
-use glium::glutin::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode};
 
 use crate::gl_renderer::GLRenderer;
 use crate::input::InputState;
@@ -37,7 +37,13 @@ fn main() {
 }
 
 fn benchmark() {
-    let scenes = ["plane", "cornell-glossy", "cornell-water", "conference", "sibenik",];
+    let scenes = [
+        "plane",
+        "cornell-glossy",
+        "cornell-water",
+        "conference",
+        "sibenik",
+    ];
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let save_dir = root_dir.join("results");
     std::fs::create_dir_all(save_dir.clone()).unwrap();
@@ -64,7 +70,8 @@ fn online_render() {
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new();
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
-    let display = glium::Display::new(window, context, &events_loop).expect("Failed to create display");
+    let display =
+        glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
     let (mut scene, mut gpu_scene, mut camera) =
         util::load_gpu_scene(VirtualKeyCode::Key1, &display).unwrap();
@@ -93,32 +100,42 @@ fn online_render() {
         events_loop.poll_events(|event| {
             input.update(&event);
             match event {
-                Event::WindowEvent{event: WindowEvent::KeyboardInput{input, ..}, ..} => {
-                    match input {
-                        KeyboardInput{state: ElementState::Pressed,
-                                      virtual_keycode: Some(VirtualKeyCode::Space), ..} => {
-                            trace = !trace;
-                            if trace {
-                                pt_renderer.online_render(&display, &scene, &camera);
-                            } else {
-                                pt_renderer.stop_threads();
-                            }
-                        },
-                        KeyboardInput{state: ElementState::Pressed,
-                                      virtual_keycode: Some(keycode), ..} => {
-                            if !trace {
-                                if let Some(res) = util::load_gpu_scene(keycode, &display) {
-                                    scene = res.0;
-                                    gpu_scene = res.1;
-                                    camera = res.2;
-                                }
-                            }
-                        },
-                        _ => ()
+                Event::WindowEvent {
+                    event: WindowEvent::KeyboardInput { input, .. },
+                    ..
+                } => match input {
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::Space),
+                        ..
+                    } => {
+                        trace = !trace;
+                        if trace {
+                            pt_renderer.online_render(&display, &scene, &camera);
+                        } else {
+                            pt_renderer.stop_threads();
+                        }
                     }
-                }
-                Event::WindowEvent{event: WindowEvent::Closed, ..} => quit = true,
-                _ => ()
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(keycode),
+                        ..
+                    } => {
+                        if !trace {
+                            if let Some(res) = util::load_gpu_scene(keycode, &display) {
+                                scene = res.0;
+                                gpu_scene = res.1;
+                                camera = res.2;
+                            }
+                        }
+                    }
+                    _ => (),
+                },
+                Event::WindowEvent {
+                    event: WindowEvent::Closed,
+                    ..
+                } => quit = true,
+                _ => (),
             }
         });
         camera.process_input(&input);

@@ -5,13 +5,13 @@ use std::vec::Vec;
 use cgmath::prelude::*;
 use cgmath::Point3;
 
-use glium::VertexBuffer;
 use glium::backend::Facade;
+use glium::VertexBuffer;
 
 use crate::aabb::AABB;
-use crate::bvh::{BVH, SplitMode};
-use crate::mesh::{Mesh, GPUMesh};
-use crate::material::{Material, GPUMaterial};
+use crate::bvh::{SplitMode, BVH};
+use crate::material::{GPUMaterial, Material};
+use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
 use crate::stats;
 use crate::triangle::{RTTriangle, RTTriangleBuilder};
@@ -25,7 +25,7 @@ pub struct Scene {
     pub triangles: Vec<RTTriangle>,
     pub lights: Vec<RTTriangle>,
     pub aabb: AABB,
-    pub bvh: BVH
+    pub bvh: BVH,
 }
 
 /// Scene containing minimum resources for GPU rendering
@@ -43,7 +43,7 @@ impl Scene {
             materials: Vec::new(),
             triangles: Vec::new(),
             lights: Vec::new(),
-            aabb: AABB { min: Point3::origin(), max: Point3::origin() },
+            aabb: AABB::empty(),
             bvh: BVH::empty(),
         };
         scene.load_scene(scene_path);
@@ -65,15 +65,21 @@ impl Scene {
             let pos_1 = obj.positions[pos_i1];
             let pos_2 = obj.positions[pos_i2];
             let pos_3 = obj.positions[pos_i3];
-            let u = [pos_2[0] - pos_1[0],
-                    pos_2[1] - pos_1[1],
-                    pos_2[2] - pos_1[2]];
-            let v = [pos_3[0] - pos_1[0],
-                    pos_3[1] - pos_1[1],
-                    pos_3[2] - pos_1[2]];
-            let normal = [u[1]*v[2] - u[2]*v[1],
-                          u[2]*v[0] - u[0]*v[2],
-                          u[0]*v[1] - u[1]*v[0]];
+            let u = [
+                pos_2[0] - pos_1[0],
+                pos_2[1] - pos_1[1],
+                pos_2[2] - pos_1[2],
+            ];
+            let v = [
+                pos_3[0] - pos_1[0],
+                pos_3[1] - pos_1[1],
+                pos_3[2] - pos_1[2],
+            ];
+            let normal = [
+                u[1] * v[2] - u[2] * v[1],
+                u[2] * v[0] - u[0] * v[2],
+                u[0] * v[1] - u[1] * v[0],
+            ];
             let length = (normal[0].powi(2) + normal[1].powi(2) + normal[2].powi(2)).sqrt();
             [normal[0] / length, normal[1] / length, normal[2] / length]
         };
@@ -85,7 +91,9 @@ impl Scene {
             let material_i = match material_map.get(&range.name) {
                 Some(&i) => i,
                 None => {
-                    let obj_mat = obj.materials.get(&range.name)
+                    let obj_mat = obj
+                        .materials
+                        .get(&range.name)
                         .unwrap_or_else(|| panic!("Couldn't find material {}!", range.name));
                     let material = Material::new(obj_mat);
                     let i = self.materials.len();
@@ -112,16 +120,20 @@ impl Scene {
 
                             let tex_coords = match index_vertex.tex_i {
                                 Some(tex_i) => obj.tex_coords[tex_i],
-                                None => default_tex_coords
+                                None => default_tex_coords,
                             };
                             let normal = match index_vertex.normal_i {
                                 Some(normal_i) => obj.normals[normal_i],
-                                None => calculate_normal(tri)
+                                None => calculate_normal(tri),
                             };
 
                             mesh.indices.push(self.vertices.len() as u32);
                             vertex_map.insert(index_vertex, self.vertices.len());
-                            self.vertices.push(Vertex { pos, normal, tex_coords });
+                            self.vertices.push(Vertex {
+                                pos,
+                                normal,
+                                tex_coords,
+                            });
                             tri_builder.add_vertex(*self.vertices.last().unwrap());
                         }
                     }
@@ -141,8 +153,8 @@ impl Scene {
     /// Load the textures + vertex and index buffers to the GPU
     pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUScene {
         let _t = stats::time("Upload data");
-        let vertex_buffer = VertexBuffer::new(facade, &self.vertices)
-                                  .expect("Failed to create vertex buffer!");
+        let vertex_buffer =
+            VertexBuffer::new(facade, &self.vertices).expect("Failed to create vertex buffer!");
         let mut meshes = Vec::new();
         let mut materials = Vec::new();
         for mesh in &self.meshes {

@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use prettytable::{row::Row, Table, cell};
+use prettytable::{cell, row::Row, Table};
 
 use crate::bvh::BVH;
 
@@ -12,11 +12,15 @@ lazy_static::lazy_static! {
 }
 
 macro_rules! stats {
-    () => { STATS.lock().unwrap() };
+    () => {
+        STATS.lock().unwrap()
+    };
 }
 
 macro_rules! current_scene {
-    () => { stats!().current().unwrap() };
+    () => {
+        stats!().current().unwrap()
+    };
 }
 
 pub fn print_and_save(path: &Path) {
@@ -64,7 +68,9 @@ struct Statistics {
 
 impl Statistics {
     fn new() -> Statistics {
-        Statistics { scene_stats: Vec::new() }
+        Statistics {
+            scene_stats: Vec::new(),
+        }
     }
 
     fn new_scene(&mut self, name: &str) {
@@ -117,7 +123,6 @@ struct SceneStatistics {
     bvh_size: usize,
 }
 
-
 impl SceneStatistics {
     fn new(name: &str) -> SceneStatistics {
         SceneStatistics {
@@ -148,7 +153,10 @@ impl SceneStatistics {
                 panic!("Timer '{}' not on top of timer stack", name);
             }
         } else {
-            panic!("Tried to stop timer '{}' when there are no active timers", name);
+            panic!(
+                "Tried to stop timer '{}' when there are no active timers",
+                name
+            );
         }
     }
 
@@ -185,11 +193,18 @@ pub struct Timer {
 
 impl Timer {
     fn new(name: &str) -> Timer {
-        Timer { name: name.to_string(), start: Instant::now(), duration: None }
+        Timer {
+            name: name.to_string(),
+            start: Instant::now(),
+            duration: None,
+        }
     }
 
     fn stop(&mut self) {
-        assert!(self.duration.is_none(), "Tried to stop already stopped timer!");
+        assert!(
+            self.duration.is_none(),
+            "Tried to stop already stopped timer!"
+        );
         self.duration = Some(self.start.elapsed());
     }
 
@@ -202,7 +217,10 @@ impl Timer {
     }
 
     fn handle(&self) -> TimerHandle {
-        TimerHandle { name: self.name.clone(), active: true }
+        TimerHandle {
+            name: self.name.clone(),
+            active: true,
+        }
     }
 }
 

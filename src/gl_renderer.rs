@@ -1,8 +1,8 @@
 use cgmath::conv::*;
 
 use glium;
-use glium::{DrawParameters, Surface, uniform};
 use glium::backend::Facade;
+use glium::{uniform, DrawParameters, Surface};
 
 use crate::camera::Camera;
 use crate::scene::GPUScene;
@@ -15,8 +15,9 @@ impl GLRenderer {
     pub fn new<F: Facade>(facade: &F) -> GLRenderer {
         let vertex_shader_src = include_str!("shaders/preview.vert");
         let fragment_shader_src = include_str!("shaders/preview.frag");
-        let shader = glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
-            .expect("Failed to create program!");
+        let shader =
+            glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
+                .expect("Failed to create program!");
         GLRenderer { shader }
     }
 
@@ -42,8 +43,14 @@ impl GLRenderer {
                 u_has_emissive: material.has_emissive,
                 tex_diffuse: &material.diffuse_texture
             };
-            target.draw(&scene.vertex_buffer, &mesh.index_buffer,
-                        &self.shader, &uniforms, &draw_parameters).unwrap();
+            target
+                .draw(
+                    &scene.vertex_buffer,
+                    &mesh.index_buffer,
+                    &self.shader,
+                    &uniforms,
+                    &draw_parameters,
+                ).unwrap();
         }
     }
 }

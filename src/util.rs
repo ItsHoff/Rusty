@@ -8,7 +8,7 @@ use glium::backend::Facade;
 use glium::glutin::VirtualKeyCode;
 
 use crate::camera::Camera;
-use crate::scene::{Scene, GPUScene};
+use crate::scene::{GPUScene, Scene};
 use crate::stats;
 
 lazy_static::lazy_static! {
@@ -50,7 +50,8 @@ lazy_static::lazy_static! {
 }
 
 enum CameraPos {
-    Center, Offset
+    Center,
+    Offset,
 }
 
 struct SceneInfo {
@@ -65,11 +66,19 @@ struct SceneLibrary {
 
 impl SceneLibrary {
     fn new() -> SceneLibrary {
-        SceneLibrary { scene_map: HashMap::new(), key_map: HashMap::new() }
+        SceneLibrary {
+            scene_map: HashMap::new(),
+            key_map: HashMap::new(),
+        }
     }
 
-    fn add_scene(&mut self, name: String, path: PathBuf, camera_pos: CameraPos,
-                 key: Option<VirtualKeyCode>) {
+    fn add_scene(
+        &mut self,
+        name: String,
+        path: PathBuf,
+        camera_pos: CameraPos,
+        key: Option<VirtualKeyCode>,
+    ) {
         if let Some(code) = key {
             self.key_map.insert(code, name.clone());
         }
@@ -92,15 +101,20 @@ pub fn load_cpu_scene(name: &str) -> (Arc<Scene>, Camera) {
     let scene = Scene::new(&info.path);
     let mut camera = match info.camera_pos {
         CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0f32)),
-        CameraPos::Offset => Camera::new(scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
-                                 Vector3::new(0.0, 0.0, -1.0f32)),
+        CameraPos::Offset => Camera::new(
+            scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
+            Vector3::new(0.0, 0.0, -1.0f32),
+        ),
     };
     camera.set_scale(scene.size());
     camera.update_viewport((600, 400));
     (Arc::new(scene), camera)
 }
 
-pub fn load_gpu_scene<F: Facade>(key: VirtualKeyCode, facade: &F) -> Option<(Arc<Scene>, GPUScene, Camera)> {
+pub fn load_gpu_scene<F: Facade>(
+    key: VirtualKeyCode,
+    facade: &F,
+) -> Option<(Arc<Scene>, GPUScene, Camera)> {
     let name = SCENE_LIBRARY.key_to_name(key)?;
     stats::new_scene(name);
     let (scene, camera) = load_cpu_scene(name);

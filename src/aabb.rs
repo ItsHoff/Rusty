@@ -12,7 +12,10 @@ pub struct AABB {
 
 impl AABB {
     pub fn empty() -> AABB {
-        AABB { min: Point3::max_value(), max: Point3::min_value() }
+        AABB {
+            min: Point3::max_value(),
+            max: Point3::min_value(),
+        }
     }
 
     pub fn from_triangles(triangles: &[RTTriangle]) -> AABB {
@@ -66,9 +69,7 @@ impl AABB {
 
     pub fn area(&self) -> f32 {
         let lengths = self.max - self.min;
-        2.0 * (lengths.x * lengths.y +
-               lengths.y * lengths.z +
-               lengths.z * lengths.x).max(0.0)
+        2.0 * (lengths.x * lengths.y + lengths.y * lengths.z + lengths.z * lengths.x).max(0.0)
     }
 }
 

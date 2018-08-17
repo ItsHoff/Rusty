@@ -1,10 +1,9 @@
 /// Module containing the camera functionality
-
 use std::time::Duration;
 
 use cgmath;
 use cgmath::prelude::*;
-use cgmath::{Point3, Vector3, Matrix4, Matrix3, Rad};
+use cgmath::{Matrix3, Matrix4, Point3, Rad, Vector3};
 
 use glium::glutin::{MouseButton, VirtualKeyCode};
 
@@ -30,28 +29,44 @@ pub struct Camera {
     /// Far plane of the camera
     far: f32,
     /// Size of the scene
-    pub scale: f32
+    pub scale: f32,
 }
-
 
 impl Default for Camera {
     fn default() -> Camera {
         Camera {
-            pos: Point3 {x: 0.0, y: 0.0, z: 0.0},
-            dir: Vector3 {x: 0.0, y: 0.0, z: 1.0},
-            width: 0, height: 0,
-            up: Vector3 {x: 0.0, y: 1.0, z: 0.0},
+            pos: Point3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            },
+            dir: Vector3 {
+                x: 0.0,
+                y: 0.0,
+                z: 1.0,
+            },
+            width: 0,
+            height: 0,
+            up: Vector3 {
+                x: 0.0,
+                y: 1.0,
+                z: 0.0,
+            },
             fov: Rad(::std::f32::consts::PI / 3.0),
             near: 0.001,
             far: 10.0,
-            scale: 1.0
+            scale: 1.0,
         }
     }
 }
 
 impl Camera {
     pub fn new(pos: Point3<f32>, dir: Vector3<f32>) -> Camera {
-        Camera { pos, dir, .. Default::default() }
+        Camera {
+            pos,
+            dir,
+            ..Default::default()
+        }
     }
 
     pub fn update_viewport(&mut self, size: (u32, u32)) {
@@ -70,8 +85,12 @@ impl Camera {
 
     /// Get the camera to clip space transformation matrix
     pub fn get_camera_to_clip(&self) -> Matrix4<f32> {
-        cgmath::perspective(self.fov, self.width as f32 / self.height as f32,
-                            self.near * self.scale, self.far * self.scale)
+        cgmath::perspective(
+            self.fov,
+            self.width as f32 / self.height as f32,
+            self.near * self.scale,
+            self.far * self.scale,
+        )
     }
 
     /// Get the combined world to clip transformation
@@ -93,26 +112,33 @@ impl Camera {
 
     /// Helper function to move the camera to the given direction
     fn translate(&mut self, local_dir: Vector3<f32>, distance: f32) {
-        let inverse_rotation = self.get_rotation().invert().expect("Non invertable camera rotation!");
+        let inverse_rotation = self
+            .get_rotation()
+            .invert()
+            .expect("Non invertable camera rotation!");
         let movement = distance * inverse_rotation * local_dir;
         self.pos += movement;
     }
 
     /// Helper function to rotate the camera around the given axis
     fn rotate(&mut self, local_axis: Vector3<f32>, angle: Rad<f32>) {
-        let inverse_rotation = self.get_rotation().invert().expect("Non invertable camera rotation!");
+        let inverse_rotation = self
+            .get_rotation()
+            .invert()
+            .expect("Non invertable camera rotation!");
         let axis = inverse_rotation * local_axis;
         self.dir = Matrix3::from_axis_angle(axis, angle) * self.dir;
     }
 
     /// Move camera based on input event
-    #[cfg_attr(feature="cargo-clippy", allow(single_match))]
+    #[cfg_attr(feature = "cargo-clippy", allow(single_match))]
     pub fn process_input(&mut self, input: &InputState) {
         let dt = input.last_reset.elapsed();
         let time_scale = (dt.as_secs() as f32 * 1e9 + dt.subsec_nanos() as f32) / 1e8;
         for (key, t) in &input.key_presses {
-            let t_press = t.elapsed();  // Length of the key press
-            let move_speed = time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);
+            let t_press = t.elapsed(); // Length of the key press
+            let move_speed =
+                time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);
             let rotation_speed = 3.0 * time_scale * Self::get_speed(t_press);
             match *key {
                 // Move with wasd + e, q for up and down
@@ -128,7 +154,7 @@ impl Camera {
                 VirtualKeyCode::Down => self.rotate(-Vector3::unit_x(), Rad(rotation_speed)),
                 VirtualKeyCode::Left => self.rotate(Vector3::unit_y(), Rad(rotation_speed)),
                 VirtualKeyCode::Right => self.rotate(-Vector3::unit_y(), Rad(rotation_speed)),
-                _ => ()
+                _ => (),
             }
         }
         for button in input.mouse_presses.keys() {
@@ -138,8 +164,8 @@ impl Camera {
                     let (dx, dy) = input.d_mouse;
                     self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 250.0));
                     self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 250.0));
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
     }

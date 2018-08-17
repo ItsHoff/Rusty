@@ -1,5 +1,4 @@
 /// Simple module for loading wavefront object files
-
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -36,7 +35,7 @@ pub struct Polygon {
     /// Number of polygons smoothing group
     pub smoothing_group: Option<u32>,
     /// Name of polygons material
-    pub material: Option<String>
+    pub material: Option<String>,
 }
 
 impl Polygon {
@@ -45,14 +44,14 @@ impl Polygon {
             group: {
                 match state.current_group {
                     Some(ref range) => Some(range.name.clone()),
-                    None => None
+                    None => None,
                 }
             },
             smoothing_group: state.current_smoothing_group,
             material: {
                 match state.current_material {
                     Some(ref range) => Some(range.name.clone()),
-                    None => None
+                    None => None,
                 }
             },
             ..Default::default()
@@ -62,12 +61,16 @@ impl Polygon {
     /// Convert polygon to triangles
     pub fn to_triangles(&self) -> Vec<Triangle> {
         if self.index_vertices.len() == 3 {
-            vec!(Triangle {
-                    index_vertices: [self.index_vertices[0], self.index_vertices[1], self.index_vertices[2]],
-                    group: self.group.clone(),
-                    smoothing_group: self.smoothing_group,
-                    material: self.material.clone()
-                })
+            vec![Triangle {
+                index_vertices: [
+                    self.index_vertices[0],
+                    self.index_vertices[1],
+                    self.index_vertices[2],
+                ],
+                group: self.group.clone(),
+                smoothing_group: self.smoothing_group,
+                material: self.material.clone(),
+            }]
         } else {
             let mut tris = Vec::new();
             let tip = self.index_vertices[0];
@@ -78,7 +81,7 @@ impl Polygon {
                     index_vertices: [tip, v1, *vertex],
                     group: self.group.clone(),
                     smoothing_group: self.smoothing_group,
-                    material: self.material.clone()
+                    material: self.material.clone(),
                 };
                 tris.push(tri);
                 v1 = *vertex;
@@ -97,7 +100,7 @@ pub struct Triangle {
     /// Number of triangles smoothing group
     pub smoothing_group: Option<u32>,
     /// Name of triangles material
-    pub material: Option<String>
+    pub material: Option<String>,
 }
 
 /// Named range that represents ranges of certain properties
@@ -107,16 +110,17 @@ pub struct Range {
     /// Inclusive start [start_i, end_i)
     pub start_i: usize,
     /// Exclusive end [start_i, end_i)
-    pub end_i: usize
+    pub end_i: usize,
 }
 
 impl Range {
     /// Create a new named range [start, start)
     /// End should be set when whole range has been processed
     fn new(name: &str, start: usize) -> Range {
-        Range { name: name.to_string(),
-                start_i: start,
-                end_i: start
+        Range {
+            name: name.to_string(),
+            start_i: start,
+            end_i: start,
         }
     }
 }
@@ -166,8 +170,9 @@ pub struct Material {
 
 impl Material {
     fn new(name: &str) -> Material {
-        Material { name: name.to_string(),
-                 ..Default::default()
+        Material {
+            name: name.to_string(),
+            ..Default::default()
         }
     }
 }
@@ -193,12 +198,14 @@ pub struct Object {
     /// Ranges index the triangles list
     pub material_ranges: Vec<Range>,
     /// Map of loaded materials
-    pub materials: HashMap<String, Material>
+    pub materials: HashMap<String, Material>,
 }
 
 impl Object {
     fn new() -> Object {
-        Object { ..Default::default() }
+        Object {
+            ..Default::default()
+        }
     }
 }
 
@@ -217,7 +224,9 @@ struct ParseState {
 
 impl ParseState {
     fn new() -> ParseState {
-        ParseState { ..Default::default() }
+        ParseState {
+            ..Default::default()
+        }
     }
 }
 
@@ -234,7 +243,7 @@ fn parse_float(split_line: &mut SplitWhitespace) -> Option<f32> {
 }
 
 /// Parse two floats from the split input line
-#[cfg_attr(feature="cargo-clippy", allow(needless_range_loop))]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
 fn parse_float2(split_line: &mut SplitWhitespace) -> Option<[f32; 2]> {
     let mut float2 = [0.0f32; 2];
     for i in 0..2 {
@@ -245,7 +254,7 @@ fn parse_float2(split_line: &mut SplitWhitespace) -> Option<[f32; 2]> {
 }
 
 /// Parse three floats from the split input line
-#[cfg_attr(feature="cargo-clippy", allow(needless_range_loop))]
+#[cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
 fn parse_float3(split_line: &mut SplitWhitespace) -> Option<[f32; 3]> {
     let mut float3 = [0.0f32; 3];
     for i in 0..3 {
@@ -272,8 +281,11 @@ fn parse_path(split_line: &mut SplitWhitespace) -> Option<PathBuf> {
 }
 
 /// Parse a polygon from the split input line
-fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseState)
-              -> Option<Polygon> {
+fn parse_polygon(
+    split_line: &mut SplitWhitespace,
+    obj: &Object,
+    state: &ParseState,
+) -> Option<Polygon> {
     let mut polygon = Polygon::new(state);
     for item in split_line {
         let mut index_vertex = IndexVertex::new();
@@ -287,16 +299,22 @@ fn parse_polygon(split_line: &mut SplitWhitespace, obj: &Object, state: &ParseSt
                 if num < 0 {
                     match i {
                         0 => index_vertex.pos_i = (obj.positions.len() as isize + num) as usize,
-                        1 => index_vertex.tex_i = Some((obj.tex_coords.len() as isize + num) as usize),
-                        2 => index_vertex.normal_i = Some((obj.normals.len() as isize + num) as usize),
-                        _ => unreachable!()
+                        1 => {
+                            index_vertex.tex_i =
+                                Some((obj.tex_coords.len() as isize + num) as usize)
+                        }
+                        2 => {
+                            index_vertex.normal_i =
+                                Some((obj.normals.len() as isize + num) as usize)
+                        }
+                        _ => unreachable!(),
                     }
                 } else {
                     match i {
                         0 => index_vertex.pos_i = (num - 1) as usize,
                         1 => index_vertex.tex_i = Some((num - 1) as usize),
                         2 => index_vertex.normal_i = Some((num - 1) as usize),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
             }
@@ -331,24 +349,24 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<dyn Error>> {
                         // TODO: Make triangle conversion optional
                         obj.triangles.append(&mut polygon.to_triangles());
                     }
-                },
+                }
                 "g" | "o" => {
                     if let Some(mut range) = state.current_group {
                         range.end_i = obj.triangles.len();
                         obj.group_ranges.push(range);
                     };
-                    let group_name = parse_string(&mut split_line)
-                        .ok_or("Got a group without a name")?;
+                    let group_name =
+                        parse_string(&mut split_line).ok_or("Got a group without a name")?;
                     state.current_group = Some(Range::new(&group_name, obj.triangles.len()));
-                },
+                }
                 "mtllib" => {
                     if let Some(path) = parse_path(&mut split_line) {
                         state.mat_libs.push(obj_dir.join(path));
                     }
                 }
                 "s" => {
-                    let val = parse_string(&mut split_line)
-                        .ok_or("Empty smoothing group definition")?;
+                    let val =
+                        parse_string(&mut split_line).ok_or("Empty smoothing group definition")?;
                     if val == "off" || val == "0" {
                         state.current_smoothing_group = None;
                     } else {
@@ -363,7 +381,7 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<dyn Error>> {
                     let material_name = parse_string(&mut split_line)
                         .ok_or("Tried to use material with no name")?;
                     state.current_material = Some(Range::new(&material_name, obj.triangles.len()));
-                },
+                }
                 "v" => {
                     if let Some(pos) = parse_float3(&mut split_line) {
                         obj.positions.push(pos);
@@ -407,7 +425,11 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<dyn Error>> {
 pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<dyn Error>> {
     let mut materials = HashMap::new();
     let mut current_material: Option<Material> = None;
-    let matlib_dir = try!(matlib_path.parent().ok_or("Couldn't get material directory"));
+    let matlib_dir = try!(
+        matlib_path
+            .parent()
+            .ok_or("Couldn't get material directory")
+    );
     let matlib_file = try!(File::open(matlib_path));
     let matlib_reader = BufReader::new(matlib_file);
     for line in matlib_reader.lines() {
@@ -423,72 +445,73 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                     .ok_or("Tried to define a material with no name")?;
                 current_material = Some(Material::new(&material_name));
             } else if !key.starts_with('#') {
-                let material = current_material.as_mut()
+                let material = current_material
+                    .as_mut()
                     .ok_or("Found material properties before newmtl!")?;
                 match key {
                     "Ka" => {
                         material.c_ambient = parse_float3(&mut split_line);
-                    },
+                    }
                     "Kd" => {
                         material.c_diffuse = parse_float3(&mut split_line);
-                    },
+                    }
                     "Ks" => {
                         material.c_specular = parse_float3(&mut split_line);
-                    },
+                    }
                     "Tf" => {
                         material.c_translucency = parse_float3(&mut split_line);
-                    },
+                    }
                     "Ke" => {
                         material.c_emissive = parse_float3(&mut split_line);
-                    },
+                    }
                     "illum" => {
                         material.illumination_model = parse_int(&mut split_line);
-                    },
+                    }
                     "d" | "Tr" => {
                         material.opacity = parse_float(&mut split_line);
-                    },
+                    }
                     "Ns" => {
                         material.shininess = parse_float(&mut split_line);
-                    },
+                    }
                     "sharpness" => {
                         material.sharpness = parse_float(&mut split_line);
-                    },
+                    }
                     "Ni" => {
                         material.refraction_i = parse_float(&mut split_line);
-                    },
+                    }
                     "map_Ka" | "map_kA" => {
-                        material.tex_ambient = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_ambient =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "map_Kd" => {
-                        material.tex_diffuse = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_diffuse =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "map_Ks" | "map_kS" => {
-                        material.tex_specular = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_specular =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "map_Ns" => {
-                        material.tex_shininess = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_shininess =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "map_d" | "map_Tr" | "map_opacity" => {
-                        material.tex_opacity = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_opacity =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "disp" => {
-                        material.tex_disp = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_disp =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "decal" => {
-                        material.tex_decal = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
+                        material.tex_decal =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
                     "bump" | "map_Bump" | "map_bump" => {
-                        material.tex_bump = parse_path(&mut split_line)
-                            .map(|path| matlib_dir.join(path));
-                    },
-                    "refl" => {}, // TODO: reflection maps
+                        material.tex_bump =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
+                    "refl" => {} // TODO: reflection maps
                     _ => {
                         println!("Unrecognised material key: {}", key);
                     }

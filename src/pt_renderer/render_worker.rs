@@ -1,10 +1,11 @@
 use std::f32::consts::PI;
-use std::sync::{Arc, Mutex,
-                mpsc::{Sender, Receiver, TryRecvError},
-                atomic::{AtomicUsize, Ordering},
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    mpsc::{Receiver, Sender, TryRecvError},
+    Arc, Mutex,
 };
 
-use cgmath::{Point3, Vector3, Vector4, prelude::*};
+use cgmath::{prelude::*, Point3, Vector3, Vector4};
 
 use glium::Rect;
 
@@ -20,7 +21,8 @@ use crate::triangle::Hit;
 
 // TODO: tune EPSILON since crytek-sponza has shadow acne
 const EPSILON: f32 = 1e-5;
-const _EB: f32 = 5.0; // Desired expectation value of bounces
+// Desired expectation value of bounces
+const _EB: f32 = 5.0;
 // The matching survival probability from negative binomial distribution
 const RR_PROB: f32 = _EB / (_EB + 1.0);
 
@@ -34,12 +36,20 @@ pub struct RenderWorker {
 }
 
 impl RenderWorker {
-    pub fn new(scene: Arc<Scene>, camera: Camera, coordinator: Arc<Mutex<RenderCoordinator>>,
-               message_rx: Receiver<()>, result_tx: Sender<(Rect, Vec<f32>)>,
-               ray_count: Arc<AtomicUsize>) -> RenderWorker {
+    pub fn new(
+        scene: Arc<Scene>,
+        camera: Camera,
+        coordinator: Arc<Mutex<RenderCoordinator>>,
+        message_rx: Receiver<()>,
+        result_tx: Sender<(Rect, Vec<f32>)>,
+        ray_count: Arc<AtomicUsize>,
+    ) -> RenderWorker {
         RenderWorker {
-            scene, camera, coordinator,
-            message_rx, result_tx,
+            scene,
+            camera,
+            coordinator,
+            message_rx,
+            result_tx,
             ray_count,
         }
     }
@@ -72,33 +82,44 @@ impl RenderWorker {
                         let mut c = Color::black();
                         for j in 0..samples_per_dir {
                             for i in 0..samples_per_dir {
-                                let dx = (i as f32 + rand::random::<f32>()) / samples_per_dir as f32;
-                                let dy = (j as f32 + rand::random::<f32>()) / samples_per_dir as f32;
-                                let clip_x = 2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
-                                let clip_y = 2.0 * ((rect.bottom + h) as f32 + dy) / height as f32 - 1.0;
+                                let dx =
+                                    (i as f32 + rand::random::<f32>()) / samples_per_dir as f32;
+                                let dy =
+                                    (j as f32 + rand::random::<f32>()) / samples_per_dir as f32;
+                                let clip_x =
+                                    2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
+                                let clip_y =
+                                    2.0 * ((rect.bottom + h) as f32 + dy) / height as f32 - 1.0;
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = clip_to_world * clip_p;
-                                let dir = ((world_p / world_p.w).truncate() - self.camera.pos.to_vec())
-                                    .normalize();
+                                let dir = ((world_p / world_p.w).truncate()
+                                    - self.camera.pos.to_vec()).normalize();
                                 let ray = Ray::new(self.camera.pos, dir, std::f32::INFINITY);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }
                         c /= samples_per_dir.pow(2) as f32;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
-                        block[pixel_i]     = c.r;
+                        block[pixel_i] = c.r;
                         block[pixel_i + 1] = c.g;
                         block[pixel_i + 2] = c.b;
                     }
                 }
-                self.result_tx.send((rect, block)).expect("Receiver closed!");
+                self.result_tx
+                    .send((rect, block))
+                    .expect("Receiver closed!");
             } else {
                 return;
             }
         }
     }
 
-    fn trace_ray<'a>(&'a self, mut ray: Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>, bounce: u32) -> Color {
+    fn trace_ray<'a>(
+        &'a self,
+        mut ray: Ray,
+        node_stack: &mut Vec<(&'a BVHNode, f32)>,
+        bounce: u32,
+    ) -> Color {
         let mut c = Color::black();
         if let Some(hit) = self.find_hit(&mut ray, node_stack) {
             let material = &self.scene.materials[hit.tri.material_i];
@@ -120,16 +141,18 @@ impl RenderWorker {
             if self.find_hit(&mut shadow_ray, node_stack).is_none() {
                 let cos_l = light_normal.dot(-light_dir).max(0.0);
                 let cos_t = normal.dot(light_dir).max(0.0);
-                c += emissive * self.brdf(&hit, &ray, &shadow_ray, material)
-                    * cos_l * cos_t / (hit_to_light.magnitude2() * light_pdf);
+                c += emissive * self.brdf(&hit, &ray, &shadow_ray, material) * cos_l * cos_t
+                    / (hit_to_light.magnitude2() * light_pdf);
             }
             let rr: f32 = rand::random();
             if rr < RR_PROB {
                 let (new_dir, mut pdf) = self.sample_dir(normal);
                 pdf *= RR_PROB;
                 let new_ray = Ray::new(bump_pos, new_dir, 10.0 * self.camera.scale);
-                c += normal.dot(new_dir) * self.brdf(&hit, &ray, &new_ray, material)
-                    * self.trace_ray(new_ray, node_stack, bounce + 1) / pdf;
+                c += normal.dot(new_dir)
+                    * self.brdf(&hit, &ray, &new_ray, material)
+                    * self.trace_ray(new_ray, node_stack, bounce + 1)
+                    / pdf;
             }
         }
         c
@@ -158,7 +181,12 @@ impl RenderWorker {
     pub fn sample_light(&self) -> (Color, Point3<f32>, Vector3<f32>, f32) {
         if self.scene.lights.is_empty() {
             let light_intensity = 10.0 * self.camera.scale;
-            (light_intensity * Color::white(), self.camera.pos, self.camera.dir, 1.0)
+            (
+                light_intensity * Color::white(),
+                self.camera.pos,
+                self.camera.dir,
+                1.0,
+            )
         } else {
             let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
             let light = &self.scene.lights[i];
@@ -170,14 +198,20 @@ impl RenderWorker {
         }
     }
 
-    fn find_hit<'a>(&'a self, ray: &mut Ray, node_stack: &mut Vec<(&'a BVHNode, f32)>) -> Option<Hit> {
+    fn find_hit<'a>(
+        &'a self,
+        ray: &mut Ray,
+        node_stack: &mut Vec<(&'a BVHNode, f32)>,
+    ) -> Option<Hit> {
         self.ray_count.fetch_add(1, Ordering::Relaxed);
         let bvh = &self.scene.bvh;
         node_stack.push((bvh.root(), 0.0f32));
         let mut closest_hit = None;
         while let Some((node, t)) = node_stack.pop() {
             // We've already found a closer hit
-            if ray.length <= t { continue }
+            if ray.length <= t {
+                continue;
+            }
             if node.is_leaf() {
                 for tri in &self.scene.triangles[node.start_i..node.end_i] {
                     if let Some(hit) = tri.intersect(&ray) {
@@ -186,8 +220,7 @@ impl RenderWorker {
                     }
                 }
             } else {
-                let (left, right) = bvh.get_children(node)
-                    .expect("Non leaf node had no child nodes!");
+                let (left, right) = bvh.get_children(node).unwrap();
                 // TODO: Could this work without pushing the next node to the stack
                 let left_intersect = left.intersect(&ray);
                 let right_intersect = right.intersect(&ray);

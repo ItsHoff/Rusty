@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Point2, Point3};
+use cgmath::{Point2, Point3, Vector3};
 use glium::implement_vertex;
 
 /// Vertex using raw arrays that can be inserted in vertex buffers
