@@ -5,7 +5,7 @@ use std::path::Path;
 use std::sync::{
     atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
     mpsc::{self, Receiver, Sender},
-    Arc, Mutex,
+    Arc,
 };
 use std::thread::{self, JoinHandle};
 
@@ -53,55 +53,56 @@ impl Ray {
     }
 }
 
-#[allow(dead_code)]
 pub struct RenderCoordinator {
     width: u32,
     height: u32,
-    max_iterations: Option<u32>,
-    end_x: u32,
-    start_y: u32,
-    end_y: u32,
-    iteration: u32,
+    max_blocks: Option<usize>,
+    current_block: AtomicUsize,
+    block_width: u32,
+    block_height: u32,
+    x_blocks: usize,
+    y_blocks: usize,
 }
 
 impl RenderCoordinator {
-    fn new(width: u32, height: u32, max_iterations: Option<u32>) -> RenderCoordinator {
+    fn new(width: u32, height: u32, max_iterations: Option<usize>) -> RenderCoordinator {
+        let block_height = 50;
+        let block_width = 50;
+        let x_blocks = (f64::from(width) / f64::from(block_width)).ceil() as usize;
+        let y_blocks = (f64::from(height) / f64::from(block_height)).ceil() as usize;
+        let blocks_per_iter = x_blocks * y_blocks;
+        let max_blocks = max_iterations.map(|iters| iters * blocks_per_iter);
         RenderCoordinator {
             width,
             height,
-            max_iterations,
-            end_x: 0,
-            start_y: 0,
-            end_y: 0,
-            iteration: 1,
+            max_blocks,
+            current_block: AtomicUsize::new(0),
+            block_width,
+            block_height,
+            x_blocks,
+            y_blocks,
         }
     }
 
-    fn next_block(&mut self) -> Option<Rect> {
-        let block_height = 50;
-        let block_width = 50;
-        if let Some(max) = self.max_iterations {
-            if self.iteration > max {
+    fn next_block(&self) -> Option<Rect> {
+        let block_i = self.current_block.fetch_add(1, Ordering::SeqCst);
+        if let Some(max) = self.max_blocks {
+            if block_i >= max {
                 return None;
             }
-        }
-        if self.end_y >= self.height && self.end_x >= self.width {
-            self.iteration += 1;
-            self.start_y = 0;
-            self.end_y = block_width.min(self.height);
-            self.end_x = 0;
-        } else if self.end_x >= self.width {
-            self.start_y = self.end_y;
-            self.end_y = (self.start_y + block_height).min(self.height);
-            self.end_x = 0;
-        }
-        let start_x = self.end_x;
-        self.end_x = (start_x + block_width).min(self.width);
+        };
+        let iter_i = block_i % (self.x_blocks * self.y_blocks);
+        let x_i = (iter_i % self.x_blocks) as u32;
+        let y_i = (iter_i / self.x_blocks) as u32;
+        let start_x = self.block_width * x_i;
+        let end_x = (self.block_width * (x_i + 1)).min(self.width);
+        let start_y = self.block_height * y_i;
+        let end_y = (self.block_height * (y_i + 1)).min(self.height);
         Some(Rect {
             left: start_x,
-            bottom: self.start_y,
-            width: self.end_x - start_x,
-            height: self.end_y - self.start_y,
+            bottom: start_y,
+            width: end_x - start_x,
+            height: end_y - start_y,
         })
     }
 }
@@ -199,7 +200,7 @@ impl PTVisualizer {
 pub struct PTRenderer {
     visualizer: Option<PTVisualizer>,
     image: TracedImage,
-    coordinator: Arc<Mutex<RenderCoordinator>>,
+    coordinator: Arc<RenderCoordinator>,
     result_rx: Option<Receiver<(Rect, Vec<f32>)>>,
     message_txs: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
@@ -212,7 +213,7 @@ impl PTRenderer {
         PTRenderer {
             visualizer: None,
             image,
-            coordinator: Arc::new(Mutex::new(RenderCoordinator::new(0, 0, None))),
+            coordinator: Arc::new(RenderCoordinator::new(0, 0, None)),
             result_rx: None,
             message_txs: Vec::new(),
             thread_handles: Vec::new(),
@@ -220,14 +221,14 @@ impl PTRenderer {
         }
     }
 
-    fn start_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: Option<u32>) {
+    fn start_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: Option<usize>) {
         stats::start_render();
         let width = camera.width;
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
-        self.coordinator = Arc::new(Mutex::new(RenderCoordinator::new(
+        self.coordinator = Arc::new(RenderCoordinator::new(
             width, height, iterations,
-        )));
+        ));
         self.ray_count.store(0, Ordering::SeqCst);
 
         let (result_tx, result_rx) = mpsc::channel();
@@ -264,7 +265,7 @@ impl PTRenderer {
         }
     }
 
-    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: u32) {
+    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: usize) {
         self.start_render(scene, camera, Some(iterations));
 
         // Wait for all the threads to finish

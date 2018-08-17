@@ -56,7 +56,7 @@ fn benchmark() {
     stats::print_and_save(&stats_file);
 }
 
-fn offline_render(scene_name: &str, output_file: &Path, iterations: u32) {
+fn offline_render(scene_name: &str, output_file: &Path, iterations: usize) {
     stats::new_scene(scene_name);
     let _t = stats::time("Total");
     let mut pt_renderer = PTRenderer::new();

@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     mpsc::{Receiver, Sender, TryRecvError},
-    Arc, Mutex,
+    Arc,
 };
 
 use cgmath::{prelude::*, Point3, Vector3, Vector4};
@@ -29,7 +29,7 @@ const RR_PROB: f32 = _EB / (_EB + 1.0);
 pub struct RenderWorker {
     scene: Arc<Scene>,
     camera: Camera,
-    coordinator: Arc<Mutex<RenderCoordinator>>,
+    coordinator: Arc<RenderCoordinator>,
     message_rx: Receiver<()>,
     result_tx: Sender<(Rect, Vec<f32>)>,
     ray_count: Arc<AtomicUsize>,
@@ -39,7 +39,7 @@ impl RenderWorker {
     pub fn new(
         scene: Arc<Scene>,
         camera: Camera,
-        coordinator: Arc<Mutex<RenderCoordinator>>,
+        coordinator: Arc<RenderCoordinator>,
         message_rx: Receiver<()>,
         result_tx: Sender<(Rect, Vec<f32>)>,
         ray_count: Arc<AtomicUsize>,
@@ -55,10 +55,7 @@ impl RenderWorker {
     }
 
     pub fn run(&self) {
-        let (width, height) = {
-            let coordinator = self.coordinator.lock().unwrap();
-            (coordinator.width, coordinator.height)
-        };
+        let (width, height) = (self.coordinator.width, self.coordinator.height);
         let clip_to_world = self.camera.get_world_to_clip().invert().unwrap();
         let mut node_stack: Vec<(&BVHNode, f32)> = Vec::new();
         loop {
@@ -70,10 +67,7 @@ impl RenderWorker {
                     return;
                 }
             }
-            let block = {
-                let mut coordinator = self.coordinator.lock().unwrap();
-                coordinator.next_block()
-            };
+            let block = self.coordinator.next_block();
             if let Some(rect) = block {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
                 for h in 0..rect.height {

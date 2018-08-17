@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::vec::Vec;
 
-use cgmath::prelude::*;
 use cgmath::Point3;
 
 use glium::backend::Facade;

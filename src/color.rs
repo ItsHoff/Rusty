@@ -42,7 +42,7 @@ impl Add for Color {
     type Output = Color;
 
     fn add(self, rhs: Color) -> Color {
-        let mut c = self.clone();
+        let mut c = self;
         c += rhs;
         c
     }
@@ -60,7 +60,7 @@ impl Div<f32> for Color {
     type Output = Color;
 
     fn div(self, rhs: f32) -> Self::Output {
-        let mut c = self.clone();
+        let mut c = self;
         c /= rhs;
         c
     }
