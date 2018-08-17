@@ -86,7 +86,8 @@ impl Statistics {
         let mut timer_rows = Vec::new();
         let mut mrps = vec![cell!("Mrays/s")];
         let mut n_tris = vec![cell!("Triangles")];
-        let mut bvh_size = vec![cell!("BVH nodes")];
+        let mut bvh_size = vec![cell!("BVH Nodes")];
+        let mut n_rays = vec![cell!("Rays")];
         for (timer, l) in &self.scene_stats[0].timers {
             let mut row = Row::empty();
             row.add_cell(cell!(format!("{}{}", "| ".repeat(*l), timer.name)));
@@ -97,6 +98,7 @@ impl Statistics {
             mrps.push(cell!(stats.mrps()));
             n_tris.push(cell!(stats.n_tris));
             bvh_size.push(cell!(stats.bvh_size));
+            n_rays.push(cell!(stats.ray_count));
             for (name, row) in &mut timer_rows {
                 let timer = stats.get_timer(name).unwrap();
                 row.add_cell(cell!(timer.pretty_duration()));
@@ -108,6 +110,7 @@ impl Statistics {
         for (_, row) in timer_rows {
             table.add_row(row);
         }
+        table.add_row(Row::new(n_rays));
         table.add_row(Row::new(n_tris));
         table.add_row(Row::new(bvh_size));
         table
