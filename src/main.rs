@@ -106,10 +106,12 @@ fn online_render() {
                         },
                         KeyboardInput{state: ElementState::Pressed,
                                       virtual_keycode: Some(keycode), ..} => {
-                            if let Some(res) = util::load_gpu_scene(keycode, &display) {
-                                scene = res.0;
-                                gpu_scene = res.1;
-                                camera = res.2;
+                            if !trace {
+                                if let Some(res) = util::load_gpu_scene(keycode, &display) {
+                                    scene = res.0;
+                                    gpu_scene = res.1;
+                                    camera = res.2;
+                                }
                             }
                         },
                         _ => ()
