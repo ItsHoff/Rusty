@@ -157,6 +157,7 @@ impl RenderWorker {
         material.diffuse(tex_coords) / PI
     }
 
+    // TODO: this is slightly wrong?
     fn sample_dir(&self, normal: Vector3<f32>) -> (Vector3<f32>, f32) {
         let dir = 2.0 * PI * rand::random::<f32>();
         let length: f32 = rand::random();

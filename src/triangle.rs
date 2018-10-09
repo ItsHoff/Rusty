@@ -106,6 +106,7 @@ impl RTTriangle {
     pub fn random_point(&self) -> (Point3<f32>, Vector3<f32>) {
         let mut u: f32 = rand::random();
         let mut v: f32 = rand::random();
+        // TODO: use sampling that doesnt need this flip
         if u + v > 1.0 {
             u = 1.0 - u;
             v = 1.0 - v;

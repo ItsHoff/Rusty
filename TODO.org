@@ -1,22 +1,27 @@
 * Fixes
 ** Shadow acne in sponza
+** Weird tri in sibenik
 * Features
 ** Dynamic lights
 ** Glossy materials
 ** Mirror reflections
 ** Transparent materials
 ** Bidirectional tracing
+* Refactoring
+** Let materials handle bxdfs
+** Constant textures in materials?
+** Let scene handle intersections
 * Improvements
+** Termination probability based on current ray throughput
 ** Stat prints for online rendering
+** Proper sRGB gamma curve
+  * PBRT 621
 ** Implement post processing for offline images
   * Preferably use the same shaders rather than doing this on the cpu
-** Concurrent data structures
-  * https://github.com/crossbeam-rs/crossbeam
 ** Arbitrary scene loading
 ** UI
 * Optimizations
 ** Parallel building of BVH
-** Change work distribution to use atomic counter and one to one mapping to a block
 ** Pure hit tests without extra info
   * Can stop when any hit is found instead of finding the closests
 ** Spatial curves for 2d vector ordering
@@ -29,6 +34,7 @@
 * Nice to have
 ** Better filtering and reconstruction
 ** Other shapes
+** Participating media
 ** Alternate cameras
   * thin lenses
   * thick lenses
@@ -37,6 +43,7 @@
 ** Get texture mapping debug texture somewhere
 ** More robust floating point error handling
 ** Posibility to switch between floats and doubles
+** Procedural textures
 ** HDR image formats
   * Does OpenGL support HDR output?
 * Extras
