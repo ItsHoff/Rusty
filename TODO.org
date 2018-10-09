@@ -10,7 +10,11 @@
 * Refactoring
 ** Let materials handle bxdfs
 ** Constant textures in materials?
-** Let scene handle intersections
+** Better BVH build
+  * Use indices and dont mutate tris
+  * return permutation so tris can be sorted
+  * enables light-to-tri references
+** Refer to tris from light rather than copy tri
 * Improvements
 ** Termination probability based on current ray throughput
 ** Stat prints for online rendering

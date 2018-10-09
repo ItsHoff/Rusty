@@ -14,6 +14,7 @@ use crate::color::Color;
 use crate::obj_load;
 
 /// Material for CPU rendering
+#[derive(Debug)]
 pub struct Material {
     pub diffuse: Color,
     pub diffuse_image: Option<image::RgbaImage>, // Texture on the CPU
