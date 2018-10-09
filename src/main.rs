@@ -1,6 +1,6 @@
-#![feature(rust_2018_preview)]
 #![feature(euclidean_division)]
 #![feature(try_trait)]
+#![feature(tool_lints)]
 
 mod aabb;
 mod bvh;
@@ -132,7 +132,7 @@ fn online_render() {
                     _ => (),
                 },
                 Event::WindowEvent {
-                    event: WindowEvent::Closed,
+                    event: WindowEvent::CloseRequested,
                     ..
                 } => quit = true,
                 _ => (),

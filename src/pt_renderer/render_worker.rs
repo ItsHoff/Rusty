@@ -87,7 +87,8 @@ impl RenderWorker {
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = clip_to_world * clip_p;
                                 let dir = ((world_p / world_p.w).truncate()
-                                    - self.camera.pos.to_vec()).normalize();
+                                    - self.camera.pos.to_vec())
+                                .normalize();
                                 let ray = Ray::new(self.camera.pos, dir, std::f32::INFINITY);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }

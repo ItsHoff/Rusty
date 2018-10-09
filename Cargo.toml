@@ -1,5 +1,3 @@
-cargo-features = ["edition"]
-
 [package]
 edition = '2018'
 name = "rusty_the_rendering_engine"
@@ -8,13 +6,13 @@ authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 
 [dependencies]
 cgmath = "0.16.1"
-chrono = "0.4.4"
-glium = "0.21.0"
+chrono = "0.4.6"
+glium = "0.22.0"
 image = "0.19.0"
 lazy_static = "1.1.0"
 num_cpus = "1.8.0"
-prettytable-rs = "0.7.0"
-rand = "0.5.3"
+prettytable-rs = "0.8.0"
+rand = "0.5.5"
 
 [profile.release]
 debug = true

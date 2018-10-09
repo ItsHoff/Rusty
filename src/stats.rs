@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use prettytable::{cell, row::Row, Table};
+use prettytable::{cell, Row, Table};
 
 use crate::bvh::BVH;
 

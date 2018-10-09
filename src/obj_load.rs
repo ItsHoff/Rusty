@@ -243,7 +243,7 @@ fn parse_float(split_line: &mut SplitWhitespace) -> Option<f32> {
 }
 
 /// Parse two floats from the split input line
-#[cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
+#[allow(clippy::needless_range_loop)]
 fn parse_float2(split_line: &mut SplitWhitespace) -> Option<[f32; 2]> {
     let mut float2 = [0.0f32; 2];
     for i in 0..2 {
@@ -254,7 +254,7 @@ fn parse_float2(split_line: &mut SplitWhitespace) -> Option<[f32; 2]> {
 }
 
 /// Parse three floats from the split input line
-#[cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
+#[allow(clippy::needless_range_loop)]
 fn parse_float3(split_line: &mut SplitWhitespace) -> Option<[f32; 3]> {
     let mut float3 = [0.0f32; 3];
     for i in 0..3 {
@@ -334,8 +334,8 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<dyn Error>> {
     let _t = stats::time("Load obj");
     let mut obj = Object::new();
     let mut state = ParseState::new();
-    let obj_dir = try!(obj_path.parent().ok_or("Couldn't get object directory"));
-    let obj_file = try!(File::open(obj_path));
+    let obj_dir = obj_path.parent().ok_or("Couldn't get object directory")?;
+    let obj_file = File::open(obj_path)?;
     let obj_reader = BufReader::new(obj_file);
     for line in obj_reader.lines() {
         let line = line.expect("Failed to unwrap line");
@@ -425,12 +425,10 @@ pub fn load_obj(obj_path: &Path) -> Result<Object, Box<dyn Error>> {
 pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<dyn Error>> {
     let mut materials = HashMap::new();
     let mut current_material: Option<Material> = None;
-    let matlib_dir = try!(
-        matlib_path
-            .parent()
-            .ok_or("Couldn't get material directory")
-    );
-    let matlib_file = try!(File::open(matlib_path));
+    let matlib_dir = matlib_path
+        .parent()
+        .ok_or("Couldn't get material directory")?;
+    let matlib_file = File::open(matlib_path)?;
     let matlib_reader = BufReader::new(matlib_file);
     for line in matlib_reader.lines() {
         let line = line.unwrap();
@@ -519,7 +517,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
             }
         }
     }
-    let material = try!(current_material.ok_or("Didn't find any material definitions!"));
+    let material = current_material.ok_or("Didn't find any material definitions!")?;
     materials.insert(material.name.clone(), material);
     Ok(materials)
 }

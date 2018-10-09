@@ -120,7 +120,8 @@ fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Tex
         texture_source,
         UncompressedFloatFormat::F32F32F32,
         MipmapsOption::NoMipmap,
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 impl PTVisualizer {
@@ -185,7 +186,8 @@ impl PTVisualizer {
                 &self.shader,
                 &uniforms,
                 &draw_parameters,
-            ).unwrap();
+            )
+            .unwrap();
     }
 
     fn new_texture<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>) {
@@ -226,9 +228,7 @@ impl PTRenderer {
         let width = camera.width;
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
-        self.coordinator = Arc::new(RenderCoordinator::new(
-            width, height, iterations,
-        ));
+        self.coordinator = Arc::new(RenderCoordinator::new(width, height, iterations));
         self.ray_count.store(0, Ordering::SeqCst);
 
         let (result_tx, result_rx) = mpsc::channel();

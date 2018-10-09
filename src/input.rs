@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use glium::glutin::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
+use glium::glutin::{
+    dpi::LogicalPosition, ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode,
+    WindowEvent,
+};
 
 pub struct InputState {
     /// Position of the mouse
@@ -33,7 +36,8 @@ impl InputState {
         if let Event::WindowEvent { ref event, .. } = *event {
             match *event {
                 WindowEvent::CursorMoved {
-                    position: (x, y), ..
+                    position: LogicalPosition { x, y },
+                    ..
                 } => {
                     self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
                     self.mouse_pos = (x, y);

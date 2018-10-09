@@ -131,7 +131,6 @@ impl Camera {
     }
 
     /// Move camera based on input event
-    #[cfg_attr(feature = "cargo-clippy", allow(single_match))]
     pub fn process_input(&mut self, input: &InputState) {
         let dt = input.last_reset.elapsed();
         let time_scale = (dt.as_secs() as f32 * 1e9 + dt.subsec_nanos() as f32) / 1e8;
@@ -158,14 +157,11 @@ impl Camera {
             }
         }
         for button in input.mouse_presses.keys() {
-            match *button {
-                // Rotate camera while holding left mouse button
-                MouseButton::Left => {
-                    let (dx, dy) = input.d_mouse;
-                    self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 250.0));
-                    self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 250.0));
-                }
-                _ => (),
+            // Rotate camera while holding left mouse button
+            if let MouseButton::Left = *button {
+                let (dx, dy) = input.d_mouse;
+                self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 250.0));
+                self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 250.0));
             }
         }
     }

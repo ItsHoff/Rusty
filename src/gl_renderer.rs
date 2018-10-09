@@ -50,7 +50,8 @@ impl GLRenderer {
                     &self.shader,
                     &uniforms,
                     &draw_parameters,
-                ).unwrap();
+                )
+                .unwrap();
         }
     }
 }
