@@ -2,9 +2,8 @@ use cgmath::prelude::*;
 use cgmath::Point3;
 
 use crate::pt_renderer::{Intersect, Ray};
-use crate::triangle::RTTriangle;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AABB {
     pub min: Point3<f32>,
     pub max: Point3<f32>,
@@ -16,14 +15,6 @@ impl AABB {
             min: Point3::max_value(),
             max: Point3::min_value(),
         }
-    }
-
-    pub fn from_triangles(triangles: &[RTTriangle]) -> AABB {
-        let mut aabb = Self::empty();
-        for tri in triangles {
-            aabb.add_aabb(&tri.aabb());
-        }
-        aabb
     }
 
     /// Update the bounding box with new position

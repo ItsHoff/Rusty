@@ -1,7 +1,21 @@
+use std::ops::Index;
+
+use cgmath::Point3;
+
 use crate::aabb::AABB;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::stats;
 use crate::triangle::RTTriangle;
+
+const MAX_LEAF_SIZE: usize = 8;
+
+#[allow(dead_code)]
+#[derive(Clone, Copy)]
+pub enum SplitMode {
+    Object,
+    Spatial,
+    SAH,
+}
 
 pub struct BVHNode {
     aabb: AABB,
@@ -12,18 +26,16 @@ pub struct BVHNode {
 }
 
 impl BVHNode {
-    fn new(triangles: &[RTTriangle], start_i: usize, end_i: usize) -> BVHNode {
-        let mut node = BVHNode {
-            aabb: AABB::from_triangles(&triangles[start_i..end_i]),
+    fn new(triangles: &Triangles) -> BVHNode {
+        let start_i = triangles.start_i;
+        let end_i = start_i + triangles.len();
+        BVHNode {
+            aabb: triangles.aabb.clone(),
             start_i,
             end_i,
             left_child_i: None,
             right_child_i: None,
-        };
-        for tri in triangles[(start_i + 1)..end_i].iter() {
-            node.aabb.add_aabb(&tri.aabb());
         }
-        node
     }
 
     fn n_tris(&self) -> usize {
@@ -41,14 +53,85 @@ impl Intersect<'_, f32> for BVHNode {
     }
 }
 
-const MAX_LEAF_SIZE: usize = 8;
+struct Triangles<'a> {
+    triangles: &'a [RTTriangle],
+    centers: &'a [Point3<f32>],
+    indices: &'a mut [usize],
+    aabb: AABB,
+    /// Node contains indices [start_i, start_i + len) from the main indices array
+    start_i: usize,
+    /// Axis along which the indices have been sorted
+    sorted_axis: usize,
+}
 
-#[allow(dead_code)]
-#[derive(Clone, Copy)]
-pub enum SplitMode {
-    Object,
-    Spatial,
-    SAH,
+impl<'a> Triangles<'a> {
+    fn new(
+        triangles: &'a [RTTriangle],
+        centers: &'a [Point3<f32>],
+        indices: &'a mut [usize],
+        start_i: usize,
+    ) -> Triangles<'a> {
+        let mut aabb = AABB::empty();
+        for i in indices.iter() {
+            let tri = &triangles[*i];
+            aabb.add_aabb(&tri.aabb());
+        }
+        Triangles {
+            triangles,
+            centers,
+            indices,
+            aabb,
+            start_i,
+            // Use bogus value since nothing has been sorted
+            sorted_axis: 42,
+        }
+    }
+
+    fn sort_longest_axis(&mut self) {
+        let axis_i = self.aabb.longest_edge_i();
+        self.sort(axis_i);
+    }
+
+    fn sort(&mut self, axis_i: usize) {
+        // The indices are already sorted along the requested axis
+        if axis_i == self.sorted_axis {
+            return;
+        }
+        let centers = self.centers;
+        self.indices.sort_unstable_by(|i1, i2| {
+            let c1 = centers[*i1][axis_i];
+            let c2 = centers[*i2][axis_i];
+            c1.partial_cmp(&c2).unwrap()
+        });
+        self.sorted_axis = axis_i;
+    }
+
+    fn split(self, i: usize) -> (Triangles<'a>, Triangles<'a>) {
+        let (i1, i2) = self.indices.split_at_mut(i);
+        let mut node1 = Triangles::new(self.triangles, self.centers, i1, self.start_i);
+        let mut node2 = Triangles::new(self.triangles, self.centers, i2, self.start_i + i);
+        node1.sorted_axis = self.sorted_axis;
+        node2.sorted_axis = self.sorted_axis;
+        (node1, node2)
+    }
+
+    fn len(&self) -> usize {
+        self.indices.len()
+    }
+
+    fn last(&self) -> &RTTriangle {
+        let i = self.indices.last().unwrap();
+        &self.triangles[*i]
+    }
+}
+
+impl Index<usize> for Triangles<'_> {
+    type Output = RTTriangle;
+
+    fn index(&self, i: usize) -> &RTTriangle {
+        let i = self.indices[i];
+        &self.triangles[i]
+    }
 }
 
 pub struct BVH {
@@ -60,62 +143,45 @@ impl BVH {
         BVH { nodes: Vec::new() }
     }
 
-    pub fn build(triangles: &mut Vec<RTTriangle>, split_mode: SplitMode) -> BVH {
+    pub fn build(triangles: &[RTTriangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
         stats::start_bvh();
+        let centers: Vec<Point3<f32>> = triangles.iter().map(|ref tri| tri.center()).collect();
+        let mut permutation: Vec<usize> = (0..triangles.len()).collect();
+        let tris = Triangles::new(triangles, &centers, &mut permutation, 0);
         let mut nodes = Vec::with_capacity(f32::log2(triangles.len() as f32) as usize);
-        nodes.push(BVHNode::new(triangles, 0, triangles.len()));
-        let mut split_stack = vec![0usize];
+        nodes.push(BVHNode::new(&tris));
+        let mut split_stack = vec![(0usize, tris)];
 
-        while let Some(node_i) = split_stack.pop() {
-            let start_i = nodes[node_i].start_i;
-            let end_i = nodes[node_i].end_i;
+        while let Some((node_i, mut tris)) = split_stack.pop() {
             let mid_offset = match split_mode {
-                SplitMode::Object => {
-                    let axis_i = nodes[node_i].aabb.longest_edge_i();
-                    triangles[start_i..end_i].sort_unstable_by(|tri1, tri2| {
-                        let c1 = tri1.center()[axis_i];
-                        let c2 = tri2.center()[axis_i];
-                        c1.partial_cmp(&c2).unwrap()
-                    });
-                    object_split(&triangles[start_i..end_i])
-                }
-                SplitMode::Spatial => {
-                    let axis_i = nodes[node_i].aabb.longest_edge_i();
-                    triangles[start_i..end_i].sort_unstable_by(|tri1, tri2| {
-                        let c1 = tri1.center()[axis_i];
-                        let c2 = tri2.center()[axis_i];
-                        c1.partial_cmp(&c2).unwrap()
-                    });
-                    spatial_split(&triangles[start_i..end_i], axis_i)
-                }
-                SplitMode::SAH => {
-                    sah_split(&mut triangles[start_i..end_i])
-                }
+                SplitMode::Object => object_split(&mut tris),
+                SplitMode::Spatial => spatial_split(&mut tris),
+                SplitMode::SAH => sah_split(&mut tris),
             };
-            let mid_i = if let Some(offset) = mid_offset {
-                start_i + offset
+            let (t1, t2) = if let Some(offset) = mid_offset {
+                tris.split(offset)
             } else {
                 continue;
             };
 
-            let left_child = BVHNode::new(triangles, start_i, mid_i);
+            let left_child = BVHNode::new(&t1);
             nodes[node_i].left_child_i = Some(nodes.len());
             if left_child.n_tris() > MAX_LEAF_SIZE {
-                split_stack.push(nodes.len());
+                split_stack.push((nodes.len(), t1));
             }
             nodes.push(left_child);
 
-            let right_child = BVHNode::new(triangles, mid_i, end_i);
+            let right_child = BVHNode::new(&t2);
             nodes[node_i].right_child_i = Some(nodes.len());
             if right_child.n_tris() > MAX_LEAF_SIZE {
-                split_stack.push(nodes.len());
+                split_stack.push((nodes.len(), t2));
             }
             nodes.push(right_child);
         }
         nodes.shrink_to_fit();
         let bvh = BVH { nodes };
         stats::stop_bvh(&bvh);
-        bvh
+        (bvh, permutation)
     }
 
     pub fn get_children(&self, node: &BVHNode) -> Option<(&BVHNode, &BVHNode)> {
@@ -142,45 +208,51 @@ impl BVH {
     }
 }
 
-fn object_split(triangles: &[RTTriangle]) -> Option<usize> {
+fn object_split(triangles: &mut Triangles) -> Option<usize> {
+    triangles.sort_longest_axis();
     Some(triangles.len() / 2)
 }
 
-fn spatial_split(triangles: &[RTTriangle], axis_i: usize) -> Option<usize> {
-    let min_val = triangles.first().unwrap().center()[axis_i];
-    let max_val = triangles.last().unwrap().center()[axis_i];
-    let mid_val = (max_val + min_val) / 2.0;
-    // TODO: this could use binary search
+fn spatial_split(triangles: &mut Triangles) -> Option<usize> {
+    let aabb = &triangles.aabb;
+    let axis_i = aabb.longest_edge_i();
+    let mid_val = aabb.center()[axis_i];
+    triangles.sort(axis_i);
+    let centers = triangles.centers;
     let i = triangles
-        .iter()
-        .position(|ref tri| tri.center()[axis_i] > mid_val)
-        .unwrap_or(0);
+        .indices
+        .binary_search_by(|i| {
+            let c = centers[*i][axis_i];
+            c.partial_cmp(&mid_val).unwrap()
+        })
+        .unwrap_or_else(|e| e);
     // Use object median if all centers are on one side of the median
-    if i == 0 {
+    if i == 0 || i == triangles.len() {
         object_split(triangles)
     } else {
         Some(i)
     }
 }
 
-fn sah_split(triangles: &mut [RTTriangle]) -> Option<usize> {
+fn sah_split(triangles: &mut Triangles) -> Option<usize> {
     let mut min_score = std::f32::MAX;
     let mut min_axis = 0;
     let mut min_i = 0;
-    for axis in 0..3 {
-        triangles.sort_unstable_by(|tri1, tri2| {
-            let c1 = tri1.center()[axis];
-            let c2 = tri2.center()[axis];
-            c1.partial_cmp(&c2).unwrap()
-        });
+    let sorted_axis = triangles.sorted_axis;
+    for offset in 0..3 {
+        // Check the sorted axis first
+        let axis = (sorted_axis + offset) % 3;
+        triangles.sort(axis);
+        // Precompute all right side bbs
         let mut right_bbs = Vec::with_capacity(triangles.len());
-        right_bbs.push(triangles.last().unwrap().aabb());
+        right_bbs.push(triangles.last().aabb());
         for i in 1..triangles.len() {
             let mut new_bb = right_bbs[i - 1].clone();
             new_bb.add_aabb(&triangles[triangles.len() - 1 - i].aabb());
             right_bbs.push(new_bb);
         }
         let mut left_bb = AABB::empty();
+        // Go through the possible splits
         for i in 0..triangles.len() {
             left_bb.add_aabb(&triangles[i].aabb());
             let right_bb = &right_bbs[right_bbs.len() - 1 - i];
@@ -195,13 +267,7 @@ fn sah_split(triangles: &mut [RTTriangle]) -> Option<usize> {
     if min_i == 0 {
         None
     } else {
-        if min_axis != 2 {
-            triangles.sort_unstable_by(|tri1, tri2| {
-                let c1 = tri1.center()[min_axis];
-                let c2 = tri2.center()[min_axis];
-                c1.partial_cmp(&c2).unwrap()
-            });
-        }
+        triangles.sort(min_axis);
         Some(min_i)
     }
 }

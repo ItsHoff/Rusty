@@ -46,7 +46,12 @@ impl Scene {
             bvh: BVH::empty(),
         };
         scene.load_scene(scene_path);
-        scene.bvh = BVH::build(&mut scene.triangles, SplitMode::SAH);
+        let (bvh, permutation) = BVH::build(&scene.triangles, SplitMode::SAH);
+        scene.bvh = bvh;
+        scene.triangles = permutation
+            .iter()
+            .map(|i| scene.triangles[*i].clone())
+            .collect();
         scene
     }
 
