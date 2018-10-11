@@ -72,8 +72,8 @@ impl<'a> Triangles<'a> {
         start_i: usize,
     ) -> Triangles<'a> {
         let mut aabb = AABB::empty();
-        for i in indices.iter() {
-            let tri = &triangles[*i];
+        for &i in indices.iter() {
+            let tri = &triangles[i];
             aabb.add_aabb(&tri.aabb());
         }
         Triangles {
@@ -98,9 +98,9 @@ impl<'a> Triangles<'a> {
             return;
         }
         let centers = self.centers;
-        self.indices.sort_unstable_by(|i1, i2| {
-            let c1 = centers[*i1][axis_i];
-            let c2 = centers[*i2][axis_i];
+        self.indices.sort_unstable_by(|&i1, &i2| {
+            let c1 = centers[i1][axis_i];
+            let c2 = centers[i2][axis_i];
             c1.partial_cmp(&c2).unwrap()
         });
         self.sorted_axis = axis_i;
@@ -120,8 +120,8 @@ impl<'a> Triangles<'a> {
     }
 
     fn last(&self) -> &RTTriangle {
-        let i = self.indices.last().unwrap();
-        &self.triangles[*i]
+        let &i = self.indices.last().unwrap();
+        &self.triangles[i]
     }
 }
 
@@ -221,8 +221,8 @@ fn spatial_split(triangles: &mut Triangles) -> Option<usize> {
     let centers = triangles.centers;
     let i = triangles
         .indices
-        .binary_search_by(|i| {
-            let c = centers[*i][axis_i];
+        .binary_search_by(|&i| {
+            let c = centers[i][axis_i];
             c.partial_cmp(&mid_val).unwrap()
         })
         .unwrap_or_else(|e| e);
