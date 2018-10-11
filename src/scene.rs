@@ -36,57 +36,16 @@ pub struct GPUScene {
 
 impl Scene {
     pub fn new(scene_path: &Path) -> Scene {
-        let mut scene = Scene {
-            vertices: Vec::new(),
-            meshes: Vec::new(),
-            materials: Vec::new(),
-            triangles: Vec::new(),
-            lights: Vec::new(),
-            aabb: AABB::empty(),
-            bvh: BVH::empty(),
-        };
-        scene.load_scene(scene_path);
-        let (bvh, permutation) = BVH::build(&scene.triangles, SplitMode::SAH);
-        scene.bvh = bvh;
-        scene.triangles = permutation
-            .iter()
-            .map(|i| scene.triangles[*i].clone())
-            .collect();
-        scene
-    }
-
-    /// Load a scene from the given path
-    fn load_scene(&mut self, scene_path: &Path) {
         let obj = obj_load::load_obj(scene_path)
             .unwrap_or_else(|err| panic!("Failed to load scene {:?}: {}", scene_path, err));
 
         let mut _t = stats::time("Convert scene");
-        // Closure to calculate planar normal for a triangle
-        let calculate_normal = |triangle: &obj_load::Triangle| -> [f32; 3] {
-            let pos_i1 = triangle.index_vertices[0].pos_i;
-            let pos_i2 = triangle.index_vertices[1].pos_i;
-            let pos_i3 = triangle.index_vertices[2].pos_i;
-            let pos_1 = obj.positions[pos_i1];
-            let pos_2 = obj.positions[pos_i2];
-            let pos_3 = obj.positions[pos_i3];
-            let u = [
-                pos_2[0] - pos_1[0],
-                pos_2[1] - pos_1[1],
-                pos_2[2] - pos_1[2],
-            ];
-            let v = [
-                pos_3[0] - pos_1[0],
-                pos_3[1] - pos_1[1],
-                pos_3[2] - pos_1[2],
-            ];
-            let normal = [
-                u[1] * v[2] - u[2] * v[1],
-                u[2] * v[0] - u[0] * v[2],
-                u[0] * v[1] - u[1] * v[0],
-            ];
-            let length = (normal[0].powi(2) + normal[1].powi(2) + normal[2].powi(2)).sqrt();
-            [normal[0] / length, normal[1] / length, normal[2] / length]
-        };
+        let mut vertices = Vec::new();
+        let mut meshes = Vec::new();
+        let mut materials = Vec::new();
+        let mut triangles = Vec::new();
+        let mut lights = Vec::new();
+        let mut aabb = AABB::empty();
 
         // Group the polygons by materials for easy rendering
         let mut vertex_map = HashMap::new();
@@ -100,57 +59,69 @@ impl Scene {
                         .get(&range.name)
                         .unwrap_or_else(|| panic!("Couldn't find material {}!", range.name));
                     let material = Material::new(obj_mat);
-                    let i = self.materials.len();
-                    self.materials.push(material);
+                    let i = materials.len();
+                    materials.push(material);
                     material_map.insert(&range.name, i);
                     i
                 }
             };
-            let material = &self.materials[material_i];
+            let material = &materials[material_i];
             let mut mesh = Mesh::new(material_i);
             for tri in &obj.triangles[range.start_i..range.end_i] {
                 let mut tri_builder = RTTriangleBuilder::new();
-                let default_tex_coords = [0.0; 2];
                 for index_vertex in &tri.index_vertices {
                     match vertex_map.get(index_vertex) {
                         // Vertex has already been added
                         Some(&i) => {
                             mesh.indices.push(i as u32);
-                            tri_builder.add_vertex(self.vertices[i]);
+                            tri_builder.add_vertex(vertices[i]);
                         }
                         None => {
                             let pos = obj.positions[index_vertex.pos_i];
-                            self.aabb.add_point(&Point3::from(pos));
+                            aabb.add_point(&Point3::from(pos));
 
                             let tex_coords = match index_vertex.tex_i {
                                 Some(tex_i) => obj.tex_coords[tex_i],
-                                None => default_tex_coords,
+                                None => [0.0; 2],
                             };
                             let normal = match index_vertex.normal_i {
                                 Some(normal_i) => obj.normals[normal_i],
-                                None => calculate_normal(tri),
+                                // TODO: don't cache vertices without normals.
+                                // Now the first tri defines the normal for remaining tris aswell.
+                                None => calculate_normal(tri, &obj),
                             };
 
-                            mesh.indices.push(self.vertices.len() as u32);
-                            vertex_map.insert(index_vertex, self.vertices.len());
-                            self.vertices.push(Vertex {
+                            mesh.indices.push(vertices.len() as u32);
+                            vertex_map.insert(index_vertex, vertices.len());
+                            vertices.push(Vertex {
                                 pos,
                                 normal,
                                 tex_coords,
                             });
-                            tri_builder.add_vertex(*self.vertices.last().unwrap());
+                            tri_builder.add_vertex(*vertices.last().unwrap());
                         }
                     }
                 }
                 let triangle = tri_builder.build(material_i).expect("Failed to build tri!");
                 if material.emissive.is_some() {
-                    self.lights.push(triangle.clone());
+                    lights.push(triangle.clone());
                 }
-                self.triangles.push(triangle);
+                triangles.push(triangle);
             }
             if !mesh.indices.is_empty() {
-                self.meshes.push(mesh);
+                meshes.push(mesh);
             }
+        }
+        let (bvh, permutation) = BVH::build(&triangles, SplitMode::SAH);
+        triangles = permutation.iter().map(|i| triangles[*i].clone()).collect();
+        Scene {
+            vertices,
+            meshes,
+            materials,
+            triangles,
+            lights,
+            aabb,
+            bvh,
         }
     }
 
@@ -183,4 +154,31 @@ impl Scene {
     pub fn size(&self) -> f32 {
         self.aabb.longest_edge()
     }
+}
+
+/// Calculate planar normal for a triangle
+fn calculate_normal(triangle: &obj_load::Triangle, obj: &obj_load::Object) -> [f32; 3] {
+    let pos_i1 = triangle.index_vertices[0].pos_i;
+    let pos_i2 = triangle.index_vertices[1].pos_i;
+    let pos_i3 = triangle.index_vertices[2].pos_i;
+    let pos_1 = obj.positions[pos_i1];
+    let pos_2 = obj.positions[pos_i2];
+    let pos_3 = obj.positions[pos_i3];
+    let u = [
+        pos_2[0] - pos_1[0],
+        pos_2[1] - pos_1[1],
+        pos_2[2] - pos_1[2],
+    ];
+    let v = [
+        pos_3[0] - pos_1[0],
+        pos_3[1] - pos_1[1],
+        pos_3[2] - pos_1[2],
+    ];
+    let normal = [
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+    ];
+    let length = (normal[0].powi(2) + normal[1].powi(2) + normal[2].powi(2)).sqrt();
+    [normal[0] / length, normal[1] / length, normal[2] / length]
 }
