@@ -39,7 +39,6 @@ impl Scene {
         let obj = obj_load::load_obj(scene_path)
             .unwrap_or_else(|err| panic!("Failed to load scene {:?}: {}", scene_path, err));
 
-        let mut _t = stats::time("Convert scene");
         let mut vertices = Vec::new();
         let mut meshes = Vec::new();
         let mut materials = Vec::new();
@@ -70,6 +69,7 @@ impl Scene {
             for tri in &obj.triangles[range.start_i..range.end_i] {
                 let mut tri_builder = RTTriangleBuilder::new();
                 for index_vertex in &tri.index_vertices {
+                    let planar_normal = calculate_normal(tri, &obj);
                     match vertex_map.get(index_vertex) {
                         // Vertex has already been added
                         Some(&i) => {
@@ -77,6 +77,7 @@ impl Scene {
                             tri_builder.add_vertex(vertices[i]);
                         }
                         None => {
+                            let mut cache = true;
                             let pos = obj.positions[index_vertex.pos_i];
                             aabb.add_point(&Point3::from(pos));
 
@@ -86,13 +87,19 @@ impl Scene {
                             };
                             let normal = match index_vertex.normal_i {
                                 Some(normal_i) => obj.normals[normal_i],
-                                // TODO: don't cache vertices without normals.
-                                // Now the first tri defines the normal for remaining tris aswell.
-                                None => calculate_normal(tri, &obj),
+                                None => {
+                                    // Don't cache vertices without normals.
+                                    // Otherwise the first tri defines the normal
+                                    // for remaining uses of the vertex.
+                                    cache = false;
+                                    planar_normal
+                                }
                             };
 
                             mesh.indices.push(vertices.len() as u32);
-                            vertex_map.insert(index_vertex, vertices.len());
+                            if cache {
+                                vertex_map.insert(index_vertex, vertices.len());
+                            }
                             vertices.push(Vertex {
                                 pos,
                                 normal,
