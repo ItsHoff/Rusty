@@ -139,10 +139,6 @@ pub struct BVH {
 }
 
 impl BVH {
-    pub fn empty() -> BVH {
-        BVH { nodes: Vec::new() }
-    }
-
     pub fn build(triangles: &[RTTriangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
         stats::start_bvh();
         let centers: Vec<Point3<f32>> = triangles.iter().map(|ref tri| tri.center()).collect();
