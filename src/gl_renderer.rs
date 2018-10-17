@@ -35,7 +35,6 @@ impl GLRenderer {
         for mesh in &scene.meshes {
             let material = &scene.materials[mesh.material_i];
             let uniforms = uniform! {
-                local_to_world: array4x4(mesh.local_to_world),
                 world_to_clip: array4x4(world_to_clip),
                 u_light: [-1.0, 0.4, 0.9f32],
                 u_color: material.diffuse,
