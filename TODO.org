@@ -1,55 +1,63 @@
-* Fixes
+* Fix
 ** Shadow acne in sponza
-** Weird tri in sibenik
 * Features
-** Dynamic lights
-** Glossy materials
-** Mirror reflections
-** Transparent materials
-** Bidirectional tracing
-* Refactoring
-** Let materials handle bxdfs
-** Constant textures in materials?
-** Better BVH build
-  * Use indices and dont mutate tris
-  * return permutation so tris can be sorted
-  * enables light-to-tri references
-** Refer to tris from light rather than copy tri
+** Primary
+*** Dynamic lights
+*** Glossy materials
+*** Mirror reflections
+*** Transparent materials
+*** Bidirectional tracing
+** Nice to have
+*** Participating media
+*** Additional camera models
+    * thin lenses
+    * thick lenses
+    * lens systems
+*** Possibility to switch between floats and doubles
+*** Alternate input formats
+    * glTF
+    * pbrt
+*** Other shapes
+    * Would need new format support
+*** Procedural textures
+** Extras
+*** DIY linear algebra
+*** Spectral rendering
 * Improvements
-** Termination probability based on current ray throughput
-** Stat prints for online rendering
-** Proper sRGB gamma curve
-  * PBRT 621
-** Implement post processing for offline images
-  * Preferably use the same shaders rather than doing this on the cpu
-** Arbitrary scene loading
-** UI
-* Optimizations
-** Parallel building of BVH
-** Pure hit tests without extra info
-  * Can stop when any hit is found instead of finding the closests
-** Spatial curves for 2d vector ordering
-  * e.g. textures
-  * Hilbert / Morton
-** Examine cache effiency
-  * size
-  * organization (hot & cold)
-  * alignment
-* Nice to have
-** Better filtering and reconstruction
-** Other shapes
-** Participating media
-** Alternate cameras
-  * thin lenses
-  * thick lenses
-  * lens systems
-** Alternate input formats (glTF)
-** Get texture mapping debug texture somewhere
-** More robust floating point error handling
-** Posibility to switch between floats and doubles
-** Procedural textures
-** HDR image formats
-  * Does OpenGL support HDR output?
-* Extras
-** Internal linear algebra
-** Spectral rendering
+** Utils
+*** Selected camera locations for scenes
+*** Config for render parameters
+*** Arbitrary scene loading
+*** UI
+** Performance
+*** Parallel building of BVH
+*** Pure hit tests without extra info
+   * Can stop when any hit is found instead of finding the closests
+*** Spatial curves for 2d vector ordering
+   * e.g. textures
+   * Hilbert / Morton
+*** Examine cache effiency
+   * size
+   * organization (hot & cold)
+   * alignment
+** Quality
+*** Implement post processing for offline images
+    * Preferably use the same shaders rather than doing this on the cpu
+    * Headless context + texture as a framebuffer
+*** Termination probability based on current ray throughput
+*** Proper sRGB gamma curve
+   * PBRT 621
+*** Better filtering and reconstruction
+*** More robust floating point error handling
+** Refactoring
+*** Scene loading
+    * reduce redundancy
+    * builder pattern
+    * examine self references
+    * leave room for different input formats
+    * float type agnostic (for pt)
+*** Statistics api
+    * Stat prints for online rendering
+*** Let materials handle bxdfs
+*** Constant textures in materials?
+*** Refer to tris from light rather than copy tri
