@@ -1,10 +1,12 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul};
 
+use crate::Float;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
+    pub r: Float,
+    pub g: Float,
+    pub b: Float,
 }
 
 impl Color {
@@ -25,10 +27,10 @@ impl Color {
     }
 
     pub fn from_srgb(rgba: image::Rgba<u8>) -> Color {
-        let arr: Vec<f32> = rgba
+        let arr: Vec<Float> = rgba
             .data
             .into_iter()
-            .map(|c| (f32::from(*c) / 255.0).powf(2.2))
+            .map(|c| (Float::from(*c) / 255.0).powf(2.2))
             .collect();
         Color {
             r: arr[0],
@@ -56,18 +58,18 @@ impl AddAssign for Color {
     }
 }
 
-impl Div<f32> for Color {
+impl Div<Float> for Color {
     type Output = Color;
 
-    fn div(self, rhs: f32) -> Self::Output {
+    fn div(self, rhs: Float) -> Self::Output {
         let mut c = self;
         c /= rhs;
         c
     }
 }
 
-impl DivAssign<f32> for Color {
-    fn div_assign(&mut self, rhs: f32) {
+impl DivAssign<Float> for Color {
+    fn div_assign(&mut self, rhs: Float) {
         let recip = rhs.recip();
         self.r *= recip;
         self.g *= recip;
@@ -87,10 +89,10 @@ impl Mul for Color {
     }
 }
 
-impl Mul<f32> for Color {
+impl Mul<Float> for Color {
     type Output = Color;
 
-    fn mul(self, rhs: f32) -> Self::Output {
+    fn mul(self, rhs: Float) -> Self::Output {
         Color {
             r: self.r * rhs,
             g: self.g * rhs,
@@ -99,7 +101,7 @@ impl Mul<f32> for Color {
     }
 }
 
-impl Mul<Color> for f32 {
+impl Mul<Color> for Float {
     type Output = Color;
 
     fn mul(self, rhs: Color) -> Self::Output {
@@ -108,17 +110,18 @@ impl Mul<Color> for f32 {
 }
 
 impl From<[f32; 3]> for Color {
+    #[allow(clippy::identity_conversion)]
     fn from(arr: [f32; 3]) -> Color {
         Color {
-            r: arr[0],
-            g: arr[1],
-            b: arr[2],
+            r: arr[0].into(),
+            g: arr[1].into(),
+            b: arr[2].into(),
         }
     }
 }
 
-impl Into<[f32; 3]> for Color {
-    fn into(self) -> [f32; 3] {
+impl Into<[Float; 3]> for Color {
+    fn into(self) -> [Float; 3] {
         [self.r, self.g, self.b]
     }
 }

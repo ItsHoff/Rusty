@@ -1,4 +1,3 @@
-use std::f32::consts::PI;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     mpsc::{Receiver, Sender, TryRecvError},
@@ -14,17 +13,19 @@ use rand::{self, prelude::*};
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
+use crate::Float;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
 use crate::triangle::Hit;
 
+const PI: Float = std::f64::consts::PI as Float;
 // TODO: tune EPSILON since crytek-sponza has shadow acne
-const EPSILON: f32 = 1e-5;
+const EPSILON: Float = 1e-5;
 // Desired expectation value of bounces
-const _EB: f32 = 5.0;
+const _EB: Float = 5.0;
 // The matching survival probability from negative binomial distribution
-const RR_PROB: f32 = _EB / (_EB + 1.0);
+const RR_PROB: Float = _EB / (_EB + 1.0);
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -54,10 +55,11 @@ impl RenderWorker {
         }
     }
 
+    #[allow(clippy::cast_lossless)]
     pub fn run(&self) {
         let (width, height) = (self.coordinator.width, self.coordinator.height);
-        let clip_to_world = self.camera.get_world_to_clip().invert().unwrap();
-        let mut node_stack: Vec<(&BVHNode, f32)> = Vec::new();
+        let clip_to_world = self.camera.world_to_clip().invert().unwrap();
+        let mut node_stack: Vec<(&BVHNode, Float)> = Vec::new();
         loop {
             match self.message_rx.try_recv() {
                 Err(TryRecvError::Empty) => (),
@@ -77,27 +79,27 @@ impl RenderWorker {
                         for j in 0..samples_per_dir {
                             for i in 0..samples_per_dir {
                                 let dx =
-                                    (i as f32 + rand::random::<f32>()) / samples_per_dir as f32;
+                                    (i as Float + rand::random::<Float>()) / samples_per_dir as Float;
                                 let dy =
-                                    (j as f32 + rand::random::<f32>()) / samples_per_dir as f32;
+                                    (j as Float + rand::random::<Float>()) / samples_per_dir as Float;
                                 let clip_x =
-                                    2.0 * ((rect.left + w) as f32 + dx) / width as f32 - 1.0;
+                                    2.0 * ((rect.left + w) as Float + dx) / width as Float - 1.0;
                                 let clip_y =
-                                    2.0 * ((rect.bottom + h) as f32 + dy) / height as f32 - 1.0;
+                                    2.0 * ((rect.bottom + h) as Float + dy) / height as Float - 1.0;
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = clip_to_world * clip_p;
                                 let dir = ((world_p / world_p.w).truncate()
                                     - self.camera.pos.to_vec())
                                 .normalize();
-                                let ray = Ray::new(self.camera.pos, dir, std::f32::INFINITY);
+                                let ray = Ray::new(self.camera.pos, dir, std::f64::INFINITY as Float);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }
-                        c /= samples_per_dir.pow(2) as f32;
+                        c /= samples_per_dir.pow(2) as Float;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
-                        block[pixel_i] = c.r;
-                        block[pixel_i + 1] = c.g;
-                        block[pixel_i + 2] = c.b;
+                        block[pixel_i] = c.r as f32;
+                        block[pixel_i + 1] = c.g as f32;
+                        block[pixel_i + 2] = c.b as f32;
                     }
                 }
                 self.result_tx
@@ -112,7 +114,7 @@ impl RenderWorker {
     fn trace_ray<'a>(
         &'a self,
         mut ray: Ray,
-        node_stack: &mut Vec<(&'a BVHNode, f32)>,
+        node_stack: &mut Vec<(&'a BVHNode, Float)>,
         bounce: u32,
     ) -> Color {
         let mut c = Color::black();
@@ -139,7 +141,7 @@ impl RenderWorker {
                 c += emissive * self.brdf(&hit, &ray, &shadow_ray, material) * cos_l * cos_t
                     / (hit_to_light.magnitude2() * light_pdf);
             }
-            let rr: f32 = rand::random();
+            let rr = rand::random::<Float>();
             if rr < RR_PROB {
                 let (new_dir, mut pdf) = self.sample_dir(normal);
                 pdf *= RR_PROB;
@@ -159,9 +161,9 @@ impl RenderWorker {
     }
 
     // TODO: this is slightly wrong?
-    fn sample_dir(&self, normal: Vector3<f32>) -> (Vector3<f32>, f32) {
-        let dir = 2.0 * PI * rand::random::<f32>();
-        let length: f32 = rand::random();
+    fn sample_dir(&self, normal: Vector3<Float>) -> (Vector3<Float>, Float) {
+        let dir = 2.0 * PI * rand::random::<Float>();
+        let length = rand::random::<Float>();
         let x = length * dir.cos();
         let y = length * dir.sin();
         let z = (1.0 - length.powi(2)).sqrt();
@@ -174,7 +176,7 @@ impl RenderWorker {
         (x * nx + y * ny + z * normal, z / PI)
     }
 
-    pub fn sample_light(&self) -> (Color, Point3<f32>, Vector3<f32>, f32) {
+    pub fn sample_light(&self) -> (Color, Point3<Float>, Vector3<Float>, Float) {
         if self.scene.lights.is_empty() {
             let light_intensity = 10.0 * self.camera.scale;
             (
@@ -186,7 +188,7 @@ impl RenderWorker {
         } else {
             let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
             let light = &self.scene.lights[i];
-            let pdf = 1.0 / (self.scene.lights.len() as f32 * light.area());
+            let pdf = 1.0 / (self.scene.lights.len() as Float * light.area());
             let (point, normal) = light.random_point();
             let emissive = light.material.emissive.expect("Light wasn't emissive");
             (emissive, point, normal, pdf)
@@ -196,11 +198,11 @@ impl RenderWorker {
     fn find_hit<'a>(
         &'a self,
         ray: &mut Ray,
-        node_stack: &mut Vec<(&'a BVHNode, f32)>,
+        node_stack: &mut Vec<(&'a BVHNode, Float)>,
     ) -> Option<Hit> {
         self.ray_count.fetch_add(1, Ordering::Relaxed);
         let bvh = self.scene.bvh.as_ref().unwrap();
-        node_stack.push((bvh.root(), 0.0f32));
+        node_stack.push((bvh.root(), 0.0));
         let mut closest_hit = None;
         while let Some((node, t)) = node_stack.pop() {
             // We've already found a closer hit

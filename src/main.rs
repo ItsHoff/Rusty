@@ -1,3 +1,4 @@
+#![feature(duration_float)]
 #![feature(euclidean_division)]
 #![feature(try_trait)]
 #![feature(tool_lints)]
@@ -29,6 +30,8 @@ use glium::Surface;
 use crate::gl_renderer::GLRenderer;
 use crate::input::InputState;
 use crate::pt_renderer::PTRenderer;
+
+type Float = f64;
 
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {

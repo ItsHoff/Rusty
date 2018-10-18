@@ -97,10 +97,10 @@ impl SceneLibrary {
 
 fn initialize_camera(scene: &Scene, info: &SceneInfo) -> Camera {
     let mut camera = match info.camera_pos {
-        CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0f32)),
+        CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0)),
         CameraPos::Offset => Camera::new(
-            scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0f32),
-            Vector3::new(0.0, 0.0, -1.0f32),
+            scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0),
+            Vector3::new(0.0, 0.0, -1.0),
         ),
     };
     camera.set_scale(scene.size());

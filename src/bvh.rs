@@ -3,6 +3,7 @@ use std::ops::Index;
 use cgmath::Point3;
 
 use crate::aabb::AABB;
+use crate::Float;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::stats;
 use crate::triangle::RTTriangle;
@@ -47,15 +48,15 @@ impl BVHNode {
     }
 }
 
-impl Intersect<'_, f32> for BVHNode {
-    fn intersect(&self, ray: &Ray) -> Option<f32> {
+impl Intersect<'_, Float> for BVHNode {
+    fn intersect(&self, ray: &Ray) -> Option<Float> {
         self.aabb.intersect(ray)
     }
 }
 
 struct Triangles<'a> {
     triangles: &'a [RTTriangle],
-    centers: &'a [Point3<f32>],
+    centers: &'a [Point3<Float>],
     indices: &'a mut [usize],
     aabb: AABB,
     /// Node contains indices [start_i, start_i + len) from the main indices array
@@ -67,7 +68,7 @@ struct Triangles<'a> {
 impl<'a> Triangles<'a> {
     fn new(
         triangles: &'a [RTTriangle],
-        centers: &'a [Point3<f32>],
+        centers: &'a [Point3<Float>],
         indices: &'a mut [usize],
         start_i: usize,
     ) -> Triangles<'a> {
@@ -141,10 +142,10 @@ pub struct BVH {
 impl BVH {
     pub fn build(triangles: &[RTTriangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
         stats::start_bvh();
-        let centers: Vec<Point3<f32>> = triangles.iter().map(|ref tri| tri.center()).collect();
+        let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();
         let tris = Triangles::new(triangles, &centers, &mut permutation, 0);
-        let mut nodes = Vec::with_capacity(f32::log2(triangles.len() as f32) as usize);
+        let mut nodes = Vec::with_capacity(Float::log2(triangles.len() as Float) as usize);
         nodes.push(BVHNode::new(&tris));
         let mut split_stack = vec![(0usize, tris)];
 
@@ -231,7 +232,7 @@ fn spatial_split(triangles: &mut Triangles) -> Option<usize> {
 }
 
 fn sah_split(triangles: &mut Triangles) -> Option<usize> {
-    let mut min_score = std::f32::MAX;
+    let mut min_score = std::f64::MAX as Float;
     let mut min_axis = 0;
     let mut min_i = 0;
     let sorted_axis = triangles.sorted_axis;
@@ -252,7 +253,7 @@ fn sah_split(triangles: &mut Triangles) -> Option<usize> {
         for i in 0..triangles.len() {
             left_bb.add_aabb(&triangles[i].aabb());
             let right_bb = &right_bbs[right_bbs.len() - 1 - i];
-            let score = i as f32 * left_bb.area() + (triangles.len() - i) as f32 * right_bb.area();
+            let score = i as Float * left_bb.area() + (triangles.len() - i) as Float * right_bb.area();
             if score < min_score {
                 min_score = score;
                 min_axis = axis;

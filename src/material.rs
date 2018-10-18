@@ -2,7 +2,6 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-use cgmath::conv::*;
 use cgmath::Point2;
 
 use glium::backend::Facade;
@@ -11,6 +10,7 @@ use glium::texture::{RawImage2d, SrgbTexture2d};
 use image::ImageFormat;
 
 use crate::color::Color;
+use crate::Float;
 use crate::obj_load;
 
 /// Material for CPU rendering
@@ -65,26 +65,27 @@ impl Material {
             None => SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!"),
         };
         GPUMaterial {
-            diffuse: array3(self.diffuse),
+            diffuse: [self.diffuse.r as f32, self.diffuse.g as f32, self.diffuse.b as f32],
             has_diffuse: self.diffuse_image.is_some(),
             diffuse_texture,
             has_emissive: self.emissive.is_some(),
         }
     }
 
-    pub fn diffuse(&self, tex_coords: Point2<f32>) -> Color {
+    #[allow(clippy::cast_lossless)]
+    pub fn diffuse(&self, tex_coords: Point2<Float>) -> Color {
         if let Some(tex) = &self.diffuse_image {
             let (width, height) = tex.dimensions();
-            let x = tex_coords.x.mod_euc(1.0) * (width - 1) as f32;
-            let y = (1.0 - tex_coords.y.mod_euc(1.0)) * (height - 1) as f32;
+            let x = tex_coords.x.mod_euc(1.0) * (width - 1) as Float;
+            let y = (1.0 - tex_coords.y.mod_euc(1.0)) * (height - 1) as Float;
             let x_fract = x.fract();
             let y_fract = y.fract();
-            let (left, right) = if x >= (width - 1) as f32 {
+            let (left, right) = if x >= (width - 1) as Float {
                 (width - 1, width - 1)
             } else {
                 (x.floor() as u32, x.ceil() as u32)
             };
-            let (top, bottom) = if y >= (height - 1) as f32 {
+            let (top, bottom) = if y >= (height - 1) as Float {
                 (height - 1, height - 1)
             } else {
                 (y.floor() as u32, y.ceil() as u32)

@@ -17,9 +17,10 @@ use glium::texture::{MipmapsOption, RawImage2d, Texture2d, UncompressedFloatForm
 use glium::{uniform, DrawParameters, IndexBuffer, Rect, Surface, VertexBuffer};
 
 use crate::camera::Camera;
+use crate::Float;
 use crate::scene::Scene;
 use crate::stats;
-use crate::vertex::Vertex;
+use crate::vertex::RawVertex;
 
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
@@ -31,16 +32,16 @@ pub trait Intersect<'a, H> {
 
 #[derive(Clone, Debug)]
 pub struct Ray {
-    pub orig: Point3<f32>,
-    pub dir: Vector3<f32>,
-    pub length: f32,
+    pub orig: Point3<Float>,
+    pub dir: Vector3<Float>,
+    pub length: Float,
     // For more efficient ray box intersections
-    pub reciprocal_dir: Vector3<f32>,
+    pub reciprocal_dir: Vector3<Float>,
     pub neg_dir: [bool; 3],
 }
 
 impl Ray {
-    fn new(orig: Point3<f32>, dir: Vector3<f32>, length: f32) -> Ray {
+    fn new(orig: Point3<Float>, dir: Vector3<Float>, length: Float) -> Ray {
         let reciprocal_dir = 1.0 / dir;
         let neg_dir = [dir.x < 0.0, dir.y < 0.0, dir.z < 0.0];
         Ray {
@@ -109,7 +110,7 @@ impl RenderCoordinator {
 
 struct PTVisualizer {
     shader: glium::Program,
-    vertex_buffer: VertexBuffer<Vertex>,
+    vertex_buffer: VertexBuffer<RawVertex>,
     index_buffer: IndexBuffer<u32>,
     texture: Texture2d,
 }
@@ -127,22 +128,22 @@ fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Tex
 impl PTVisualizer {
     fn new<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> PTVisualizer {
         let vertices = vec![
-            Vertex {
+            RawVertex {
                 pos: [-1.0, -1.0, 0.0],
                 normal: [0.0, 0.0, 0.0],
                 tex_coords: [0.0, 0.0],
             },
-            Vertex {
+            RawVertex {
                 pos: [1.0, -1.0, 0.0],
                 normal: [0.0, 0.0, 0.0],
                 tex_coords: [1.0, 0.0],
             },
-            Vertex {
+            RawVertex {
                 pos: [1.0, 1.0, 0.0],
                 normal: [0.0, 0.0, 0.0],
                 tex_coords: [1.0, 1.0],
             },
-            Vertex {
+            RawVertex {
                 pos: [-1.0, 1.0, 0.0],
                 normal: [0.0, 0.0, 0.0],
                 tex_coords: [0.0, 1.0],

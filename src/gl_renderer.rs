@@ -22,7 +22,7 @@ impl GLRenderer {
     }
 
     pub fn render<S: Surface>(&self, target: &mut S, scene: &GPUScene, camera: &Camera) {
-        let world_to_clip = camera.get_world_to_clip();
+        let world_to_clip = camera.world_to_clip_f32();
         let draw_parameters = DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,

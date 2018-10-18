@@ -9,13 +9,14 @@ use glium::VertexBuffer;
 
 use crate::aabb::AABB;
 use crate::bvh::{SplitMode, BVH};
+use crate::Float;
 use crate::index_ptr::IndexPtr;
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
 use crate::stats;
 use crate::triangle::{RTTriangle, RTTriangleBuilder};
-use crate::vertex::Vertex;
+use crate::vertex::{RawVertex, Vertex};
 
 pub struct SceneBuilder {
     split_mode: SplitMode,
@@ -62,7 +63,7 @@ pub struct Scene {
 pub struct GPUScene {
     pub meshes: Vec<GPUMesh>,
     pub materials: Vec<GPUMaterial>,
-    pub vertex_buffer: VertexBuffer<Vertex>,
+    pub vertex_buffer: VertexBuffer<RawVertex>,
 }
 
 impl Scene {
@@ -105,16 +106,15 @@ impl Scene {
                 let mut tri_builder = RTTriangleBuilder::new();
                 let planar_normal = calculate_normal(tri, &obj);
                 for index_vertex in &tri.index_vertices {
-                    let vertex = match vertex_map.get(index_vertex) {
+                    let vertex_i = match vertex_map.get(index_vertex) {
                         // Vertex has already been added
                         Some(&i) => {
                             mesh.indices.push(i as u32);
-                            &scene.vertices[i]
+                            i
                         }
                         None => {
                             let mut save = true;
                             let pos = obj.positions[index_vertex.pos_i];
-                            scene.aabb.add_point(&Point3::from(pos));
 
                             let tex_coords = match index_vertex.tex_i {
                                 Some(tex_i) => obj.tex_coords[tex_i],
@@ -135,18 +135,15 @@ impl Scene {
                             if save {
                                 vertex_map.insert(index_vertex, scene.vertices.len());
                             }
-                            scene.vertices.push(Vertex {
-                                pos,
-                                normal,
-                                tex_coords,
-                            });
-                            scene.vertices.last().unwrap()
+                            scene.vertices.push(Vertex::new(pos, normal, tex_coords));
+                            scene.vertices.len() - 1
                         }
                     };
-                    tri_builder.add_vertex(vertex.clone());
+                    tri_builder.add_vertex(scene.vertex_ptr(vertex_i));
                 }
                 let triangle = tri_builder.build(scene.material_ptr(material_i))
                     .expect("Failed to build tri!");
+                scene.aabb.add_aabb(&triangle.aabb());
                 scene.triangles.push(triangle);
             }
             if !mesh.indices.is_empty() {
@@ -180,8 +177,9 @@ impl Scene {
     /// Load the textures + vertex and index buffers to the GPU
     pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUScene {
         let _t = stats::time("Upload data");
+        let raw_vertices: Vec<RawVertex> = self.vertices.iter().map(|v| v.into()).collect();
         let vertex_buffer =
-            VertexBuffer::new(facade, &self.vertices).expect("Failed to create vertex buffer!");
+            VertexBuffer::new(facade, &raw_vertices).expect("Failed to create vertex buffer!");
         let mut meshes = Vec::new();
         let mut materials = Vec::new();
         for mesh in &self.meshes {
@@ -201,13 +199,17 @@ impl Scene {
         IndexPtr::new(&self.materials, i)
     }
 
+    fn vertex_ptr(&self, i: usize) -> IndexPtr<Vertex> {
+        IndexPtr::new(&self.vertices, i)
+    }
+
     /// Get the center of the scene as defined by the bounding box
-    pub fn center(&self) -> Point3<f32> {
+    pub fn center(&self) -> Point3<Float> {;
         self.aabb.center()
     }
 
     /// Get the approximate size of the scene
-    pub fn size(&self) -> f32 {
+    pub fn size(&self) -> Float {
         self.aabb.longest_edge()
     }
 }

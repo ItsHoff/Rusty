@@ -7,29 +7,30 @@ use cgmath::{Matrix3, Matrix4, Point3, Rad, Vector3};
 
 use glium::glutin::{MouseButton, VirtualKeyCode};
 
+use crate::Float;
 use crate::input::InputState;
 
 /// Representation of a camera
 #[derive(Clone)]
 pub struct Camera {
     /// Position of the camera in world coordinates
-    pub pos: Point3<f32>,
+    pub pos: Point3<Float>,
     /// Direction the camera is looking at in world coordinates
-    pub dir: Vector3<f32>,
+    pub dir: Vector3<Float>,
     /// Width of the viewport in pixels
     pub width: u32,
     /// Height of the viewport in pixels
     pub height: u32,
     /// Definition of camera up in world coordinates
-    up: Vector3<f32>,
+    up: Vector3<Float>,
     /// Vertical field-of-view of the camera
-    fov: Rad<f32>,
+    fov: Rad<Float>,
     /// Near plane of the camera
-    near: f32,
+    near: Float,
     /// Far plane of the camera
-    far: f32,
+    far: Float,
     /// Size of the scene
-    pub scale: f32,
+    pub scale: Float,
 }
 
 impl Default for Camera {
@@ -52,7 +53,7 @@ impl Default for Camera {
                 y: 1.0,
                 z: 0.0,
             },
-            fov: Rad(::std::f32::consts::PI / 3.0),
+            fov: Rad(std::f64::consts::PI as Float / 3.0),
             near: 0.001,
             far: 10.0,
             scale: 1.0,
@@ -61,7 +62,7 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn new(pos: Point3<f32>, dir: Vector3<f32>) -> Camera {
+    pub fn new(pos: Point3<Float>, dir: Vector3<Float>) -> Camera {
         Camera {
             pos,
             dir,
@@ -74,44 +75,58 @@ impl Camera {
         self.height = size.1;
     }
 
-    pub fn set_scale(&mut self, scale: f32) {
+    pub fn set_scale(&mut self, scale: Float) {
         self.scale = scale;
     }
 
     /// Get the world to camera transformation matrix
-    pub fn get_world_to_camera(&self) -> Matrix4<f32> {
+    fn world_to_camera(&self) -> Matrix4<Float> {
         Matrix4::from(self.get_rotation()) * Matrix4::from_translation(-self.pos.to_vec())
     }
 
     /// Get the camera to clip space transformation matrix
-    pub fn get_camera_to_clip(&self) -> Matrix4<f32> {
+    #[allow(clippy::cast_lossless)]
+    fn camera_to_clip(&self) -> Matrix4<Float> {
         cgmath::perspective(
             self.fov,
-            self.width as f32 / self.height as f32,
+            self.width as Float / self.height as Float,
             self.near * self.scale,
             self.far * self.scale,
         )
     }
 
     /// Get the combined world to clip transformation
-    pub fn get_world_to_clip(&self) -> Matrix4<f32> {
-        self.get_camera_to_clip() * self.get_world_to_camera()
+    pub fn world_to_clip(&self) -> Matrix4<Float> {
+        self.camera_to_clip() * self.world_to_camera()
+    }
+
+    pub fn world_to_clip_f32(&self) -> Matrix4<f32> {
+        // Matrix4::from(self.get_rotation()) *
+        let t = -Vector3::new(self.pos.x as f32, self.pos.y as f32, self.pos.z as f32);
+        let world_to_camera = Matrix4::from_translation(t);
+        let camera_to_clip = cgmath::perspective(
+            Rad(self.fov.0 as f32),
+            self.width as f32 / self.height as f32,
+            (self.near * self.scale) as f32,
+            (self.far * self.scale) as f32,
+        );
+        camera_to_clip * world_to_camera
     }
 
     /// Get the camera rotation matrix
-    fn get_rotation(&self) -> Matrix3<f32> {
+    fn get_rotation(&self) -> Matrix3<Float> {
         Matrix3::look_at(-self.dir, self.up)
     }
 
     /// Get the speed of the camera based on the duration of the input
-    fn get_speed(dt: Duration) -> f32 {
+    fn get_speed(dt: Duration) -> Float {
         // Use tanh acceleration curve
-        let x = dt.as_secs() as f32 + dt.subsec_nanos() as f32 / 1e9 - 2.0;
+        let x = dt.as_float_secs() as Float - 2.0;
         x.tanh() + 1.05
     }
 
     /// Helper function to move the camera to the given direction
-    fn translate(&mut self, local_dir: Vector3<f32>, distance: f32) {
+    fn translate(&mut self, local_dir: Vector3<Float>, distance: Float) {
         let inverse_rotation = self
             .get_rotation()
             .invert()
@@ -121,7 +136,7 @@ impl Camera {
     }
 
     /// Helper function to rotate the camera around the given axis
-    fn rotate(&mut self, local_axis: Vector3<f32>, angle: Rad<f32>) {
+    fn rotate(&mut self, local_axis: Vector3<Float>, angle: Rad<Float>) {
         let inverse_rotation = self
             .get_rotation()
             .invert()
@@ -133,7 +148,7 @@ impl Camera {
     /// Move camera based on input event
     pub fn process_input(&mut self, input: &InputState) {
         let dt = input.last_reset.elapsed();
-        let time_scale = (dt.as_secs() as f32 * 1e9 + dt.subsec_nanos() as f32) / 1e8;
+        let time_scale = 10.0 * dt.as_float_secs() as Float;
         for (key, t) in &input.key_presses {
             let t_press = t.elapsed(); // Length of the key press
             let move_speed =
@@ -160,8 +175,8 @@ impl Camera {
             // Rotate camera while holding left mouse button
             if let MouseButton::Left = *button {
                 let (dx, dy) = input.d_mouse;
-                self.rotate(-Vector3::unit_y(), Rad(dx as f32 / 250.0));
-                self.rotate(-Vector3::unit_x(), Rad(dy as f32 / 250.0));
+                self.rotate(-Vector3::unit_y(), Rad(dx as Float / 250.0));
+                self.rotate(-Vector3::unit_x(), Rad(dy as Float / 250.0));
             }
         }
     }
