@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::vec::Vec;
+use std::sync::Arc;
 
 use cgmath::Point3;
 
@@ -9,12 +9,42 @@ use glium::VertexBuffer;
 
 use crate::aabb::AABB;
 use crate::bvh::{SplitMode, BVH};
+use crate::index_ptr::IndexPtr;
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
 use crate::stats;
 use crate::triangle::{RTTriangle, RTTriangleBuilder};
 use crate::vertex::Vertex;
+
+pub struct SceneBuilder {
+    split_mode: SplitMode,
+}
+
+impl SceneBuilder {
+    pub fn new() -> Self {
+        Self {
+            split_mode: SplitMode::SAH,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn with_bvh(&mut self, split_mode: SplitMode) -> &mut Self {
+        self.split_mode = split_mode;
+        self
+    }
+
+    pub fn build(&self, scene_file: &Path) -> Arc<Scene> {
+        let obj = obj_load::load_obj(scene_file)
+            .unwrap_or_else(|err| panic!("Failed to load scene {:?}: {}", scene_file, err));
+        let mut arc_scene = Scene::from_obj(&obj);
+        let scene = Arc::get_mut(&mut arc_scene).unwrap();
+        scene.build_bvh(self.split_mode);
+        // Lights need to be constructed after bvh build
+        scene.construct_lights();
+        arc_scene
+    }
+}
 
 /// Scene containing all the CPU resources
 pub struct Scene {
@@ -24,10 +54,11 @@ pub struct Scene {
     pub triangles: Vec<RTTriangle>,
     pub lights: Vec<RTTriangle>,
     pub aabb: AABB,
-    pub bvh: BVH,
+    pub bvh: Option<BVH>,
 }
 
-/// Scene containing minimum resources for GPU rendering
+/// Scene containing resources for GPU rendering
+// Separate from Scene because GPU resources are not thread safe
 pub struct GPUScene {
     pub meshes: Vec<GPUMesh>,
     pub materials: Vec<GPUMaterial>,
@@ -35,18 +66,23 @@ pub struct GPUScene {
 }
 
 impl Scene {
-    pub fn new(scene_path: &Path) -> Scene {
-        let obj = obj_load::load_obj(scene_path)
-            .unwrap_or_else(|err| panic!("Failed to load scene {:?}: {}", scene_path, err));
+    fn empty() -> Arc<Self> {
+        Arc::new( Self {
+            vertices: Vec::new(),
+            meshes: Vec::new(),
+            materials: Vec::new(),
+            triangles: Vec::new(),
+            lights: Vec::new(),
+            aabb: AABB::empty(),
+            bvh: None,
+        })
+    }
 
-        let mut vertices = Vec::new();
-        let mut meshes = Vec::new();
-        let mut materials = Vec::new();
-        let mut triangles = Vec::new();
-        let mut lights = Vec::new();
-        let mut aabb = AABB::empty();
+    pub fn from_obj(obj: &obj_load::Object) -> Arc<Self> {
+        let _t = stats::time("Convert");
 
-        // Group the polygons by materials for easy rendering
+        let mut arc_scene = Self::empty();
+        let scene = Arc::get_mut(&mut arc_scene).unwrap();
         let mut vertex_map = HashMap::new();
         let mut material_map = HashMap::new();
         for range in &obj.material_ranges {
@@ -58,28 +94,27 @@ impl Scene {
                         .get(&range.name)
                         .unwrap_or_else(|| panic!("Couldn't find material {}!", range.name));
                     let material = Material::new(obj_mat);
-                    let i = materials.len();
-                    materials.push(material);
+                    let i = scene.materials.len();
+                    scene.materials.push(material);
                     material_map.insert(&range.name, i);
                     i
                 }
             };
-            let material = &materials[material_i];
             let mut mesh = Mesh::new(material_i);
             for tri in &obj.triangles[range.start_i..range.end_i] {
                 let mut tri_builder = RTTriangleBuilder::new();
+                let planar_normal = calculate_normal(tri, &obj);
                 for index_vertex in &tri.index_vertices {
-                    let planar_normal = calculate_normal(tri, &obj);
-                    match vertex_map.get(index_vertex) {
+                    let vertex = match vertex_map.get(index_vertex) {
                         // Vertex has already been added
                         Some(&i) => {
                             mesh.indices.push(i as u32);
-                            tri_builder.add_vertex(vertices[i]);
+                            &scene.vertices[i]
                         }
                         None => {
-                            let mut cache = true;
+                            let mut save = true;
                             let pos = obj.positions[index_vertex.pos_i];
-                            aabb.add_point(&Point3::from(pos));
+                            scene.aabb.add_point(&Point3::from(pos));
 
                             let tex_coords = match index_vertex.tex_i {
                                 Some(tex_i) => obj.tex_coords[tex_i],
@@ -88,47 +123,57 @@ impl Scene {
                             let normal = match index_vertex.normal_i {
                                 Some(normal_i) => obj.normals[normal_i],
                                 None => {
-                                    // Don't cache vertices without normals.
+                                    // Don't save vertices without normals.
                                     // Otherwise the first tri defines the normal
-                                    // for remaining uses of the vertex.
-                                    cache = false;
+                                    // for all remaining uses of the vertex.
+                                    save = false;
                                     planar_normal
                                 }
                             };
 
-                            mesh.indices.push(vertices.len() as u32);
-                            if cache {
-                                vertex_map.insert(index_vertex, vertices.len());
+                            mesh.indices.push(scene.vertices.len() as u32);
+                            if save {
+                                vertex_map.insert(index_vertex, scene.vertices.len());
                             }
-                            vertices.push(Vertex {
+                            scene.vertices.push(Vertex {
                                 pos,
                                 normal,
                                 tex_coords,
                             });
-                            tri_builder.add_vertex(*vertices.last().unwrap());
+                            scene.vertices.last().unwrap()
                         }
-                    }
+                    };
+                    tri_builder.add_vertex(vertex.clone());
                 }
-                let triangle = tri_builder.build(material_i).expect("Failed to build tri!");
-                if material.emissive.is_some() {
-                    lights.push(triangle.clone());
-                }
-                triangles.push(triangle);
+                let triangle = tri_builder.build(scene.material_ptr(material_i))
+                    .expect("Failed to build tri!");
+                scene.triangles.push(triangle);
             }
             if !mesh.indices.is_empty() {
-                meshes.push(mesh);
+                scene.meshes.push(mesh);
             }
         }
-        let (bvh, permutation) = BVH::build(&triangles, SplitMode::SAH);
-        triangles = permutation.iter().map(|i| triangles[*i].clone()).collect();
-        Scene {
-            vertices,
-            meshes,
-            materials,
-            triangles,
-            lights,
-            aabb,
-            bvh,
+        arc_scene
+    }
+
+    // Warning: this will reorder triangles!
+    fn build_bvh(&mut self, split_mode: SplitMode) {
+        let (bvh, permutation) = BVH::build(&self.triangles, split_mode);
+        self.bvh = Some(bvh);
+        self.triangles = permutation.iter().map(|i| self.triangles[*i].clone()).collect();
+    }
+
+    // Should be called after BVH build
+    fn construct_lights(&mut self) {
+        let _t = stats::time("Lights");
+        if self.bvh.is_none() {
+            println!("Constructing lights when there is no bvh!");
+        }
+        for tri in &self.triangles {
+            let material = &tri.material;
+            if material.emissive.is_some() {
+                self.lights.push(tri.clone());
+            }
         }
     }
 
@@ -150,6 +195,10 @@ impl Scene {
             materials,
             vertex_buffer,
         }
+    }
+
+    fn material_ptr(&self, i: usize) -> IndexPtr<Material> {
+        IndexPtr::new(&self.materials, i)
     }
 
     /// Get the center of the scene as defined by the bounding box

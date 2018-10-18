@@ -8,7 +8,7 @@ use glium::backend::Facade;
 use glium::glutin::VirtualKeyCode;
 
 use crate::camera::Camera;
-use crate::scene::{GPUScene, Scene};
+use crate::scene::{GPUScene, Scene, SceneBuilder};
 use crate::stats;
 
 lazy_static::lazy_static! {
@@ -95,10 +95,7 @@ impl SceneLibrary {
     }
 }
 
-pub fn load_cpu_scene(name: &str) -> (Arc<Scene>, Camera) {
-    let _t = stats::time("Load");
-    let info = SCENE_LIBRARY.get(name).unwrap();
-    let scene = Scene::new(&info.path);
+fn initialize_camera(scene: &Scene, info: &SceneInfo) -> Camera {
     let mut camera = match info.camera_pos {
         CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0f32)),
         CameraPos::Offset => Camera::new(
@@ -108,7 +105,16 @@ pub fn load_cpu_scene(name: &str) -> (Arc<Scene>, Camera) {
     };
     camera.set_scale(scene.size());
     camera.update_viewport((600, 400));
-    (Arc::new(scene), camera)
+    camera
+}
+
+pub fn load_cpu_scene(name: &str) -> (Arc<Scene>, Camera) {
+    let _t = stats::time("Load");
+    let info = SCENE_LIBRARY.get(name).unwrap();
+    let scene = SceneBuilder::new()
+        .build(&info.path);
+    let camera = initialize_camera(&scene, &info);
+    (scene, camera)
 }
 
 pub fn load_gpu_scene<F: Facade>(

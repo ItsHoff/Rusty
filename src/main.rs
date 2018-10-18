@@ -7,6 +7,7 @@ mod bvh;
 mod camera;
 mod color;
 mod gl_renderer;
+mod index_ptr;
 mod input;
 mod material;
 mod mesh;

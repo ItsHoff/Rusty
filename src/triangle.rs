@@ -4,6 +4,8 @@ use cgmath::{Matrix4, Point2, Point3, Vector3};
 use rand;
 
 use crate::aabb::{self, AABB};
+use crate::index_ptr::IndexPtr;
+use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::vertex::{CGVertex, Vertex};
 
@@ -23,7 +25,7 @@ impl RTTriangleBuilder {
         self.vertices.push(vertex);
     }
 
-    pub fn build(self, material_i: usize) -> Result<RTTriangle, String> {
+    pub fn build(self, material: IndexPtr<Material>) -> Result<RTTriangle, String> {
         if self.vertices.len() != 3 {
             Err("Triangle doesn't have 3 vertices!".to_owned())
         } else {
@@ -31,7 +33,7 @@ impl RTTriangleBuilder {
                 CGVertex::from(self.vertices[0]),
                 CGVertex::from(self.vertices[1]),
                 CGVertex::from(self.vertices[2]),
-                material_i,
+                material,
             ))
         }
     }
@@ -44,11 +46,11 @@ pub struct RTTriangle {
     v2: CGVertex,
     v3: CGVertex,
     to_barycentric: Matrix4<f32>,
-    pub material_i: usize,
+    pub material: IndexPtr<Material>,
 }
 
 impl RTTriangle {
-    fn new(v1: CGVertex, v2: CGVertex, v3: CGVertex, material_i: usize) -> RTTriangle {
+    fn new(v1: CGVertex, v2: CGVertex, v3: CGVertex, material: IndexPtr<Material>) -> RTTriangle {
         let p1 = v1.pos;
         let p2 = v2.pos;
         let p3 = v3.pos;
@@ -67,7 +69,7 @@ impl RTTriangle {
             v2,
             v3,
             to_barycentric,
-            material_i,
+            material,
         }
     }
 

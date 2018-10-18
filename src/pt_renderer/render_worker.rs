@@ -117,7 +117,7 @@ impl RenderWorker {
     ) -> Color {
         let mut c = Color::black();
         if let Some(hit) = self.find_hit(&mut ray, node_stack) {
-            let material = &self.scene.materials[hit.tri.material_i];
+            let material = &hit.tri.material;
             let mut normal = hit.normal();
             // Flip the normal if its pointing to the opposite side from the hit
             if normal.dot(ray.dir) > 0.0 {
@@ -188,8 +188,7 @@ impl RenderWorker {
             let light = &self.scene.lights[i];
             let pdf = 1.0 / (self.scene.lights.len() as f32 * light.area());
             let (point, normal) = light.random_point();
-            let light_material = &self.scene.materials[light.material_i];
-            let emissive = light_material.emissive.expect("Light wasn't emissive");
+            let emissive = light.material.emissive.expect("Light wasn't emissive");
             (emissive, point, normal, pdf)
         }
     }
@@ -200,7 +199,7 @@ impl RenderWorker {
         node_stack: &mut Vec<(&'a BVHNode, f32)>,
     ) -> Option<Hit> {
         self.ray_count.fetch_add(1, Ordering::Relaxed);
-        let bvh = &self.scene.bvh;
+        let bvh = self.scene.bvh.as_ref().unwrap();
         node_stack.push((bvh.root(), 0.0f32));
         let mut closest_hit = None;
         while let Some((node, t)) = node_stack.pop() {
