@@ -6,6 +6,25 @@ use std::time::{Duration, Instant};
 use prettytable::{cell, Row, Table};
 
 use crate::bvh::BVH;
+use crate::Float;
+
+// Helper trait to print out Float type used
+trait FloatName {
+    fn float_name() -> String;
+}
+
+impl FloatName for f32 {
+    fn float_name() -> String {
+        "f32".to_string()
+    }
+}
+
+impl FloatName for f64 {
+    fn float_name() -> String {
+        "f64".to_string()
+    }
+}
+
 
 lazy_static::lazy_static! {
     static ref STATS: Mutex<Statistics> = Mutex::new(Statistics::new());
@@ -82,7 +101,7 @@ impl Statistics {
     }
 
     fn table(&self) -> Table {
-        let mut names = vec![cell!("")];
+        let mut names = vec![cell!(Float::float_name())];
         let mut timer_rows = Vec::new();
         let mut mrps = vec![cell!("Mrays/s")];
         let mut n_tris = vec![cell!("Triangles")];
