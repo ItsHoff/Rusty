@@ -17,10 +17,10 @@ use glium::texture::{MipmapsOption, RawImage2d, Texture2d, UncompressedFloatForm
 use glium::{uniform, DrawParameters, IndexBuffer, Rect, Surface, VertexBuffer};
 
 use crate::camera::Camera;
-use crate::Float;
 use crate::scene::Scene;
 use crate::stats;
 use crate::vertex::RawVertex;
+use crate::Float;
 
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;

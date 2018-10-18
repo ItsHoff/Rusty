@@ -9,7 +9,6 @@ use glium::VertexBuffer;
 
 use crate::aabb::AABB;
 use crate::bvh::{SplitMode, BVH};
-use crate::Float;
 use crate::index_ptr::IndexPtr;
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
@@ -17,6 +16,7 @@ use crate::obj_load;
 use crate::stats;
 use crate::triangle::{RTTriangle, RTTriangleBuilder};
 use crate::vertex::{RawVertex, Vertex};
+use crate::Float;
 
 pub struct SceneBuilder {
     split_mode: SplitMode,
@@ -68,7 +68,7 @@ pub struct GPUScene {
 
 impl Scene {
     fn empty() -> Arc<Self> {
-        Arc::new( Self {
+        Arc::new(Self {
             vertices: Vec::new(),
             meshes: Vec::new(),
             materials: Vec::new(),
@@ -141,7 +141,8 @@ impl Scene {
                     };
                     tri_builder.add_vertex(scene.vertex_ptr(vertex_i));
                 }
-                let triangle = tri_builder.build(scene.material_ptr(material_i))
+                let triangle = tri_builder
+                    .build(scene.material_ptr(material_i))
                     .expect("Failed to build tri!");
                 scene.aabb.add_aabb(&triangle.aabb());
                 scene.triangles.push(triangle);
@@ -157,7 +158,10 @@ impl Scene {
     fn build_bvh(&mut self, split_mode: SplitMode) {
         let (bvh, permutation) = BVH::build(&self.triangles, split_mode);
         self.bvh = Some(bvh);
-        self.triangles = permutation.iter().map(|i| self.triangles[*i].clone()).collect();
+        self.triangles = permutation
+            .iter()
+            .map(|i| self.triangles[*i].clone())
+            .collect();
     }
 
     // Should be called after BVH build
@@ -204,7 +208,7 @@ impl Scene {
     }
 
     /// Get the center of the scene as defined by the bounding box
-    pub fn center(&self) -> Point3<Float> {;
+    pub fn center(&self) -> Point3<Float> {
         self.aabb.center()
     }
 

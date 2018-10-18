@@ -13,11 +13,11 @@ use rand::{self, prelude::*};
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
-use crate::Float;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
 use crate::triangle::Hit;
+use crate::Float;
 
 const PI: Float = std::f64::consts::PI as Float;
 // TODO: tune EPSILON since crytek-sponza has shadow acne
@@ -78,10 +78,10 @@ impl RenderWorker {
                         let mut c = Color::black();
                         for j in 0..samples_per_dir {
                             for i in 0..samples_per_dir {
-                                let dx =
-                                    (i as Float + rand::random::<Float>()) / samples_per_dir as Float;
-                                let dy =
-                                    (j as Float + rand::random::<Float>()) / samples_per_dir as Float;
+                                let dx = (i as Float + rand::random::<Float>())
+                                    / samples_per_dir as Float;
+                                let dy = (j as Float + rand::random::<Float>())
+                                    / samples_per_dir as Float;
                                 let clip_x =
                                     2.0 * ((rect.left + w) as Float + dx) / width as Float - 1.0;
                                 let clip_y =
@@ -91,7 +91,8 @@ impl RenderWorker {
                                 let dir = ((world_p / world_p.w).truncate()
                                     - self.camera.pos.to_vec())
                                 .normalize();
-                                let ray = Ray::new(self.camera.pos, dir, std::f64::INFINITY as Float);
+                                let ray =
+                                    Ray::new(self.camera.pos, dir, std::f64::INFINITY as Float);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }

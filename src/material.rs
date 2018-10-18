@@ -10,8 +10,8 @@ use glium::texture::{RawImage2d, SrgbTexture2d};
 use image::ImageFormat;
 
 use crate::color::Color;
-use crate::Float;
 use crate::obj_load;
+use crate::Float;
 
 /// Material for CPU rendering
 #[derive(Clone, Debug)]
@@ -65,7 +65,11 @@ impl Material {
             None => SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!"),
         };
         GPUMaterial {
-            diffuse: [self.diffuse.r as f32, self.diffuse.g as f32, self.diffuse.b as f32],
+            diffuse: [
+                self.diffuse.r as f32,
+                self.diffuse.g as f32,
+                self.diffuse.b as f32,
+            ],
             has_diffuse: self.diffuse_image.is_some(),
             diffuse_texture,
             has_emissive: self.emissive.is_some(),

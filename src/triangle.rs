@@ -5,10 +5,10 @@ use rand;
 
 use crate::aabb::{self, AABB};
 use crate::index_ptr::IndexPtr;
-use crate::Float;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::vertex::Vertex;
+use crate::Float;
 
 #[derive(Default)]
 pub struct RTTriangleBuilder {
@@ -51,10 +51,11 @@ pub struct RTTriangle {
 }
 
 impl RTTriangle {
-    fn new(v1: IndexPtr<Vertex>,
-           v2: IndexPtr<Vertex>,
-           v3: IndexPtr<Vertex>,
-           material: IndexPtr<Material>
+    fn new(
+        v1: IndexPtr<Vertex>,
+        v2: IndexPtr<Vertex>,
+        v3: IndexPtr<Vertex>,
+        material: IndexPtr<Material>,
     ) -> RTTriangle {
         let p1 = v1.p;
         let p2 = v2.p;

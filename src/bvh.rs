@@ -3,10 +3,10 @@ use std::ops::Index;
 use cgmath::Point3;
 
 use crate::aabb::AABB;
-use crate::Float;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::stats;
 use crate::triangle::RTTriangle;
+use crate::Float;
 
 const MAX_LEAF_SIZE: usize = 8;
 
@@ -253,7 +253,8 @@ fn sah_split(triangles: &mut Triangles) -> Option<usize> {
         for i in 0..triangles.len() {
             left_bb.add_aabb(&triangles[i].aabb());
             let right_bb = &right_bbs[right_bbs.len() - 1 - i];
-            let score = i as Float * left_bb.area() + (triangles.len() - i) as Float * right_bb.area();
+            let score =
+                i as Float * left_bb.area() + (triangles.len() - i) as Float * right_bb.area();
             if score < min_score {
                 min_score = score;
                 min_axis = axis;
