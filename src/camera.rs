@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use cgmath;
 use cgmath::prelude::*;
-use cgmath::{Matrix3, Matrix4, Point3, Rad, Vector3};
+use cgmath::{Matrix4, Point3, Quaternion, Rad, Vector3};
 
 use glium::glutin::{MouseButton, VirtualKeyCode};
 
@@ -15,14 +15,12 @@ use crate::Float;
 pub struct Camera {
     /// Position of the camera in world coordinates
     pub pos: Point3<Float>,
-    /// Direction the camera is looking at in world coordinates
-    pub dir: Vector3<Float>,
+    /// Rotation of the camera
+    pub rot: Quaternion<Float>,
     /// Width of the viewport in pixels
     pub width: u32,
     /// Height of the viewport in pixels
     pub height: u32,
-    /// Definition of camera up in world coordinates
-    up: Vector3<Float>,
     /// Vertical field-of-view of the camera
     fov: Rad<Float>,
     /// Near plane of the camera
@@ -36,23 +34,10 @@ pub struct Camera {
 impl Default for Camera {
     fn default() -> Camera {
         Camera {
-            pos: Point3 {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
-            },
-            dir: Vector3 {
-                x: 0.0,
-                y: 0.0,
-                z: 1.0,
-            },
+            pos: Point3::origin(),
+            rot: Quaternion::one(),
             width: 0,
             height: 0,
-            up: Vector3 {
-                x: 0.0,
-                y: 1.0,
-                z: 0.0,
-            },
             fov: Rad(std::f64::consts::PI as Float / 3.0),
             near: 0.001,
             far: 10.0,
@@ -62,10 +47,10 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn new(pos: Point3<Float>, dir: Vector3<Float>) -> Camera {
+    pub fn new(pos: Point3<Float>, rot: Quaternion<Float>) -> Camera {
         Camera {
             pos,
-            dir,
+            rot,
             ..Default::default()
         }
     }
@@ -81,7 +66,7 @@ impl Camera {
 
     /// Get the world to camera transformation matrix
     fn world_to_camera(&self) -> Matrix4<Float> {
-        Matrix4::from(self.get_rotation()) * Matrix4::from_translation(-self.pos.to_vec())
+        Matrix4::from(self.rot.invert()) * Matrix4::from_translation(-self.pos.to_vec())
     }
 
     /// Get the camera to clip space transformation matrix
@@ -101,9 +86,16 @@ impl Camera {
     }
 
     pub fn world_to_clip_f32(&self) -> Matrix4<f32> {
-        // Matrix4::from(self.get_rotation()) *
+        let rot = Quaternion::new(
+            self.rot.s as f32,
+            self.rot.v.x as f32,
+            self.rot.v.y as f32,
+            self.rot.v.z as f32,
+        )
+        .invert();
+        let rot_m = Matrix4::from(rot);
         let t = -Vector3::new(self.pos.x as f32, self.pos.y as f32, self.pos.z as f32);
-        let world_to_camera = Matrix4::from_translation(t);
+        let world_to_camera = rot_m * Matrix4::from_translation(t);
         let camera_to_clip = cgmath::perspective(
             Rad(self.fov.0 as f32),
             self.width as f32 / self.height as f32,
@@ -113,9 +105,9 @@ impl Camera {
         camera_to_clip * world_to_camera
     }
 
-    /// Get the camera rotation matrix
-    fn get_rotation(&self) -> Matrix3<Float> {
-        Matrix3::look_at(-self.dir, self.up)
+    /// Get the forward axis of the camera in the world frame
+    pub fn forward(&self) -> Vector3<Float> {
+        self.rot.rotate_vector(-Vector3::unit_z())
     }
 
     /// Get the speed of the camera based on the duration of the input
@@ -127,22 +119,28 @@ impl Camera {
 
     /// Helper function to move the camera to the given direction
     fn translate(&mut self, local_dir: Vector3<Float>, distance: Float) {
-        let inverse_rotation = self
-            .get_rotation()
-            .invert()
-            .expect("Non invertable camera rotation!");
-        let movement = distance * inverse_rotation * local_dir;
+        let movement = distance * self.rot.rotate_vector(local_dir);
         self.pos += movement;
     }
 
-    /// Helper function to rotate the camera around the given axis
-    fn rotate(&mut self, local_axis: Vector3<Float>, angle: Rad<Float>) {
-        let inverse_rotation = self
-            .get_rotation()
-            .invert()
-            .expect("Non invertable camera rotation!");
-        let axis = inverse_rotation * local_axis;
-        self.dir = Matrix3::from_axis_angle(axis, angle) * self.dir;
+    /// Helper function to rotate the camera around local x-axis
+    fn rotate_x(&mut self, angle: Rad<Float>) {
+        let d_rot = Quaternion::from_angle_x(angle);
+        let new_rot = self.rot * d_rot;
+        // Make sure that the rotation doesn't flip y-axis
+        if new_rot
+            .rotate_vector(Vector3::unit_y())
+            .dot(Vector3::unit_y())
+            > 0.0
+        {
+            self.rot = new_rot;
+        }
+    }
+
+    /// Helper function to rotate the camera around global y-axis
+    fn rotate_y(&mut self, angle: Rad<Float>) {
+        let d_rot = Quaternion::from_angle_y(angle);
+        self.rot = d_rot * self.rot;
     }
 
     /// Move camera based on input event
@@ -151,23 +149,22 @@ impl Camera {
         let time_scale = 10.0 * dt.as_float_secs() as Float;
         for (key, t) in &input.key_presses {
             let t_press = t.elapsed(); // Length of the key press
-            let move_speed =
-                time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);
-            let rotation_speed = 3.0 * time_scale * Self::get_speed(t_press);
+            let d_pos = time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);
+            let angle = Rad(3.0 * time_scale * Self::get_speed(t_press));
             match *key {
                 // Move with wasd + e, q for up and down
-                VirtualKeyCode::W => self.translate(-Vector3::unit_z(), move_speed),
-                VirtualKeyCode::S => self.translate(Vector3::unit_z(), move_speed),
-                VirtualKeyCode::A => self.translate(-Vector3::unit_x(), move_speed),
-                VirtualKeyCode::D => self.translate(Vector3::unit_x(), move_speed),
-                VirtualKeyCode::Q => self.translate(-Vector3::unit_y(), move_speed),
-                VirtualKeyCode::E => self.translate(Vector3::unit_y(), move_speed),
+                VirtualKeyCode::W => self.translate(-Vector3::unit_z(), d_pos),
+                VirtualKeyCode::S => self.translate(Vector3::unit_z(), d_pos),
+                VirtualKeyCode::A => self.translate(-Vector3::unit_x(), d_pos),
+                VirtualKeyCode::D => self.translate(Vector3::unit_x(), d_pos),
+                VirtualKeyCode::Q => self.translate(-Vector3::unit_y(), d_pos),
+                VirtualKeyCode::E => self.translate(Vector3::unit_y(), d_pos),
 
                 // Rotate with arrow keys
-                VirtualKeyCode::Up => self.rotate(Vector3::unit_x(), Rad(rotation_speed)),
-                VirtualKeyCode::Down => self.rotate(-Vector3::unit_x(), Rad(rotation_speed)),
-                VirtualKeyCode::Left => self.rotate(Vector3::unit_y(), Rad(rotation_speed)),
-                VirtualKeyCode::Right => self.rotate(-Vector3::unit_y(), Rad(rotation_speed)),
+                VirtualKeyCode::Up => self.rotate_x(angle),
+                VirtualKeyCode::Down => self.rotate_x(-angle),
+                VirtualKeyCode::Left => self.rotate_y(angle),
+                VirtualKeyCode::Right => self.rotate_y(-angle),
                 _ => (),
             }
         }
@@ -175,8 +172,8 @@ impl Camera {
             // Rotate camera while holding left mouse button
             if let MouseButton::Left = *button {
                 let (dx, dy) = input.d_mouse;
-                self.rotate(-Vector3::unit_y(), Rad(dx as Float / 250.0));
-                self.rotate(-Vector3::unit_x(), Rad(dy as Float / 250.0));
+                self.rotate_y(-Rad(dx as Float / 250.0));
+                self.rotate_x(-Rad(dy as Float / 250.0));
             }
         }
     }

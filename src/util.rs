@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use cgmath::Vector3;
+use cgmath::prelude::*;
+use cgmath::{Quaternion, Vector3};
 
 use glium::backend::Facade;
 use glium::glutin::VirtualKeyCode;
@@ -97,10 +98,10 @@ impl SceneLibrary {
 
 fn initialize_camera(scene: &Scene, info: &SceneInfo) -> Camera {
     let mut camera = match info.camera_pos {
-        CameraPos::Center => Camera::new(scene.center(), Vector3::new(0.0, 0.0, -1.0)),
+        CameraPos::Center => Camera::new(scene.center(), Quaternion::one()),
         CameraPos::Offset => Camera::new(
             scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0),
-            Vector3::new(0.0, 0.0, -1.0),
+            Quaternion::one(),
         ),
     };
     camera.set_scale(scene.size());

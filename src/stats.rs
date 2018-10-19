@@ -25,7 +25,6 @@ impl FloatName for f64 {
     }
 }
 
-
 lazy_static::lazy_static! {
     static ref STATS: Mutex<Statistics> = Mutex::new(Statistics::new());
 }

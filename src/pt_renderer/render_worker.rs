@@ -183,7 +183,7 @@ impl RenderWorker {
             (
                 light_intensity * Color::white(),
                 self.camera.pos,
-                self.camera.dir,
+                self.camera.forward(),
                 1.0,
             )
         } else {
