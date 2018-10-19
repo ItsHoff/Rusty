@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use cgmath::prelude::*;
-use cgmath::{Quaternion, Vector3};
+use cgmath::{Point3, Quaternion, Vector3};
 
 use glium::backend::Facade;
 use glium::glutin::VirtualKeyCode;
@@ -11,6 +11,7 @@ use glium::glutin::VirtualKeyCode;
 use crate::camera::Camera;
 use crate::scene::{GPUScene, Scene, SceneBuilder};
 use crate::stats;
+use crate::Float;
 
 lazy_static::lazy_static! {
     static ref SCENE_LIBRARY: SceneLibrary = {
@@ -21,7 +22,9 @@ lazy_static::lazy_static! {
                       CameraPos::Offset, Some(VirtualKeyCode::Key1));
         lib.add_scene("chesterfield".to_string(),
                       scene_dir.join("cornell").join("cornell_chesterfield.obj"),
-                      CameraPos::Center, Some(VirtualKeyCode::Key2));
+                      CameraPos::Defined(Point3::new(-0.74, 0.4, 0.97),
+                                         Quaternion::new(0.95, -0.15, -0.28, -0.04)),
+                      Some(VirtualKeyCode::Key2));
         lib.add_scene("cornell".to_string(),
                       scene_dir.join("cornell-box").join("CornellBox-Original.obj"),
                       CameraPos::Offset, Some(VirtualKeyCode::Key3));
@@ -33,26 +36,36 @@ lazy_static::lazy_static! {
                       CameraPos::Offset, Some(VirtualKeyCode::Key5));
         lib.add_scene("indirect".to_string(),
                       scene_dir.join("indirect-test").join("indirect-test_tex.obj"),
-                      CameraPos::Center, Some(VirtualKeyCode::Key6));
+                      CameraPos::Defined(Point3::new(0.43, 0.45, 0.8),
+                                         Quaternion::new(0.98, -0.01, 0.18, 0.0)),
+                      Some(VirtualKeyCode::Key6));
         lib.add_scene("conference".to_string(),
                       scene_dir.join("conference-new").join("conference.obj"),
-                      CameraPos::Center, Some(VirtualKeyCode::Key7));
+                      CameraPos::Defined(Point3::new(-0.84, 0.06, 0.4),
+                                         Quaternion::new(0.84, -0.06, -0.54, -0.04)),
+                      Some(VirtualKeyCode::Key7));
         lib.add_scene("nanosuit".to_string(),
                       scene_dir.join("nanosuit").join("nanosuit.obj"),
                       CameraPos::Offset, Some(VirtualKeyCode::Key8));
         lib.add_scene("sibenik".to_string(),
                       scene_dir.join("sibenik").join("sibenik.obj"),
-                      CameraPos::Center, Some(VirtualKeyCode::Key9));
+                      CameraPos::Defined(Point3::new(-10.7, -7.85, 0.11),
+                                         Quaternion::new(0.73, -0.06, -0.68, -0.06)),
+                      Some(VirtualKeyCode::Key9));
         lib.add_scene("sponza".to_string(),
                       scene_dir.join("crytek-sponza").join("sponza.obj"),
-                      CameraPos::Center, Some(VirtualKeyCode::Key0));
+                      CameraPos::Defined(Point3::new(-783.01, 184.23, 173.92),
+                                         Quaternion::new(0.89, -0.06, 0.44, 0.03)),
+                      Some(VirtualKeyCode::Key0));
         lib
     };
 }
 
+#[allow(dead_code)]
 enum CameraPos {
     Center,
     Offset,
+    Defined(Point3<Float>, Quaternion<Float>),
 }
 
 struct SceneInfo {
@@ -103,6 +116,8 @@ fn initialize_camera(scene: &Scene, info: &SceneInfo) -> Camera {
             scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0),
             Quaternion::one(),
         ),
+        // Normalize the rotation because its magnitude is probably slightly off
+        CameraPos::Defined(pos, rot) => Camera::new(pos, rot.normalize()),
     };
     camera.set_scale(scene.size());
     camera.update_viewport((600, 400));
