@@ -112,13 +112,11 @@ impl Triangle {
     }
 
     pub fn random_point(&self) -> (Point3<Float>, Vector3<Float>) {
-        let mut u: Float = rand::random();
-        let mut v: Float = rand::random();
-        // TODO: use sampling that doesnt need this flip
-        if u + v > 1.0 {
-            u = 1.0 - u;
-            v = 1.0 - v;
-        }
+        let r1: Float = rand::random();
+        let r2: Float = rand::random();
+        let sr1 = r1.sqrt();
+        let u = 1.0 - sr1;
+        let v = r2 * sr1;
         (self.pos(u, v), self.normal(u, v))
     }
 
