@@ -26,7 +26,6 @@
 *** Spectral rendering
 * Improvements
 ** Utils
-*** Selected camera locations for scenes
 *** Config for render parameters
 *** Arbitrary scene loading
 *** UI
@@ -51,7 +50,6 @@
 *** Better filtering and reconstruction
 *** More robust floating point error handling
 ** Refactoring
-*** Camera rotation as a quaternion
 *** Statistics api
     * Stat prints for online rendering
 *** Let materials handle bxdfs
