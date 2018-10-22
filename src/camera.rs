@@ -7,6 +7,7 @@ use cgmath::{Matrix4, Point3, Quaternion, Rad, Vector3};
 
 use glium::glutin::{MouseButton, VirtualKeyCode};
 
+use crate::consts::PI;
 use crate::input::InputState;
 use crate::Float;
 
@@ -38,7 +39,7 @@ impl Default for Camera {
             rot: Quaternion::one(),
             width: 0,
             height: 0,
-            fov: Rad(std::f64::consts::PI as Float / 3.0),
+            fov: Rad(PI / 3.0),
             near: 0.001,
             far: 10.0,
             scale: 1.0,

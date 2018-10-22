@@ -13,13 +13,13 @@ use rand::{self, prelude::*};
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
+use crate::consts::PI;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
 use crate::triangle::Hit;
 use crate::Float;
 
-const PI: Float = std::f64::consts::PI as Float;
 // TODO: tune EPSILON since crytek-sponza has shadow acne
 const EPSILON: Float = 1e-5;
 // Desired expectation value of bounces

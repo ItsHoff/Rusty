@@ -7,6 +7,7 @@ mod aabb;
 mod bvh;
 mod camera;
 mod color;
+mod consts;
 mod gl_renderer;
 mod index_ptr;
 mod input;
