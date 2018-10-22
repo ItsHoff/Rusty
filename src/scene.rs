@@ -14,7 +14,7 @@ use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
 use crate::stats;
-use crate::triangle::{RTTriangle, RTTriangleBuilder};
+use crate::triangle::{Triangle, TriangleBuilder};
 use crate::vertex::{RawVertex, Vertex};
 use crate::Float;
 
@@ -52,8 +52,8 @@ pub struct Scene {
     pub vertices: Vec<Vertex>,
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
-    pub triangles: Vec<RTTriangle>,
-    pub lights: Vec<RTTriangle>,
+    pub triangles: Vec<Triangle>,
+    pub lights: Vec<Triangle>,
     pub aabb: AABB,
     pub bvh: Option<BVH>,
 }
@@ -103,7 +103,7 @@ impl Scene {
             };
             let mut mesh = Mesh::new(material_i);
             for tri in &obj.triangles[range.start_i..range.end_i] {
-                let mut tri_builder = RTTriangleBuilder::new();
+                let mut tri_builder = TriangleBuilder::new();
                 let planar_normal = calculate_normal(tri, &obj);
                 for index_vertex in &tri.index_vertices {
                     let vertex_i = match vertex_map.get(index_vertex) {

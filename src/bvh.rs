@@ -5,7 +5,7 @@ use cgmath::Point3;
 use crate::aabb::AABB;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::stats;
-use crate::triangle::RTTriangle;
+use crate::triangle::Triangle;
 use crate::Float;
 
 const MAX_LEAF_SIZE: usize = 8;
@@ -55,7 +55,7 @@ impl Intersect<'_, Float> for BVHNode {
 }
 
 struct Triangles<'a> {
-    triangles: &'a [RTTriangle],
+    triangles: &'a [Triangle],
     centers: &'a [Point3<Float>],
     indices: &'a mut [usize],
     aabb: AABB,
@@ -67,7 +67,7 @@ struct Triangles<'a> {
 
 impl<'a> Triangles<'a> {
     fn new(
-        triangles: &'a [RTTriangle],
+        triangles: &'a [Triangle],
         centers: &'a [Point3<Float>],
         indices: &'a mut [usize],
         start_i: usize,
@@ -120,16 +120,16 @@ impl<'a> Triangles<'a> {
         self.indices.len()
     }
 
-    fn last(&self) -> &RTTriangle {
+    fn last(&self) -> &Triangle {
         let &i = self.indices.last().unwrap();
         &self.triangles[i]
     }
 }
 
 impl Index<usize> for Triangles<'_> {
-    type Output = RTTriangle;
+    type Output = Triangle;
 
-    fn index(&self, i: usize) -> &RTTriangle {
+    fn index(&self, i: usize) -> &Triangle {
         let i = self.indices[i];
         &self.triangles[i]
     }
@@ -140,7 +140,7 @@ pub struct BVH {
 }
 
 impl BVH {
-    pub fn build(triangles: &[RTTriangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
+    pub fn build(triangles: &[Triangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
         stats::start_bvh();
         let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();

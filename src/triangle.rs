@@ -11,14 +11,14 @@ use crate::vertex::Vertex;
 use crate::Float;
 
 #[derive(Default)]
-pub struct RTTriangleBuilder {
+pub struct TriangleBuilder {
     vertices: Vec<IndexPtr<Vertex>>,
 }
 
-impl RTTriangleBuilder {
-    pub fn new() -> RTTriangleBuilder {
-        RTTriangleBuilder {
-            ..Default::default()
+impl TriangleBuilder {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
         }
     }
 
@@ -26,11 +26,11 @@ impl RTTriangleBuilder {
         self.vertices.push(vertex);
     }
 
-    pub fn build(self, material: IndexPtr<Material>) -> Result<RTTriangle, String> {
+    pub fn build(self, material: IndexPtr<Material>) -> Result<Triangle, String> {
         if self.vertices.len() != 3 {
             Err("Triangle doesn't have 3 vertices!".to_string())
         } else {
-            Ok(RTTriangle::new(
+            Ok(Triangle::new(
                 self.vertices[0].clone(),
                 self.vertices[1].clone(),
                 self.vertices[2].clone(),
@@ -42,7 +42,7 @@ impl RTTriangleBuilder {
 
 /// Tracable triangle
 #[derive(Clone, Debug)]
-pub struct RTTriangle {
+pub struct Triangle {
     v1: IndexPtr<Vertex>,
     v2: IndexPtr<Vertex>,
     v3: IndexPtr<Vertex>,
@@ -50,13 +50,13 @@ pub struct RTTriangle {
     pub material: IndexPtr<Material>,
 }
 
-impl RTTriangle {
+impl Triangle {
     fn new(
         v1: IndexPtr<Vertex>,
         v2: IndexPtr<Vertex>,
         v3: IndexPtr<Vertex>,
         material: IndexPtr<Material>,
-    ) -> RTTriangle {
+    ) -> Self {
         let p1 = v1.p;
         let p2 = v2.p;
         let p3 = v3.p;
@@ -70,7 +70,7 @@ impl RTTriangle {
         let to_barycentric = from_barycentric
             .invert()
             .expect("Non invertible barycentric tranform");
-        RTTriangle {
+        Self {
             v1,
             v2,
             v3,
@@ -131,13 +131,13 @@ impl RTTriangle {
 
 #[derive(Debug)]
 pub struct Hit<'a> {
-    pub tri: &'a RTTriangle,
+    pub tri: &'a Triangle,
     pub t: Float,
     pub u: Float,
     pub v: Float,
 }
 
-impl<'a> Intersect<'a, Hit<'a>> for RTTriangle {
+impl<'a> Intersect<'a, Hit<'a>> for Triangle {
     fn intersect(&self, ray: &Ray) -> Option<Hit> {
         let bary_o = self.to_barycentric * ray.orig.to_homogeneous();
         let bary_d = self.to_barycentric * ray.dir.extend(0.0);
