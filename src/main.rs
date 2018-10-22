@@ -11,6 +11,8 @@ mod consts;
 mod gl_renderer;
 mod index_ptr;
 mod input;
+mod light;
+mod load;
 mod material;
 mod mesh;
 mod obj_load;
@@ -66,7 +68,7 @@ fn offline_render(scene_name: &str, output_file: &Path, iterations: usize) {
     let _t = stats::time("Total");
     let mut pt_renderer = PTRenderer::new();
     println!("{}...", scene_name);
-    let (scene, camera) = util::load_cpu_scene(scene_name);
+    let (scene, camera) = load::load_cpu_scene(scene_name);
     pt_renderer.offline_render(&scene, &camera, iterations);
     pt_renderer.save_image(output_file);
 }
@@ -79,7 +81,7 @@ fn online_render() {
         glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
     let (mut scene, mut gpu_scene, mut camera) =
-        util::load_gpu_scene(VirtualKeyCode::Key1, &display).unwrap();
+        load::load_gpu_scene(VirtualKeyCode::Key1, &display).unwrap();
     let gl_renderer = GLRenderer::new(&display);
     let mut pt_renderer = PTRenderer::new();
 
@@ -134,7 +136,7 @@ fn online_render() {
                         ..
                     } => {
                         if !trace {
-                            if let Some(res) = util::load_gpu_scene(keycode, &display) {
+                            if let Some(res) = load::load_gpu_scene(keycode, &display) {
                                 scene = res.0;
                                 gpu_scene = res.1;
                                 camera = res.2;
