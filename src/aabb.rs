@@ -1,6 +1,7 @@
 use cgmath::prelude::*;
 use cgmath::Point3;
 
+use crate::consts;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::Float;
 
@@ -33,7 +34,7 @@ impl AABB {
     }
 
     pub fn longest_edge(&self) -> Float {
-        let mut longest = 0.0 as Float;
+        let mut longest: Float = 0.0;
         for i in 0..3 {
             longest = longest.max(self.max[i] - self.min[i]);
         }
@@ -63,8 +64,8 @@ impl Intersect<'_, Float> for AABB {
     fn intersect(&self, ray: &Ray) -> Option<Float> {
         let t1 = (self.min - ray.orig).mul_element_wise(ray.reciprocal_dir);
         let t2 = (self.max - ray.orig).mul_element_wise(ray.reciprocal_dir);
-        let mut start = std::f64::MIN as Float;
-        let mut end = std::f64::MAX as Float;
+        let mut start = consts::MIN;
+        let mut end = consts::MAX;
         for i in 0..3 {
             if ray.dir[i] == 0.0 && (ray.orig[i] < self.min[i] || ray.orig[i] > self.max[i]) {
                 // Can't hit

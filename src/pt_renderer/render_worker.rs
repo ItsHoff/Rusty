@@ -13,7 +13,7 @@ use rand::{self, prelude::*};
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
-use crate::consts::PI;
+use crate::consts::{self, PI};
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
 use crate::scene::Scene;
@@ -92,7 +92,7 @@ impl RenderWorker {
                                     - self.camera.pos.to_vec())
                                 .normalize();
                                 let ray =
-                                    Ray::new(self.camera.pos, dir, std::f64::INFINITY as Float);
+                                    Ray::new(self.camera.pos, dir, consts::INFINITY);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }

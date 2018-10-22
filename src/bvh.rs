@@ -3,6 +3,7 @@ use std::ops::Index;
 use cgmath::Point3;
 
 use crate::aabb::AABB;
+use crate::consts;
 use crate::pt_renderer::{Intersect, Ray};
 use crate::stats;
 use crate::triangle::Triangle;
@@ -232,7 +233,7 @@ fn spatial_split(triangles: &mut Triangles) -> Option<usize> {
 }
 
 fn sah_split(triangles: &mut Triangles) -> Option<usize> {
-    let mut min_score = std::f64::MAX as Float;
+    let mut min_score = consts::MAX;
     let mut min_axis = 0;
     let mut min_i = 0;
     let sorted_axis = triangles.sorted_axis;
