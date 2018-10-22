@@ -142,7 +142,7 @@ impl Scene {
                     tri_builder.add_vertex(scene.vertex_ptr(vertex_i));
                 }
                 let triangle = tri_builder
-                    .build(scene.material_ptr(material_i))
+                    .build(planar_normal, scene.material_ptr(material_i))
                     .expect("Failed to build tri!");
                 scene.aabb.add_aabb(&triangle.aabb());
                 scene.triangles.push(triangle);

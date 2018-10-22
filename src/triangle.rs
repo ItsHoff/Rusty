@@ -4,6 +4,7 @@ use cgmath::{Matrix4, Point2, Point3, Vector3};
 use rand;
 
 use crate::aabb::{self, AABB};
+use crate::color::Color;
 use crate::index_ptr::IndexPtr;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray};
@@ -26,14 +27,16 @@ impl TriangleBuilder {
         self.vertices.push(vertex);
     }
 
-    pub fn build(self, material: IndexPtr<Material>) -> Result<Triangle, String> {
+    pub fn build(self, ng: [f32; 3], material: IndexPtr<Material>) -> Result<Triangle, String> {
         if self.vertices.len() != 3 {
             Err("Triangle doesn't have 3 vertices!".to_string())
         } else {
+            let ng = Vector3::new(ng[0] as Float, ng[1] as Float, ng[2] as Float);
             Ok(Triangle::new(
                 self.vertices[0].clone(),
                 self.vertices[1].clone(),
                 self.vertices[2].clone(),
+                ng,
                 material,
             ))
         }
@@ -46,6 +49,8 @@ pub struct Triangle {
     v1: IndexPtr<Vertex>,
     v2: IndexPtr<Vertex>,
     v3: IndexPtr<Vertex>,
+    /// Geometric normal
+    ng: Vector3<Float>,
     to_barycentric: Matrix4<Float>,
     pub material: IndexPtr<Material>,
 }
@@ -55,6 +60,7 @@ impl Triangle {
         v1: IndexPtr<Vertex>,
         v2: IndexPtr<Vertex>,
         v3: IndexPtr<Vertex>,
+        ng: Vector3<Float>,
         material: IndexPtr<Material>,
     ) -> Self {
         let p1 = v1.p;
@@ -74,6 +80,7 @@ impl Triangle {
             v1,
             v2,
             v3,
+            ng,
             to_barycentric,
             material,
         }
@@ -101,6 +108,14 @@ impl Triangle {
         max = aabb::max_point(&max, &self.v2.p);
         max = aabb::max_point(&max, &self.v3.p);
         AABB { min, max }
+    }
+
+    pub fn le(&self, dir: Vector3<Float>) -> Color {
+        if let Some(le) = self.material.emissive {
+            self.ng.dot(dir).max(0.0) * le
+        } else {
+            Color::black()
+        }
     }
 
     pub fn center(&self) -> Point3<Float> {

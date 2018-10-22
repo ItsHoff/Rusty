@@ -127,9 +127,7 @@ impl RenderWorker {
                 normal *= -1.0;
             }
             if bounce == 0 {
-                if let Some(emissive) = material.emissive {
-                    c += normal.dot(-ray.dir).max(0.0) * emissive;
-                }
+                c += hit.tri.le(-ray.dir);
             }
             let (emissive, light_pos, light_normal, light_pdf) = self.sample_light();
             let bump_pos = hit.pos() + EPSILON * normal;
