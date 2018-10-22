@@ -6,6 +6,7 @@ use glium::{uniform, DrawParameters, Surface};
 
 use crate::camera::Camera;
 use crate::scene::GPUScene;
+use crate::util::ToF32;
 
 pub struct GLRenderer {
     shader: glium::Program,
@@ -22,7 +23,7 @@ impl GLRenderer {
     }
 
     pub fn render<S: Surface>(&self, target: &mut S, scene: &GPUScene, camera: &Camera) {
-        let world_to_clip = camera.world_to_clip_f32();
+        let world_to_clip = camera.world_to_clip().to_f32();
         let draw_parameters = DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,

@@ -65,11 +65,7 @@ impl Material {
             None => SrgbTexture2d::empty(facade, 0, 0).expect("Failed to upload empty texture!"),
         };
         GPUMaterial {
-            diffuse: [
-                self.diffuse.r as f32,
-                self.diffuse.g as f32,
-                self.diffuse.b as f32,
-            ],
+            diffuse: self.diffuse.into(),
             has_diffuse: self.diffuse_image.is_some(),
             diffuse_texture,
             has_emissive: self.emissive.is_some(),

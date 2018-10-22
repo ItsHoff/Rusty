@@ -86,26 +86,6 @@ impl Camera {
         self.camera_to_clip() * self.world_to_camera()
     }
 
-    pub fn world_to_clip_f32(&self) -> Matrix4<f32> {
-        let rot = Quaternion::new(
-            self.rot.s as f32,
-            self.rot.v.x as f32,
-            self.rot.v.y as f32,
-            self.rot.v.z as f32,
-        )
-        .invert();
-        let rot_m = Matrix4::from(rot);
-        let t = -Vector3::new(self.pos.x as f32, self.pos.y as f32, self.pos.z as f32);
-        let world_to_camera = rot_m * Matrix4::from_translation(t);
-        let camera_to_clip = cgmath::perspective(
-            Rad(self.fov.0 as f32),
-            self.width as f32 / self.height as f32,
-            (self.near * self.scale) as f32,
-            (self.far * self.scale) as f32,
-        );
-        camera_to_clip * world_to_camera
-    }
-
     /// Get the forward axis of the camera in the world frame
     pub fn forward(&self) -> Vector3<Float> {
         self.rot.rotate_vector(-Vector3::unit_z())

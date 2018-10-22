@@ -8,6 +8,7 @@ use crate::color::Color;
 use crate::index_ptr::IndexPtr;
 use crate::material::Material;
 use crate::pt_renderer::{Intersect, Ray};
+use crate::util::ConvArr;
 use crate::vertex::Vertex;
 use crate::Float;
 
@@ -31,12 +32,11 @@ impl TriangleBuilder {
         if self.vertices.len() != 3 {
             Err("Triangle doesn't have 3 vertices!".to_string())
         } else {
-            let ng = Vector3::new(ng[0] as Float, ng[1] as Float, ng[2] as Float);
             Ok(Triangle::new(
                 self.vertices[0].clone(),
                 self.vertices[1].clone(),
                 self.vertices[2].clone(),
-                ng,
+                Vector3::from_arr(ng),
                 material,
             ))
         }

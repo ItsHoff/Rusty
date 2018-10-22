@@ -10,23 +10,19 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn black() -> Color {
-        Color {
-            r: 0.0,
-            g: 0.0,
-            b: 0.0,
-        }
+    fn new(r: Float, g: Float, b: Float) -> Self {
+        Color { r, g, b }
     }
 
-    pub fn white() -> Color {
-        Color {
-            r: 1.0,
-            g: 1.0,
-            b: 1.0,
-        }
+    pub fn black() -> Self {
+        Self::new(0.0, 0.0, 0.0)
     }
 
-    pub fn from_srgb(rgba: image::Rgba<u8>) -> Color {
+    pub fn white() -> Self {
+        Self::new(1.0, 1.0, 1.0)
+    }
+
+    pub fn from_srgb(rgba: image::Rgba<u8>) -> Self {
         let arr: Vec<Float> = rgba
             .data
             .into_iter()
@@ -120,8 +116,8 @@ impl From<[f32; 3]> for Color {
     }
 }
 
-impl Into<[Float; 3]> for Color {
-    fn into(self) -> [Float; 3] {
-        [self.r, self.g, self.b]
+impl Into<[f32; 3]> for Color {
+    fn into(self) -> [f32; 3] {
+        [self.r as f32, self.g as f32, self.b as f32]
     }
 }

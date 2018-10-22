@@ -91,8 +91,7 @@ impl RenderWorker {
                                 let dir = ((world_p / world_p.w).truncate()
                                     - self.camera.pos.to_vec())
                                 .normalize();
-                                let ray =
-                                    Ray::new(self.camera.pos, dir, consts::INFINITY);
+                                let ray = Ray::new(self.camera.pos, dir, consts::INFINITY);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }
