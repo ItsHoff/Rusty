@@ -112,10 +112,11 @@ impl Triangle {
 
     pub fn le(&self, dir: Vector3<Float>) -> Color {
         if let Some(le) = self.material.emissive {
-            self.ng.dot(dir).max(0.0) * le
-        } else {
-            Color::black()
+            if self.ng.dot(dir) > 0.0 {
+                return le;
+            }
         }
+        Color::black()
     }
 
     pub fn center(&self) -> Point3<Float> {
