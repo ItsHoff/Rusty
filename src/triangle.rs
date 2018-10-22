@@ -86,6 +86,13 @@ impl Triangle {
         }
     }
 
+    fn pos(&self, u: Float, v: Float) -> Point3<Float> {
+        let p1 = self.v1.p;
+        let p2 = self.v2.p;
+        let p3 = self.v3.p;
+        (1.0 - u - v) * p1 + u * p2.to_vec() + v * p3.to_vec()
+    }
+
     fn normal(&self, u: Float, v: Float) -> Vector3<Float> {
         let n1 = self.v1.n;
         let n2 = self.v2.n;
@@ -97,7 +104,7 @@ impl Triangle {
         let t1 = self.v1.t;
         let t2 = self.v2.t;
         let t3 = self.v3.t;
-        (1.0 - u - v) * t1 + (u * t2 - (-v) * t3)
+        (1.0 - u - v) * t1 + u * t2.to_vec() + v * t3.to_vec()
     }
 
     pub fn aabb(&self) -> AABB {
@@ -134,12 +141,6 @@ impl Triangle {
         let u = 1.0 - sr1;
         let v = r2 * sr1;
         (self.pos(u, v), self.normal(u, v))
-    }
-
-    fn pos(&self, u: Float, v: Float) -> Point3<Float> {
-        // Have to substract one component since cgmath points cannot by summed
-        // and there is not a cleaner method to convert to Vector3
-        (1.0 - u - v) * self.v1.p + (u * self.v2.p - (-v) * self.v3.p)
     }
 }
 
