@@ -1,15 +1,22 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
+    Arc,
+};
 
 use cgmath::Point3;
 
 use glium::backend::Facade;
 use glium::VertexBuffer;
 
+use rand::{self, prelude::*};
+
 use crate::aabb::AABB;
-use crate::bvh::{SplitMode, BVH};
+use crate::bvh::{SplitMode, BVH, BVHNode};
 use crate::index_ptr::IndexPtr;
+use crate::intersect::{Interaction, Intersect, Ray};
+use crate::light::Light;
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
@@ -53,9 +60,10 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub triangles: Vec<Triangle>,
-    pub lights: Vec<Triangle>,
+    pub lights: Vec<Light>,
     pub aabb: AABB,
     pub bvh: Option<BVH>,
+    pub ray_count: AtomicUsize,
 }
 
 /// Scene containing resources for GPU rendering
@@ -76,6 +84,7 @@ impl Scene {
             lights: Vec::new(),
             aabb: AABB::empty(),
             bvh: None,
+            ray_count: ATOMIC_USIZE_INIT,
         })
     }
 
@@ -170,10 +179,10 @@ impl Scene {
         if self.bvh.is_none() {
             println!("Constructing lights when there is no bvh!");
         }
-        for tri in &self.triangles {
+        for (i, tri) in self.triangles.iter().enumerate() {
             let material = &tri.material;
             if material.emissive.is_some() {
-                self.lights.push(tri.clone());
+                self.lights.push(Light::new(self.tri_ptr(i)));
             }
         }
     }
@@ -203,6 +212,10 @@ impl Scene {
         IndexPtr::new(&self.materials, i)
     }
 
+    fn tri_ptr(&self, i: usize) -> IndexPtr<Triangle> {
+        IndexPtr::new(&self.triangles, i)
+    }
+
     fn vertex_ptr(&self, i: usize) -> IndexPtr<Vertex> {
         IndexPtr::new(&self.vertices, i)
     }
@@ -215,6 +228,64 @@ impl Scene {
     /// Get the approximate size of the scene
     pub fn size(&self) -> Float {
         self.aabb.longest_edge()
+    }
+
+    pub fn sample_light(&self) -> Option<(&Light, Float)> {
+        if !self.lights.is_empty() {
+            let i = rand::thread_rng().gen_range(0, self.lights.len());
+            let light = &self.lights[i];
+            let pdf = 1.0 / (self.lights.len() as Float);
+            Some((light, pdf))
+        } else {
+            None
+        }
+    }
+
+    pub fn intersect<'a>(
+        &'a self,
+        ray: &mut Ray,
+        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    ) -> Option<Interaction> {
+        self.ray_count.fetch_add(1, Ordering::Relaxed);
+        let bvh = self.bvh.as_ref().unwrap();
+        node_stack.push((bvh.root(), 0.0));
+        let mut closest_hit = None;
+        while let Some((node, t)) = node_stack.pop() {
+            // We've already found a closer hit
+            if ray.length <= t {
+                continue;
+            }
+            if node.is_leaf() {
+                for tri in &self.triangles[node.start_i..node.end_i] {
+                    if let Some(hit) = tri.intersect(&ray) {
+                        ray.length = hit.t;
+                        closest_hit = Some(hit);
+                    }
+                }
+            } else {
+                let (left, right) = bvh.get_children(node).unwrap();
+                // TODO: Could this work without pushing the next node to the stack
+                let left_intersect = left.intersect(&ray);
+                let right_intersect = right.intersect(&ray);
+                if let Some(t_left) = left_intersect {
+                    if let Some(t_right) = right_intersect {
+                        // Put the closer hit on top
+                        if t_left >= t_right {
+                            node_stack.push((left, t_left));
+                            node_stack.push((right, t_right));
+                        } else {
+                            node_stack.push((right, t_right));
+                            node_stack.push((left, t_left));
+                        }
+                    } else {
+                        node_stack.push((left, t_left));
+                    }
+                } else if let Some(t_right) = right_intersect {
+                    node_stack.push((right, t_right));
+                }
+            }
+        }
+        closest_hit.map(|h| h.interaction())
     }
 }
 

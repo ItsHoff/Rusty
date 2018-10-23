@@ -1,5 +1,4 @@
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     mpsc::{Receiver, Sender, TryRecvError},
     Arc,
 };
@@ -8,20 +7,15 @@ use cgmath::{prelude::*, Point3, Vector3, Vector4};
 
 use glium::Rect;
 
-use rand::{self, prelude::*};
-
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
-use crate::consts::{self, PI};
-use crate::material::Material;
-use crate::pt_renderer::{Intersect, Ray, RenderCoordinator};
+use crate::consts::PI;
+use crate::intersect::{Interaction, Ray};
+use crate::pt_renderer::RenderCoordinator;
 use crate::scene::Scene;
-use crate::triangle::Hit;
 use crate::Float;
 
-// TODO: tune EPSILON since crytek-sponza has shadow acne
-const EPSILON: Float = 1e-5;
 // Desired expectation value of bounces
 const _EB: Float = 5.0;
 // The matching survival probability from negative binomial distribution
@@ -33,7 +27,6 @@ pub struct RenderWorker {
     coordinator: Arc<RenderCoordinator>,
     message_rx: Receiver<()>,
     result_tx: Sender<(Rect, Vec<f32>)>,
-    ray_count: Arc<AtomicUsize>,
 }
 
 impl RenderWorker {
@@ -43,7 +36,6 @@ impl RenderWorker {
         coordinator: Arc<RenderCoordinator>,
         message_rx: Receiver<()>,
         result_tx: Sender<(Rect, Vec<f32>)>,
-        ray_count: Arc<AtomicUsize>,
     ) -> RenderWorker {
         RenderWorker {
             scene,
@@ -51,7 +43,6 @@ impl RenderWorker {
             coordinator,
             message_rx,
             result_tx,
-            ray_count,
         }
     }
 
@@ -87,11 +78,8 @@ impl RenderWorker {
                                 let clip_y =
                                     2.0 * ((rect.bottom + h) as Float + dy) / height as Float - 1.0;
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
-                                let world_p = clip_to_world * clip_p;
-                                let dir = ((world_p / world_p.w).truncate()
-                                    - self.camera.pos.to_vec())
-                                .normalize();
-                                let ray = Ray::new(self.camera.pos, dir, consts::INFINITY);
+                                let world_p = Point3::from_homogeneous(clip_to_world * clip_p);
+                                let ray = Ray::from_point(self.camera.pos, world_p);
                                 c += self.trace_ray(ray, &mut node_stack, 0);
                             }
                         }
@@ -118,34 +106,27 @@ impl RenderWorker {
         bounce: u32,
     ) -> Color {
         let mut c = Color::black();
-        if let Some(hit) = self.find_hit(&mut ray, node_stack) {
-            let material = &hit.tri.material;
-            let mut normal = hit.normal();
+        if let Some(mut isect) = self.scene.intersect(&mut ray, node_stack) {
             // Flip the normal if its pointing to the opposite side from the hit
-            if normal.dot(ray.dir) > 0.0 {
-                normal *= -1.0;
+            if isect.n.dot(ray.dir) > 0.0 {
+                isect.n *= -1.0;
             }
             if bounce == 0 {
-                c += hit.tri.le(-ray.dir);
+                c += isect.le(-ray.dir);
             }
-            let (emissive, light_pos, light_normal, light_pdf) = self.sample_light();
-            let bump_pos = hit.pos() + EPSILON * normal;
-            let hit_to_light = light_pos - bump_pos;
-            let light_dir = hit_to_light.normalize();
-            let mut shadow_ray = Ray::new(bump_pos, light_dir, hit_to_light.magnitude() - EPSILON);
-            if self.find_hit(&mut shadow_ray, node_stack).is_none() {
-                let cos_l = light_normal.dot(-light_dir).max(0.0);
-                let cos_t = normal.dot(light_dir).max(0.0);
-                c += emissive * self.brdf(&hit, &ray, &shadow_ray, material) * cos_l * cos_t
-                    / (hit_to_light.magnitude2() * light_pdf);
+            let (le, light_p, light_pdf) = self.sample_light(&isect);
+            let mut shadow_ray = Ray::shadow(isect.p, light_p);
+            if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
+                let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
+                c += le * self.brdf(&isect) * cos_t / light_pdf;
             }
             let rr = rand::random::<Float>();
             if rr < RR_PROB {
-                let (new_dir, mut pdf) = self.sample_dir(normal);
+                let (new_dir, mut pdf) = self.sample_dir(&isect);
                 pdf *= RR_PROB;
-                let new_ray = Ray::new(bump_pos, new_dir, 10.0 * self.camera.scale);
-                c += normal.dot(new_dir)
-                    * self.brdf(&hit, &ray, &new_ray, material)
+                let new_ray = Ray::from_dir(isect.p, new_dir);
+                c += isect.n.dot(new_dir)
+                    * self.brdf(&isect)
                     * self.trace_ray(new_ray, node_stack, bounce + 1)
                     / pdf;
             }
@@ -153,13 +134,13 @@ impl RenderWorker {
         c
     }
 
-    fn brdf(&self, hit: &Hit, _in_ray: &Ray, _out_ray: &Ray, material: &Material) -> Color {
-        let tex_coords = hit.tex_coords();
-        material.diffuse(tex_coords) / PI
+    fn brdf(&self, isect: &Interaction) -> Color {
+        isect.mat.diffuse(isect.t) / PI
     }
 
     // TODO: this is slightly wrong?
-    fn sample_dir(&self, normal: Vector3<Float>) -> (Vector3<Float>, Float) {
+    fn sample_dir(&self, isect: &Interaction) -> (Vector3<Float>, Float) {
+        let normal = isect.n;
         let dir = 2.0 * PI * rand::random::<Float>();
         let length = rand::random::<Float>();
         let x = length * dir.cos();
@@ -174,69 +155,17 @@ impl RenderWorker {
         (x * nx + y * ny + z * normal, z / PI)
     }
 
-    pub fn sample_light(&self) -> (Color, Point3<Float>, Vector3<Float>, Float) {
-        if self.scene.lights.is_empty() {
-            let light_intensity = 10.0 * self.camera.scale;
-            (
-                light_intensity * Color::white(),
-                self.camera.pos,
-                self.camera.forward(),
-                1.0,
-            )
-        } else {
-            let i = rand::thread_rng().gen_range(0, self.scene.lights.len());
-            let light = &self.scene.lights[i];
-            let pdf = 1.0 / (self.scene.lights.len() as Float * light.area());
-            let (point, normal) = light.random_point();
-            let emissive = light.material.emissive.expect("Light wasn't emissive");
-            (emissive, point, normal, pdf)
-        }
-    }
-
-    fn find_hit<'a>(
-        &'a self,
-        ray: &mut Ray,
-        node_stack: &mut Vec<(&'a BVHNode, Float)>,
-    ) -> Option<Hit> {
-        self.ray_count.fetch_add(1, Ordering::Relaxed);
-        let bvh = self.scene.bvh.as_ref().unwrap();
-        node_stack.push((bvh.root(), 0.0));
-        let mut closest_hit = None;
-        while let Some((node, t)) = node_stack.pop() {
-            // We've already found a closer hit
-            if ray.length <= t {
-                continue;
-            }
-            if node.is_leaf() {
-                for tri in &self.scene.triangles[node.start_i..node.end_i] {
-                    if let Some(hit) = tri.intersect(&ray) {
-                        ray.length = hit.t;
-                        closest_hit = Some(hit);
-                    }
-                }
-            } else {
-                let (left, right) = bvh.get_children(node).unwrap();
-                // TODO: Could this work without pushing the next node to the stack
-                let left_intersect = left.intersect(&ray);
-                let right_intersect = right.intersect(&ray);
-                if let Some(t_left) = left_intersect {
-                    if let Some(t_right) = right_intersect {
-                        // Put the closer hit on top
-                        if t_left >= t_right {
-                            node_stack.push((left, t_left));
-                            node_stack.push((right, t_right));
-                        } else {
-                            node_stack.push((right, t_right));
-                            node_stack.push((left, t_left));
-                        }
-                    } else {
-                        node_stack.push((left, t_left));
-                    }
-                } else if let Some(t_right) = right_intersect {
-                    node_stack.push((right, t_right));
-                }
-            }
-        }
-        closest_hit
+    pub fn sample_light(&self, isect: &Interaction) -> (Color, Point3<Float>, Float) {
+        // TODO: use camera flash as default
+        // let light_intensity = 10.0 * self.camera.scale;
+        // (
+        //     light_intensity * Color::white(),
+        //     self.camera.pos,
+        //     self.camera.forward(),
+        //     1.0,
+        // )
+        let (light, pdf) = self.scene.sample_light().unwrap();
+        let (li, p, lpdf) = light.sample_li(isect);
+        (li, p, pdf * lpdf)
     }
 }

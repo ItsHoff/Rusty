@@ -2,7 +2,7 @@ use cgmath::prelude::*;
 use cgmath::Point3;
 
 use crate::consts;
-use crate::pt_renderer::{Intersect, Ray};
+use crate::intersect::{Intersect, Ray};
 use crate::Float;
 
 #[derive(Clone, Debug)]

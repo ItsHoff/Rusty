@@ -4,7 +4,7 @@ use cgmath::Point3;
 
 use crate::aabb::AABB;
 use crate::consts;
-use crate::pt_renderer::{Intersect, Ray};
+use crate::intersect::{Intersect, Ray};
 use crate::stats;
 use crate::triangle::Triangle;
 use crate::Float;

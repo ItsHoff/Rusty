@@ -3,13 +3,11 @@ mod traced_image;
 
 use std::path::Path;
 use std::sync::{
-    atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
+    atomic::{AtomicUsize, Ordering},
     mpsc::{self, Receiver, Sender},
     Arc,
 };
 use std::thread::{self, JoinHandle};
-
-use cgmath::{Point3, Vector3};
 
 use glium;
 use glium::backend::Facade;
@@ -20,39 +18,9 @@ use crate::camera::Camera;
 use crate::scene::Scene;
 use crate::stats;
 use crate::vertex::RawVertex;
-use crate::Float;
 
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
-
-// TODO: add intersectP?
-pub trait Intersect<'a, H> {
-    fn intersect(&'a self, ray: &Ray) -> Option<H>;
-}
-
-#[derive(Clone, Debug)]
-pub struct Ray {
-    pub orig: Point3<Float>,
-    pub dir: Vector3<Float>,
-    pub length: Float,
-    // For more efficient ray box intersections
-    pub reciprocal_dir: Vector3<Float>,
-    pub neg_dir: [bool; 3],
-}
-
-impl Ray {
-    fn new(orig: Point3<Float>, dir: Vector3<Float>, length: Float) -> Ray {
-        let reciprocal_dir = 1.0 / dir;
-        let neg_dir = [dir.x < 0.0, dir.y < 0.0, dir.z < 0.0];
-        Ray {
-            orig,
-            dir,
-            length,
-            reciprocal_dir,
-            neg_dir,
-        }
-    }
-}
 
 pub struct RenderCoordinator {
     width: u32,
@@ -201,26 +169,26 @@ impl PTVisualizer {
 }
 
 pub struct PTRenderer {
+    scene: Option<Arc<Scene>>,
     visualizer: Option<PTVisualizer>,
     image: TracedImage,
     coordinator: Arc<RenderCoordinator>,
     result_rx: Option<Receiver<(Rect, Vec<f32>)>>,
     message_txs: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
-    ray_count: Arc<AtomicUsize>,
 }
 
 impl PTRenderer {
     pub fn new() -> PTRenderer {
         let image = TracedImage::empty(0, 0);
         PTRenderer {
+            scene: None,
             visualizer: None,
             image,
             coordinator: Arc::new(RenderCoordinator::new(0, 0, None)),
             result_rx: None,
             message_txs: Vec::new(),
             thread_handles: Vec::new(),
-            ray_count: Arc::new(ATOMIC_USIZE_INIT),
         }
     }
 
@@ -230,7 +198,8 @@ impl PTRenderer {
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
         self.coordinator = Arc::new(RenderCoordinator::new(width, height, iterations));
-        self.ray_count.store(0, Ordering::SeqCst);
+        self.scene = Some(scene.clone());
+        self.scene.as_ref().unwrap().ray_count.store(0, Ordering::SeqCst);
 
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
@@ -239,7 +208,6 @@ impl PTRenderer {
             let (message_tx, message_rx) = mpsc::channel();
             self.message_txs.push(message_tx);
             let coordinator = self.coordinator.clone();
-            let ray_count = self.ray_count.clone();
             let camera = camera.clone();
             let scene = scene.clone();
             let handle = thread::spawn(move || {
@@ -249,7 +217,6 @@ impl PTRenderer {
                     coordinator.clone(),
                     message_rx,
                     result_tx,
-                    ray_count,
                 );
                 worker.run();
             });
@@ -278,7 +245,7 @@ impl PTRenderer {
         for (rect, block) in self.result_rx.as_ref().unwrap().try_iter() {
             self.image.update_block(rect, &block);
         }
-        stats::stop_render(self.ray_count.load(Ordering::Relaxed));
+        stats::stop_render(self.scene.as_ref().unwrap().ray_count.load(Ordering::Relaxed));
     }
 
     pub fn render<S: Surface>(&mut self, target: &mut S) {
@@ -302,7 +269,7 @@ impl PTRenderer {
         // Drop channels only after join to make sure
         // that stop messages are properly received
         self.message_txs.clear();
-        stats::stop_render(self.ray_count.load(Ordering::Relaxed));
+        stats::stop_render(self.scene.as_ref().unwrap().ray_count.load(Ordering::Relaxed));
     }
 
     pub fn save_image(&self, path: &Path) {

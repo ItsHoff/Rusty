@@ -11,6 +11,7 @@ mod consts;
 mod gl_renderer;
 mod index_ptr;
 mod input;
+mod intersect;
 mod light;
 mod load;
 mod material;

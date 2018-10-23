@@ -6,8 +6,8 @@ use rand;
 use crate::aabb::{self, AABB};
 use crate::color::Color;
 use crate::index_ptr::IndexPtr;
+use crate::intersect::{Interaction, Intersect, Ray};
 use crate::material::Material;
-use crate::pt_renderer::{Intersect, Ray};
 use crate::util::ConvArr;
 use crate::vertex::Vertex;
 use crate::Float;
@@ -86,14 +86,14 @@ impl Triangle {
         }
     }
 
-    fn pos(&self, u: Float, v: Float) -> Point3<Float> {
+    pub fn pos(&self, u: Float, v: Float) -> Point3<Float> {
         let p1 = self.v1.p;
         let p2 = self.v2.p;
         let p3 = self.v3.p;
         (1.0 - u - v) * p1 + u * p2.to_vec() + v * p3.to_vec()
     }
 
-    fn normal(&self, u: Float, v: Float) -> Vector3<Float> {
+    pub fn normal(&self, u: Float, v: Float) -> Vector3<Float> {
         let n1 = self.v1.n;
         let n2 = self.v2.n;
         let n3 = self.v3.n;
@@ -134,13 +134,17 @@ impl Triangle {
         0.5 / self.to_barycentric.determinant().abs()
     }
 
-    pub fn random_point(&self) -> (Point3<Float>, Vector3<Float>) {
+    pub fn pdf_a(&self) -> Float {
+        1.0 / self.area()
+    }
+
+    pub fn sample() -> (Float, Float) {
         let r1: Float = rand::random();
         let r2: Float = rand::random();
         let sr1 = r1.sqrt();
         let u = 1.0 - sr1;
         let v = r2 * sr1;
-        (self.pos(u, v), self.normal(u, v))
+        (u, v)
     }
 }
 
@@ -167,16 +171,14 @@ impl<'a> Intersect<'a, Hit<'a>> for Triangle {
     }
 }
 
-impl Hit<'_> {
-    pub fn pos(&self) -> Point3<Float> {
-        self.tri.pos(self.u, self.v)
-    }
-
-    pub fn normal(&self) -> Vector3<Float> {
-        self.tri.normal(self.u, self.v)
-    }
-
-    pub fn tex_coords(&self) -> Point2<Float> {
-        self.tri.tex_coords(self.u, self.v)
+impl<'a> Hit<'a> {
+    pub fn interaction(self) -> Interaction<'a> {
+        Interaction {
+            tri: self.tri,
+            p: self.tri.pos(self.u, self.v),
+            n: self.tri.normal(self.u, self.v),
+            t: self.tri.tex_coords(self.u, self.v),
+            mat: &*self.tri.material,
+        }
     }
 }
