@@ -54,7 +54,7 @@ impl RenderCoordinator {
     }
 
     fn next_block(&self) -> Option<Rect> {
-        let block_i = self.current_block.fetch_add(1, Ordering::SeqCst);
+        let block_i = self.current_block.fetch_add(1, Ordering::Relaxed);
         if let Some(max) = self.max_blocks {
             if block_i >= max {
                 return None;
