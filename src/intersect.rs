@@ -35,24 +35,21 @@ impl Ray {
     }
 
     /// Infinite ray with a given direction and origin
-    pub fn from_dir(mut orig: Point3<Float>, dir: Vector3<Float>) -> Ray {
-        orig += consts::EPSILON * dir;
+    fn from_dir(orig: Point3<Float>, dir: Vector3<Float>) -> Ray {
         Ray::new(orig, dir, consts::INFINITY)
     }
 
     /// Infinite ray from origin towards another point
-    pub fn from_point(mut orig: Point3<Float>, to: Point3<Float>) -> Ray {
+    pub fn from_point(orig: Point3<Float>, to: Point3<Float>) -> Ray {
         let dir = (to - orig).normalize();
-        orig += consts::EPSILON * dir;
         Ray::new(orig, dir, consts::INFINITY)
     }
 
     /// Shadow ray between two points
-    pub fn shadow(mut orig: Point3<Float>, to: Point3<Float>) -> Ray {
+    fn shadow(orig: Point3<Float>, to: Point3<Float>) -> Ray {
         let dp = to - orig;
-        let length = dp.magnitude() - 2.0 * consts::EPSILON;
+        let length = dp.magnitude() - consts::EPSILON;
         let dir = dp.normalize();
-        orig += consts::EPSILON * dir;
         Ray::new(orig, dir, length)
     }
 }
@@ -68,5 +65,17 @@ pub struct Interaction<'a> {
 impl Interaction<'_> {
     pub fn le(&self, dir: Vector3<Float>) -> Color {
         self.tri.le(dir)
+    }
+
+    pub fn ray(&self, dir: Vector3<Float>) -> Ray {
+        Ray::from_dir(self.ray_origin(), dir)
+    }
+
+    pub fn shadow_ray(&self, to: Point3<Float>) -> Ray {
+        Ray::shadow(self.ray_origin(), to)
+    }
+
+    fn ray_origin(&self) -> Point3<Float> {
+        self.p + consts::EPSILON * self.n
     }
 }

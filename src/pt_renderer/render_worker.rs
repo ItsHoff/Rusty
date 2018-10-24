@@ -115,7 +115,7 @@ impl RenderWorker {
                 c += isect.le(-ray.dir);
             }
             let (le, light_p, light_pdf) = self.sample_light(&isect);
-            let mut shadow_ray = Ray::shadow(isect.p, light_p);
+            let mut shadow_ray = isect.shadow_ray(light_p);
             if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
                 let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
                 c += le * self.brdf(&isect) * cos_t / light_pdf;
@@ -124,7 +124,7 @@ impl RenderWorker {
             if rr < RR_PROB {
                 let (new_dir, mut pdf) = self.sample_dir(&isect);
                 pdf *= RR_PROB;
-                let new_ray = Ray::from_dir(isect.p, new_dir);
+                let new_ray = isect.ray(new_dir);
                 c += isect.n.dot(new_dir)
                     * self.brdf(&isect)
                     * self.trace_ray(new_ray, node_stack, bounce + 1)

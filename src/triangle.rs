@@ -87,6 +87,7 @@ impl Triangle {
     }
 
     /// Get the barycentric position, normal and texture coordinates
+    #[allow(clippy::many_single_char_names)]
     pub fn bary_pnt(&self, u: Float, v: Float) -> (Point3<Float>, Vector3<Float>, Point2<Float>) {
         let v1 = &*self.v1;
         let p1 = v1.p;
