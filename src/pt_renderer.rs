@@ -199,7 +199,11 @@ impl PTRenderer {
         self.image = TracedImage::empty(width, height);
         self.coordinator = Arc::new(RenderCoordinator::new(width, height, iterations));
         self.scene = Some(scene.clone());
-        self.scene.as_ref().unwrap().ray_count.store(0, Ordering::SeqCst);
+        self.scene
+            .as_ref()
+            .unwrap()
+            .ray_count
+            .store(0, Ordering::SeqCst);
 
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
@@ -245,7 +249,13 @@ impl PTRenderer {
         for (rect, block) in self.result_rx.as_ref().unwrap().try_iter() {
             self.image.update_block(rect, &block);
         }
-        stats::stop_render(self.scene.as_ref().unwrap().ray_count.load(Ordering::Relaxed));
+        stats::stop_render(
+            self.scene
+                .as_ref()
+                .unwrap()
+                .ray_count
+                .load(Ordering::Relaxed),
+        );
     }
 
     pub fn render<S: Surface>(&mut self, target: &mut S) {
@@ -269,7 +279,13 @@ impl PTRenderer {
         // Drop channels only after join to make sure
         // that stop messages are properly received
         self.message_txs.clear();
-        stats::stop_render(self.scene.as_ref().unwrap().ray_count.load(Ordering::Relaxed));
+        stats::stop_render(
+            self.scene
+                .as_ref()
+                .unwrap()
+                .ray_count
+                .load(Ordering::Relaxed),
+        );
     }
 
     pub fn save_image(&self, path: &Path) {

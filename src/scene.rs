@@ -13,10 +13,10 @@ use glium::VertexBuffer;
 use rand::{self, prelude::*};
 
 use crate::aabb::AABB;
-use crate::bvh::{SplitMode, BVH, BVHNode};
+use crate::bvh::{BVHNode, SplitMode, BVH};
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Interaction, Intersect, Ray};
-use crate::light::Light;
+use crate::light::{AreaLight, Light};
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
@@ -60,7 +60,7 @@ pub struct Scene {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub triangles: Vec<Triangle>,
-    pub lights: Vec<Light>,
+    pub lights: Vec<AreaLight>,
     pub aabb: AABB,
     pub bvh: Option<BVH>,
     pub ray_count: AtomicUsize,
@@ -182,7 +182,7 @@ impl Scene {
         for (i, tri) in self.triangles.iter().enumerate() {
             let material = &tri.material;
             if material.emissive.is_some() {
-                self.lights.push(Light::new(self.tri_ptr(i)));
+                self.lights.push(AreaLight::new(self.tri_ptr(i)));
             }
         }
     }
@@ -230,7 +230,7 @@ impl Scene {
         self.aabb.longest_edge()
     }
 
-    pub fn sample_light(&self) -> Option<(&Light, Float)> {
+    pub fn sample_light(&self) -> Option<(&dyn Light, Float)> {
         if !self.lights.is_empty() {
             let i = rand::thread_rng().gen_range(0, self.lights.len());
             let light = &self.lights[i];

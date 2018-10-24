@@ -156,15 +156,7 @@ impl RenderWorker {
     }
 
     pub fn sample_light(&self, isect: &Interaction) -> (Color, Point3<Float>, Float) {
-        // TODO: use camera flash as default
-        // let light_intensity = 10.0 * self.camera.scale;
-        // (
-        //     light_intensity * Color::white(),
-        //     self.camera.pos,
-        //     self.camera.forward(),
-        //     1.0,
-        // )
-        let (light, pdf) = self.scene.sample_light().unwrap();
+        let (light, pdf) = self.scene.sample_light().unwrap_or((&self.camera, 1.0));
         let (li, p, lpdf) = light.sample_li(isect);
         (li, p, pdf * lpdf)
     }

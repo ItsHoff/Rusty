@@ -1,5 +1,5 @@
-use cgmath::{Point2, Point3, Vector3};
 use cgmath::prelude::*;
+use cgmath::{Point2, Point3, Vector3};
 
 use crate::color::Color;
 use crate::consts;
