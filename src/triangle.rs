@@ -86,25 +86,28 @@ impl Triangle {
         }
     }
 
-    pub fn pos(&self, u: Float, v: Float) -> Point3<Float> {
-        let p1 = self.v1.p;
-        let p2 = self.v2.p;
-        let p3 = self.v3.p;
-        (1.0 - u - v) * p1 + u * p2.to_vec() + v * p3.to_vec()
-    }
+    /// Get the barycentric position, normal and texture coordinates
+    pub fn bary_pnt(&self, u: Float, v: Float) -> (Point3<Float>, Vector3<Float>, Point2<Float>) {
+        let v1 = &*self.v1;
+        let p1 = v1.p;
+        let n1 = v1.n;
+        let t1 = v1.t;
 
-    pub fn normal(&self, u: Float, v: Float) -> Vector3<Float> {
-        let n1 = self.v1.n;
-        let n2 = self.v2.n;
-        let n3 = self.v3.n;
-        (1.0 - u - v) * n1 + u * n2 + v * n3
-    }
+        let v2 = &*self.v2;
+        let p2 = v2.p;
+        let n2 = v2.n;
+        let t2 = v2.t;
 
-    fn tex_coords(&self, u: Float, v: Float) -> Point2<Float> {
-        let t1 = self.v1.t;
-        let t2 = self.v2.t;
-        let t3 = self.v3.t;
-        (1.0 - u - v) * t1 + u * t2.to_vec() + v * t3.to_vec()
+        let v3 = &*self.v3;
+        let p3 = v3.p;
+        let n3 = v3.n;
+        let t3 = v3.t;
+
+        let b1 = 1.0 - u - v;
+        let p = b1 * p1 + u * p2.to_vec() + v * p3.to_vec();
+        let n = b1 * n1 + u * n2 + v * n3;
+        let t = b1 * t1 + u * t2.to_vec() + v * t3.to_vec();
+        (p, n, t)
     }
 
     pub fn aabb(&self) -> AABB {
@@ -173,11 +176,10 @@ impl<'a> Intersect<'a, Hit<'a>> for Triangle {
 
 impl<'a> Hit<'a> {
     pub fn interaction(self) -> Interaction<'a> {
+        let (p, n, t) = self.tri.bary_pnt(self.u, self.v);
         Interaction {
             tri: self.tri,
-            p: self.tri.pos(self.u, self.v),
-            n: self.tri.normal(self.u, self.v),
-            t: self.tri.tex_coords(self.u, self.v),
+            p, n, t,
             mat: &*self.tri.material,
         }
     }

@@ -41,8 +41,7 @@ impl Light for AreaLight {
     /// Return radiance, shadow ray and the pdf
     fn sample_li(&self, recv: &Interaction) -> (Color, Point3<Float>, Float) {
         let (u, v) = Triangle::sample();
-        let p = self.tri.pos(u, v);
-        let n = self.tri.normal(u, v);
+        let (p, n, _) = self.tri.bary_pnt(u, v);
         let mut pdf = self.tri.pdf_a();
         let dp = p - recv.p;
         let dir = dp.normalize();
