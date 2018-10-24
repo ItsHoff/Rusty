@@ -56,14 +56,14 @@ impl SceneBuilder {
 
 /// Scene containing all the CPU resources
 pub struct Scene {
-    pub vertices: Vec<Vertex>,
-    pub meshes: Vec<Mesh>,
-    pub materials: Vec<Material>,
-    pub triangles: Vec<Triangle>,
-    pub lights: Vec<AreaLight>,
-    pub aabb: AABB,
-    pub bvh: Option<BVH>,
-    pub ray_count: AtomicUsize,
+    vertices: Vec<Vertex>,
+    meshes: Vec<Mesh>,
+    materials: Vec<Material>,
+    triangles: Vec<Triangle>,
+    lights: Vec<AreaLight>,
+    aabb: AABB,
+    bvh: Option<BVH>,
+    ray_count: AtomicUsize,
 }
 
 /// Scene containing resources for GPU rendering
@@ -228,6 +228,14 @@ impl Scene {
     /// Get the approximate size of the scene
     pub fn size(&self) -> Float {
         self.aabb.longest_edge()
+    }
+
+    pub fn ray_count(&self) -> usize {
+        self.ray_count.load(Ordering::Relaxed)
+    }
+
+    pub fn reset_ray_count(&self) {
+        self.ray_count.store(0, Ordering::SeqCst);
     }
 
     pub fn sample_light(&self) -> Option<(&dyn Light, Float)> {
