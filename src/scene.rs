@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
-    Arc,
-};
+use std::sync::Arc;
 
 use cgmath::Point3;
 
@@ -63,7 +60,6 @@ pub struct Scene {
     lights: Vec<AreaLight>,
     aabb: AABB,
     bvh: Option<BVH>,
-    ray_count: AtomicUsize,
 }
 
 /// Scene containing resources for GPU rendering
@@ -84,7 +80,6 @@ impl Scene {
             lights: Vec::new(),
             aabb: AABB::empty(),
             bvh: None,
-            ray_count: ATOMIC_USIZE_INIT,
         })
     }
 
@@ -230,14 +225,6 @@ impl Scene {
         self.aabb.longest_edge()
     }
 
-    pub fn ray_count(&self) -> usize {
-        self.ray_count.load(Ordering::Relaxed)
-    }
-
-    pub fn reset_ray_count(&self) {
-        self.ray_count.store(0, Ordering::SeqCst);
-    }
-
     pub fn sample_light(&self) -> Option<(&dyn Light, Float)> {
         if !self.lights.is_empty() {
             let i = rand::thread_rng().gen_range(0, self.lights.len());
@@ -254,7 +241,6 @@ impl Scene {
         ray: &mut Ray,
         node_stack: &mut Vec<(&'a BVHNode, Float)>,
     ) -> Option<Interaction> {
-        self.ray_count.fetch_add(1, Ordering::Relaxed);
         let bvh = self.bvh.as_ref().unwrap();
         node_stack.push((bvh.root(), 0.0));
         let mut closest_hit = None;

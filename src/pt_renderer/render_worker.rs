@@ -60,8 +60,7 @@ impl RenderWorker {
                     return;
                 }
             }
-            let block = self.coordinator.next_block();
-            if let Some(rect) = block {
+            if let Some(rect) = self.coordinator.next_block() {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
                 for h in 0..rect.height {
                     for w in 0..rect.width {

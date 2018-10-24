@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use prettytable::{cell, Row, Table};
 
 use crate::bvh::BVH;
+use crate::intersect::Ray;
 use crate::Float;
 
 // Helper trait to print out Float type used
@@ -72,12 +73,13 @@ pub fn stop_bvh(bvh: &BVH) {
 
 pub fn start_render() {
     let mut handle = time("Render");
+    Ray::reset_count();
     handle.deactivate();
 }
 
-pub fn stop_render(ray_count: usize) {
+pub fn stop_render() {
     stop_timer("Render");
-    current_scene!().ray_count = ray_count;
+    current_scene!().ray_count = Ray::count();
 }
 
 struct Statistics {

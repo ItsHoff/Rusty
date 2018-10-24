@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+
 use cgmath::prelude::*;
 use cgmath::{Point2, Point3, Vector3};
 
@@ -6,6 +8,8 @@ use crate::consts;
 use crate::material::Material;
 use crate::triangle::Triangle;
 use crate::Float;
+
+static RAY_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;
@@ -23,6 +27,7 @@ pub struct Ray {
 
 impl Ray {
     fn new(orig: Point3<Float>, dir: Vector3<Float>, length: Float) -> Ray {
+        RAY_COUNT.fetch_add(1, Ordering::Relaxed);
         let reciprocal_dir = 1.0 / dir;
         let neg_dir = [dir.x < 0.0, dir.y < 0.0, dir.z < 0.0];
         Ray {
@@ -51,6 +56,14 @@ impl Ray {
         let length = dp.magnitude() - consts::EPSILON;
         let dir = dp.normalize();
         Ray::new(orig, dir, length)
+    }
+
+    pub fn count() -> usize {
+        RAY_COUNT.load(Ordering::Relaxed)
+    }
+
+    pub fn reset_count() {
+        RAY_COUNT.store(0, Ordering::SeqCst);
     }
 }
 
