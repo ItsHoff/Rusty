@@ -7,7 +7,7 @@ use cgmath::Point3;
 use glium::backend::Facade;
 use glium::VertexBuffer;
 
-use rand::{self, prelude::*};
+use rand;
 
 use crate::aabb::AABB;
 use crate::bvh::{BVHNode, SplitMode, BVH};
@@ -58,6 +58,7 @@ pub struct Scene {
     materials: Vec<Material>,
     triangles: Vec<Triangle>,
     lights: Vec<AreaLight>,
+    light_distribution: Vec<Float>,
     aabb: AABB,
     bvh: Option<BVH>,
 }
@@ -78,6 +79,7 @@ impl Scene {
             materials: Vec::new(),
             triangles: Vec::new(),
             lights: Vec::new(),
+            light_distribution: Vec::new(),
             aabb: AABB::empty(),
             bvh: None,
         })
@@ -180,6 +182,18 @@ impl Scene {
                 self.lights.push(AreaLight::new(self.tri_ptr(i)));
             }
         }
+        // Sort light by decreasing power
+        self.lights.sort_unstable_by(|l1, l2| {
+            let b1 = l1.power().luma();
+            let b2 = l2.power().luma();
+            b2.partial_cmp(&b1).unwrap()
+        });
+        let mut power_distr: Vec<Float> = self.lights.iter().map(|l| l.power().luma()).collect();
+        let total_power: Float = power_distr.iter().sum();
+        for power in &mut power_distr {
+            *power /= total_power;
+        }
+        self.light_distribution = power_distr;
     }
 
     /// Load the textures + vertex and index buffers to the GPU
@@ -226,14 +240,16 @@ impl Scene {
     }
 
     pub fn sample_light(&self) -> Option<(&dyn Light, Float)> {
-        if !self.lights.is_empty() {
-            let i = rand::thread_rng().gen_range(0, self.lights.len());
-            let light = &self.lights[i];
-            let pdf = 1.0 / (self.lights.len() as Float);
-            Some((light, pdf))
-        } else {
-            None
+        let r = rand::random::<Float>();
+        let mut sum = 0.0;
+        for (i, &val) in self.light_distribution.iter().enumerate() {
+            sum += val;
+            if r < sum {
+                let light = &self.lights[i];
+                return Some((light, val))
+            }
         }
+        None
     }
 
     pub fn intersect<'a>(

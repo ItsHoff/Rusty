@@ -34,6 +34,10 @@ impl Color {
             b: arr[2],
         }
     }
+
+    pub fn luma(&self) -> Float {
+        0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b
+    }
 }
 
 impl Add for Color {
