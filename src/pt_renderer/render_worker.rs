@@ -137,11 +137,11 @@ impl RenderWorker {
         isect.mat.diffuse(isect.t) / PI
     }
 
-    // TODO: this is slightly wrong?
+    // TODO: maybe change to cocentric mapping?
     fn sample_dir(&self, isect: &Interaction) -> (Vector3<Float>, Float) {
         let normal = isect.n;
         let dir = 2.0 * PI * rand::random::<Float>();
-        let length = rand::random::<Float>();
+        let length = rand::random::<Float>().sqrt();
         let x = length * dir.cos();
         let y = length * dir.sin();
         let z = (1.0 - length.powi(2)).sqrt();
