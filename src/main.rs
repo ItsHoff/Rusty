@@ -51,7 +51,7 @@ fn benchmark() {
         "cornell-water",
         "indirect",
         "conference",
-        "sibenik",
+        "sponza",
     ];
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let save_dir = root_dir.join("results");
