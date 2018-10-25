@@ -49,6 +49,7 @@ fn benchmark() {
         "plane",
         "cornell-glossy",
         "cornell-water",
+        "indirect",
         "conference",
         "sibenik",
     ];
