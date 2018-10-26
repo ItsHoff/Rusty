@@ -24,7 +24,7 @@ mod triangle;
 mod util;
 mod vertex;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use chrono::Local;
 
@@ -53,26 +53,29 @@ fn benchmark() {
         "conference",
         "sponza",
     ];
+    let iterations = 2;
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let save_dir = root_dir.join("results");
-    std::fs::create_dir_all(save_dir.clone()).unwrap();
-    for scene in &scenes {
-        let mut output_file = save_dir.join(scene);
-        output_file.set_extension("png");
-        offline_render(scene, &output_file, 2);
-    }
-    let stats_file = save_dir.join(Local::now().format("benchmark_%F_%H%M%S.txt").to_string());
-    stats::print_and_save(&stats_file);
-}
+    let output_dir = root_dir.join("results");
+    std::fs::create_dir_all(output_dir.clone()).unwrap();
+    let time_stamp = Local::now().format("%F_%H%M%S").to_string();
+    for scene_name in &scenes {
+        stats::new_scene(scene_name);
+        let _t = stats::time("Total");
+        let mut pt_renderer = PTRenderer::new();
+        println!("{}...", scene_name);
+        let (scene, camera) = load::load_cpu_scene(scene_name);
+        pt_renderer.offline_render(&scene, &camera, iterations);
 
-fn offline_render(scene_name: &str, output_file: &Path, iterations: usize) {
-    stats::new_scene(scene_name);
-    let _t = stats::time("Total");
-    let mut pt_renderer = PTRenderer::new();
-    println!("{}...", scene_name);
-    let (scene, camera) = load::load_cpu_scene(scene_name);
-    pt_renderer.offline_render(&scene, &camera, iterations);
-    pt_renderer.save_image(output_file);
+        // Save timestamped version in a addition to the default image
+        let scene_dir = output_dir.join(scene_name);
+        std::fs::create_dir_all(scene_dir.clone()).unwrap();
+        let timestamped_image = scene_dir.join(format!("{}_{}.png", scene_name, time_stamp));
+        let default_image = output_dir.join(scene_name).with_extension("png");
+        pt_renderer.save_image(&timestamped_image);
+        pt_renderer.save_image(&default_image);
+    }
+    let stats_file = output_dir.join(format!("benchmark_{}.txt", time_stamp));
+    stats::print_and_save(&stats_file);
 }
 
 fn online_render() {
