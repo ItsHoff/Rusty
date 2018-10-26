@@ -6,8 +6,13 @@
 ** Primary
 *** Dynamic lights
 *** Glossy materials
+    illum 2: Highlight on
+    * maybe use diffuse if specular exponent (Ns) is small
 *** Mirror reflections
+    illum 5: Fresnel reflection
 *** Transparent materials
+    illum 4: Glass reflection and refraction
+    illum 7: Fresnel reflection + refraction
 *** Bidirectional tracing
 ** Nice to have
 *** Participating media
