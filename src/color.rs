@@ -38,6 +38,10 @@ impl Color {
     pub fn luma(&self) -> Float {
         0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b
     }
+
+    pub fn is_black(&self) -> bool {
+        !(self.r > 0.0 || self.g > 0.0 || self.b > 0.0)
+    }
 }
 
 impl Add for Color {
