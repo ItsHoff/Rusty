@@ -180,7 +180,9 @@ impl<'a> Hit<'a> {
         let (p, n, t) = self.tri.bary_pnt(self.u, self.v);
         Interaction {
             tri: self.tri,
-            p, n, t,
+            p,
+            n,
+            t,
             mat: &*self.tri.material,
         }
     }

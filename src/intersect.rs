@@ -91,4 +91,25 @@ impl Interaction<'_> {
     fn ray_origin(&self) -> Point3<Float> {
         self.p + consts::EPSILON * self.n
     }
+
+    pub fn brdf(&self) -> Color {
+        self.mat.diffuse(self.t) / consts::PI
+    }
+
+    pub fn sample_brdf(&self) -> (Color, Vector3<Float>, Float) {
+        let dir = 2.0 * consts::PI * rand::random::<Float>();
+        let length = rand::random::<Float>().sqrt();
+        let x = length * dir.cos();
+        let y = length * dir.sin();
+        let z = (1.0 - length.powi(2)).sqrt();
+        let nx = if self.n.x.abs() > self.n.y.abs() {
+            Vector3::new(self.n.z, 0.0, -self.n.x).normalize()
+        } else {
+            Vector3::new(0.0, -self.n.z, self.n.y).normalize()
+        };
+        let ny = self.n.cross(nx);
+        let dir = x * nx + y * ny + z * self.n;
+        let pdf = z / consts::PI;
+        (self.brdf(), dir, pdf)
+    }
 }

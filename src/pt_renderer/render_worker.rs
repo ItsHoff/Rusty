@@ -3,14 +3,14 @@ use std::sync::{
     Arc,
 };
 
-use cgmath::{prelude::*, Point3, Vector3, Vector4};
+use cgmath::prelude::*;
+use cgmath::{Point3, Vector4};
 
 use glium::Rect;
 
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
-use crate::consts::PI;
 use crate::intersect::{Interaction, Ray};
 use crate::pt_renderer::RenderCoordinator;
 use crate::scene::Scene;
@@ -117,41 +117,18 @@ impl RenderWorker {
             let mut shadow_ray = isect.shadow_ray(light_p);
             if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
                 let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
-                c += le * self.brdf(&isect) * cos_t / light_pdf;
+                c += le * isect.brdf() * cos_t / light_pdf;
             }
             let rr = rand::random::<Float>();
             if rr < RR_PROB {
-                let (new_dir, mut pdf) = self.sample_dir(&isect);
+                let (brdf, new_dir, mut pdf) = isect.sample_brdf();
                 pdf *= RR_PROB;
                 let new_ray = isect.ray(new_dir);
-                c += isect.n.dot(new_dir)
-                    * self.brdf(&isect)
-                    * self.trace_ray(new_ray, node_stack, bounce + 1)
+                c += isect.n.dot(new_dir) * brdf * self.trace_ray(new_ray, node_stack, bounce + 1)
                     / pdf;
             }
         }
         c
-    }
-
-    fn brdf(&self, isect: &Interaction) -> Color {
-        isect.mat.diffuse(isect.t) / PI
-    }
-
-    // TODO: maybe change to cocentric mapping?
-    fn sample_dir(&self, isect: &Interaction) -> (Vector3<Float>, Float) {
-        let normal = isect.n;
-        let dir = 2.0 * PI * rand::random::<Float>();
-        let length = rand::random::<Float>().sqrt();
-        let x = length * dir.cos();
-        let y = length * dir.sin();
-        let z = (1.0 - length.powi(2)).sqrt();
-        let nx = if normal.x.abs() > normal.y.abs() {
-            Vector3::new(normal.z, 0.0, -normal.x).normalize()
-        } else {
-            Vector3::new(0.0, -normal.z, normal.y).normalize()
-        };
-        let ny = normal.cross(nx);
-        (x * nx + y * ny + z * normal, z / PI)
     }
 
     pub fn sample_light(&self, isect: &Interaction) -> (Color, Point3<Float>, Float) {

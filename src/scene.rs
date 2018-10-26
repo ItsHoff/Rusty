@@ -246,7 +246,7 @@ impl Scene {
             sum += val;
             if r < sum {
                 let light = &self.lights[i];
-                return Some((light, val))
+                return Some((light, val));
             }
         }
         None
