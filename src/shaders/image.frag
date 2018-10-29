@@ -18,8 +18,8 @@ float hable(float x) {
 }
 
 void main() {
-  color = texture(image, v_tex_coords);
-  float luma = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-  // The last division defines the white point
-  color.rgb *= hable(luma) / luma / hable(4000.0);
+    color = texture(image, v_tex_coords);
+    float luma = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    // The last division defines the white point
+    color.rgb *= hable(luma) / luma / hable(4000.0);
 }
