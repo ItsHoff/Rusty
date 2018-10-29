@@ -7,17 +7,17 @@ out vec4 color;
 
 uniform vec3 u_light;
 uniform vec3 u_color;
-uniform bool u_has_diffuse;
-uniform bool u_has_emissive;
-uniform sampler2D tex_diffuse;
+uniform bool u_has_texture;
+uniform bool u_is_emissive;
+uniform sampler2D tex;
 
 void main() {
   float brightness = dot(normalize(v_normal), normalize(u_light));
   vec3 d_color;
-  if (u_has_emissive) {
+  if (u_is_emissive) {
       d_color = vec3(255, 255, 0);
-  } else if (u_has_diffuse) {
-      d_color = vec3(texture(tex_diffuse, v_tex_coords));
+  } else if (u_has_texture) {
+      d_color = vec3(texture(tex, v_tex_coords));
   } else {
       d_color = u_color;
   }

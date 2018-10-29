@@ -38,10 +38,10 @@ impl GLRenderer {
             let uniforms = uniform! {
                 world_to_clip: array4x4(world_to_clip),
                 u_light: [-1.0, 0.4, 0.9f32],
-                u_color: material.diffuse,
-                u_has_diffuse: material.has_diffuse,
-                u_has_emissive: material.has_emissive,
-                tex_diffuse: &material.diffuse_texture
+                u_color: material.color,
+                u_has_texture: material.has_texture,
+                u_is_emissive: material.is_emissive,
+                tex: &material.texture
             };
             target
                 .draw(

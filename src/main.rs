@@ -1,7 +1,6 @@
 #![feature(duration_float)]
 #![feature(euclidean_division)]
 #![feature(try_trait)]
-#![feature(tool_lints)]
 
 mod aabb;
 mod bvh;
@@ -20,6 +19,7 @@ mod obj_load;
 mod pt_renderer;
 mod scene;
 mod stats;
+mod texture;
 mod triangle;
 mod util;
 mod vertex;
