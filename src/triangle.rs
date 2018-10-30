@@ -6,7 +6,7 @@ use rand;
 use crate::aabb::{self, AABB};
 use crate::color::Color;
 use crate::index_ptr::IndexPtr;
-use crate::intersect::{Interaction, Intersect, Ray};
+use crate::intersect::{Hit, Intersect, Ray};
 use crate::material::Material;
 use crate::util::ConvArr;
 use crate::vertex::Vertex;
@@ -155,14 +155,6 @@ impl Triangle {
     }
 }
 
-#[derive(Debug)]
-pub struct Hit<'a> {
-    pub tri: &'a Triangle,
-    pub t: Float,
-    pub u: Float,
-    pub v: Float,
-}
-
 impl<'a> Intersect<'a, Hit<'a>> for Triangle {
     fn intersect(&self, ray: &Ray) -> Option<Hit> {
         let bary_o = self.to_barycentric * ray.orig.to_homogeneous();
@@ -174,19 +166,6 @@ impl<'a> Intersect<'a, Hit<'a>> for Triangle {
             Some(Hit { tri: self, t, u, v })
         } else {
             None
-        }
-    }
-}
-
-impl<'a> Hit<'a> {
-    pub fn interaction(self) -> Interaction<'a> {
-        let (p, n, t) = self.tri.bary_pnt(self.u, self.v);
-        Interaction {
-            tri: self.tri,
-            p,
-            n,
-            t,
-            mat: &*self.tri.material,
         }
     }
 }

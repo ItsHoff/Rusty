@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 use cgmath::prelude::*;
-use cgmath::{Point2, Point3, Vector3};
+use cgmath::{Matrix3, Point2, Point3, Vector3};
 
 use crate::color::Color;
 use crate::consts;
@@ -67,8 +67,43 @@ impl Ray {
     }
 }
 
+#[derive(Debug)]
+pub struct Hit<'a> {
+    pub tri: &'a Triangle,
+    pub t: Float,
+    pub u: Float,
+    pub v: Float,
+}
+
+impl<'a> Hit<'a> {
+    pub fn interaction(self) -> Interaction<'a> {
+        let (p, n, t) = self.tri.bary_pnt(self.u, self.v);
+        Interaction {
+            tri: self.tri,
+            to_local: world_to_normal(n),
+            p,
+            n,
+            t,
+            mat: &*self.tri.material,
+        }
+    }
+}
+
+/// Compute the orthonormal transformation to an arbitrary
+/// coordinate frame where n defines is the z-axis
+fn world_to_normal(n: Vector3<Float>) -> Matrix3<Float> {
+    let nx = if n.x.abs() > n.y.abs() {
+        Vector3::new(n.z, 0.0, -n.x).normalize()
+    } else {
+        Vector3::new(0.0, -n.z, n.y).normalize()
+    };
+    let ny = n.cross(nx);
+    Matrix3::from_cols(nx, ny, n).transpose()
+}
+
 pub struct Interaction<'a> {
     pub tri: &'a Triangle,
+    to_local: Matrix3<Float>,
     pub p: Point3<Float>,
     pub n: Vector3<Float>,
     pub t: Point2<Float>,
@@ -97,18 +132,12 @@ impl Interaction<'_> {
     }
 
     pub fn sample_brdf(&self) -> (Color, Vector3<Float>, Float) {
-        let dir = 2.0 * consts::PI * rand::random::<Float>();
+        let angle = 2.0 * consts::PI * rand::random::<Float>();
         let length = rand::random::<Float>().sqrt();
-        let x = length * dir.cos();
-        let y = length * dir.sin();
+        let x = length * angle.cos();
+        let y = length * angle.sin();
         let z = (1.0 - length.powi(2)).sqrt();
-        let nx = if self.n.x.abs() > self.n.y.abs() {
-            Vector3::new(self.n.z, 0.0, -self.n.x).normalize()
-        } else {
-            Vector3::new(0.0, -self.n.z, self.n.y).normalize()
-        };
-        let ny = self.n.cross(nx);
-        let dir = x * nx + y * ny + z * self.n;
+        let dir = self.to_local.transpose() * Vector3::new(x, y, z);
         let pdf = z / consts::PI;
         (self.brdf(), dir, pdf)
     }
