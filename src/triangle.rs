@@ -63,19 +63,7 @@ impl Triangle {
         ng: Vector3<Float>,
         material: IndexPtr<Material>,
     ) -> Self {
-        let p1 = v1.p;
-        let p2 = v2.p;
-        let p3 = v3.p;
-        let z = (p2 - p1).cross(p3 - p1).normalize();
-        let from_barycentric = Matrix4::from_cols(
-            (p2 - p1).extend(0.0),
-            (p3 - p1).extend(0.0),
-            z.extend(0.0),
-            p1.to_homogeneous(),
-        );
-        let to_barycentric = from_barycentric
-            .invert()
-            .expect("Non invertible barycentric tranform");
+        let to_barycentric = Self::world_to_barycentric(v1.p, v2.p, v3.p);
         Self {
             v1,
             v2,
@@ -84,6 +72,21 @@ impl Triangle {
             to_barycentric,
             material,
         }
+    }
+
+    /// Compute the conversion from world space to barycentric space
+    fn world_to_barycentric(p1: Point3<Float>, p2: Point3<Float>, p3: Point3<Float>) -> Matrix4<Float> {
+        // TODO: there should be a way to do this without matrix inversion
+        let z = (p2 - p1).cross(p3 - p1).normalize();
+        let from_barycentric = Matrix4::from_cols(
+            (p2 - p1).extend(0.0),
+            (p3 - p1).extend(0.0),
+            z.extend(0.0),
+            p1.to_homogeneous(),
+        );
+        from_barycentric
+            .invert()
+            .expect("Non invertible barycentric tranform")
     }
 
     /// Get the barycentric position, normal and texture coordinates
