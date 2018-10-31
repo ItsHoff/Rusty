@@ -1,131 +1,355 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign};
 
+use cgmath::prelude::*;
+use cgmath::Vector3;
+
+use crate::util::ConvArr;
 use crate::Float;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Color {
-    pub r: Float,
-    pub g: Float,
-    pub b: Float,
+/// Convert u8 color to float color in range [0, 1]
+pub fn to_float(c: u8) -> Float {
+    Float::from(c) / 255.0
 }
 
-impl Color {
-    fn new(r: Float, g: Float, b: Float) -> Self {
-        Color { r, g, b }
+/// Convert srgb color to linear color
+fn to_linear(c: Float) -> Float {
+    c.powf(2.2)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct SrgbColor(BaseColor);
+
+impl SrgbColor {
+    pub fn from_pixel(rgb: image::Rgb<u8>) -> Self {
+        Self(BaseColor::from_pixel(rgb))
     }
 
+    pub fn to_linear(self) -> Color {
+        Color(self.0.to_linear())
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Color(BaseColor);
+
+impl Color {
     pub fn black() -> Self {
-        Self::new(0.0, 0.0, 0.0)
+        Self(BaseColor::black())
     }
 
     pub fn white() -> Self {
-        Self::new(1.0, 1.0, 1.0)
-    }
-
-    pub fn from_srgb(rgba: image::Rgba<u8>) -> Self {
-        let arr: Vec<Float> = rgba
-            .data
-            .into_iter()
-            .map(|c| (Float::from(*c) / 255.0).powf(2.2))
-            .collect();
-        Color {
-            r: arr[0],
-            g: arr[1],
-            b: arr[2],
-        }
+        Self(BaseColor::white())
     }
 
     pub fn luma(&self) -> Float {
-        0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b
+        self.0.luma()
     }
 
     pub fn is_black(&self) -> bool {
-        !(self.r > 0.0 || self.g > 0.0 || self.b > 0.0)
+        self.0.is_black()
+    }
+
+    pub fn r(&self) -> Float {
+        self.0.r()
+    }
+
+    pub fn g(&self) -> Float {
+        self.0.g()
+    }
+
+    pub fn b(&self) -> Float {
+        self.0.b()
     }
 }
 
-impl Add for Color {
-    type Output = Color;
+#[derive(Clone, Copy, Debug)]
+struct BaseColor {
+    color: Vector3<Float>,
+}
 
-    fn add(self, rhs: Color) -> Color {
-        let mut c = self;
-        c += rhs;
-        c
+impl BaseColor {
+    fn new(r: Float, g: Float, b: Float) -> Self {
+        Self {
+            color: Vector3::new(r, g, b),
+        }
+    }
+
+    fn black() -> Self {
+        Self::new(0.0, 0.0, 0.0)
+    }
+
+    fn white() -> Self {
+        Self::new(1.0, 1.0, 1.0)
+    }
+
+    fn from_pixel(rgb: image::Rgb<u8>) -> Self {
+        Self::new(
+            to_float(rgb.data[0]),
+            to_float(rgb.data[1]),
+            to_float(rgb.data[2]),
+        )
+    }
+
+    fn to_linear(self) -> Self {
+        Self::new(
+            to_linear(self.color[0]),
+            to_linear(self.color[1]),
+            to_linear(self.color[2]),
+        )
+    }
+
+    fn luma(&self) -> Float {
+        let luma_vec = Vector3::new(0.2126, 0.7152, 0.0722);
+        luma_vec.dot(self.color)
+    }
+
+    fn is_black(&self) -> bool {
+        self.color.x == 0.0 && self.color.y == 0.0 && self.color.z == 0.0
+    }
+
+    fn r(&self) -> Float {
+        self.color.x
+    }
+
+    fn g(&self) -> Float {
+        self.color.y
+    }
+
+    fn b(&self) -> Float {
+        self.color.z
+    }
+}
+
+impl Index<usize> for BaseColor {
+    type Output = Float;
+
+    fn index(&self, i: usize) -> &Float {
+        &self.color[i]
+    }
+}
+
+impl IndexMut<usize> for BaseColor {
+    fn index_mut(&mut self, i: usize) -> &mut Float {
+        &mut self.color[i]
+    }
+}
+
+impl From<[f32; 3]> for BaseColor {
+    #[allow(clippy::identity_conversion)]
+    fn from(arr: [f32; 3]) -> Self {
+        Self {
+            color: Vector3::from_arr(arr),
+        }
+    }
+}
+
+impl Into<[f32; 3]> for BaseColor {
+    fn into(self) -> [f32; 3] {
+        self.color.into_arr()
+    }
+}
+
+impl From<[f32; 3]> for Color {
+    #[allow(clippy::identity_conversion)]
+    fn from(arr: [f32; 3]) -> Self {
+        Self(BaseColor::from(arr))
+    }
+}
+
+impl Into<[f32; 3]> for Color {
+    fn into(self) -> [f32; 3] {
+        self.0.into()
+    }
+}
+
+// Arithmetic operations
+
+impl Add for BaseColor {
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign for BaseColor {
+    fn add_assign(&mut self, rhs: Self) {
+        self.color += rhs.color;
+    }
+}
+
+impl Div<Float> for BaseColor {
+    type Output = Self;
+
+    fn div(mut self, rhs: Float) -> Self {
+        self /= rhs;
+        self
+    }
+}
+
+impl DivAssign<Float> for BaseColor {
+    fn div_assign(&mut self, rhs: Float) {
+        let recip = rhs.recip();
+        self.color *= recip;
+    }
+}
+
+impl Mul for BaseColor {
+    type Output = Self;
+
+    fn mul(mut self, rhs: Self) -> Self {
+        self *= rhs;
+        self
+    }
+}
+
+impl MulAssign for BaseColor {
+    fn mul_assign(&mut self, rhs: Self) {
+        self.color.mul_assign_element_wise(rhs.color);
+    }
+}
+
+impl Mul<Float> for BaseColor {
+    type Output = Self;
+
+    fn mul(mut self, rhs: Float) -> Self {
+        self *= rhs;
+        self
+    }
+}
+
+impl MulAssign<Float> for BaseColor {
+    fn mul_assign(&mut self, rhs: Float) {
+        self.color.mul_assign_element_wise(rhs);
+    }
+}
+
+impl Mul<BaseColor> for Float {
+    type Output = BaseColor;
+
+    // Delegate to BaseColor Mul
+    fn mul(self, rhs: BaseColor) -> Self::Output {
+        rhs * self
+    }
+}
+
+// Color operations delegated to BaseColor
+
+impl Add for Color {
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self {
+        self.0 += rhs.0;
+        self
     }
 }
 
 impl AddAssign for Color {
-    fn add_assign(&mut self, rhs: Color) {
-        self.r += rhs.r;
-        self.g += rhs.g;
-        self.b += rhs.b;
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
     }
 }
 
 impl Div<Float> for Color {
-    type Output = Color;
+    type Output = Self;
 
-    fn div(self, rhs: Float) -> Self::Output {
-        let mut c = self;
-        c /= rhs;
-        c
+    fn div(mut self, rhs: Float) -> Self {
+        self.0 /= rhs;
+        self
     }
 }
 
 impl DivAssign<Float> for Color {
     fn div_assign(&mut self, rhs: Float) {
         let recip = rhs.recip();
-        self.r *= recip;
-        self.g *= recip;
-        self.b *= recip;
+        self.0 *= recip;
     }
 }
 
 impl Mul for Color {
-    type Output = Color;
+    type Output = Self;
 
-    fn mul(self, rhs: Color) -> Self::Output {
-        Color {
-            r: self.r * rhs.r,
-            g: self.g * rhs.g,
-            b: self.b * rhs.b,
-        }
+    fn mul(mut self, rhs: Self) -> Self {
+        self.0 *= rhs.0;
+        self
     }
 }
 
 impl Mul<Float> for Color {
-    type Output = Color;
+    type Output = Self;
 
-    fn mul(self, rhs: Float) -> Self::Output {
-        Color {
-            r: self.r * rhs,
-            g: self.g * rhs,
-            b: self.b * rhs,
-        }
+    fn mul(mut self, rhs: Float) -> Self {
+        self.0 *= rhs;
+        self
     }
 }
 
 impl Mul<Color> for Float {
     type Output = Color;
 
+    // Delegate to BaseColor Mul
     fn mul(self, rhs: Color) -> Self::Output {
         rhs * self
     }
 }
 
-impl From<[f32; 3]> for Color {
-    #[allow(clippy::identity_conversion)]
-    fn from(arr: [f32; 3]) -> Color {
-        Color {
-            r: arr[0].into(),
-            g: arr[1].into(),
-            b: arr[2].into(),
-        }
+// SrgbColor operations delegated to BaseColor
+
+impl Add for SrgbColor {
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self {
+        self.0 += rhs.0;
+        self
     }
 }
 
-impl Into<[f32; 3]> for Color {
-    fn into(self) -> [f32; 3] {
-        [self.r as f32, self.g as f32, self.b as f32]
+impl AddAssign for SrgbColor {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+    }
+}
+
+impl Div<Float> for SrgbColor {
+    type Output = Self;
+
+    fn div(mut self, rhs: Float) -> Self {
+        self.0 /= rhs;
+        self
+    }
+}
+
+impl DivAssign<Float> for SrgbColor {
+    fn div_assign(&mut self, rhs: Float) {
+        let recip = rhs.recip();
+        self.0 *= recip;
+    }
+}
+
+impl Mul for SrgbColor {
+    type Output = Self;
+
+    fn mul(mut self, rhs: Self) -> Self {
+        self.0 *= rhs.0;
+        self
+    }
+}
+
+impl Mul<Float> for SrgbColor {
+    type Output = Self;
+
+    fn mul(mut self, rhs: Float) -> Self {
+        self.0 *= rhs;
+        self
+    }
+}
+
+impl Mul<SrgbColor> for Float {
+    type Output = SrgbColor;
+
+    // Delegate to BaseColor Mul
+    fn mul(self, rhs: SrgbColor) -> Self::Output {
+        rhs * self
     }
 }

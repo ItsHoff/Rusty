@@ -84,9 +84,9 @@ impl RenderWorker {
                         }
                         c /= samples_per_dir.pow(2) as Float;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
-                        block[pixel_i] = c.r as f32;
-                        block[pixel_i + 1] = c.g as f32;
-                        block[pixel_i + 2] = c.b as f32;
+                        block[pixel_i] = c.r() as f32;
+                        block[pixel_i + 1] = c.g() as f32;
+                        block[pixel_i + 2] = c.b() as f32;
                     }
                 }
                 self.result_tx
