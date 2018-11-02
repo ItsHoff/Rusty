@@ -1,11 +1,11 @@
-use cgmath::Point2;
+use cgmath::{Point2, Vector3};
 
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 
 use crate::color::Color;
 use crate::obj_load;
-use crate::texture::Texture;
+use crate::texture::{self, NormalMap, Texture};
 use crate::Float;
 
 #[derive(Clone, Debug)]
@@ -19,6 +19,7 @@ pub enum BSDF {
 pub struct Material {
     bsdf: BSDF,
     texture: Texture,
+    normal_map: Option<NormalMap>,
     pub emissive: Option<Color>,
 }
 
@@ -47,9 +48,16 @@ impl Material {
                 Some(Color::from(e))
             }
         });
+        let mut normal_map = None;
+        if let Some(path) = &obj_mat.tex_bump {
+            if let Err(map) = texture::load_bump_map(path) {
+                normal_map = Some(map);
+            }
+        };
         Material {
             bsdf: BSDF::Diffuse,
             texture,
+            normal_map,
             emissive,
         }
     }
@@ -67,5 +75,13 @@ impl Material {
 
     pub fn diffuse(&self, tex_coords: Point2<Float>) -> Color {
         self.texture.color(tex_coords)
+    }
+
+    pub fn normal(&self, tex_coords: Point2<Float>) -> Option<Vector3<Float>> {
+        if let Some(map) = &self.normal_map {
+            Some(map.normal(tex_coords))
+        } else {
+            None
+        }
     }
 }

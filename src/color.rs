@@ -27,6 +27,10 @@ impl SrgbColor {
     pub fn to_linear(self) -> Color {
         Color(self.0.to_linear())
     }
+
+    pub fn to_vec(self) -> Vector3<Float> {
+        self.0.color
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -39,6 +43,11 @@ impl Color {
 
     pub fn white() -> Self {
         Self(BaseColor::white())
+    }
+
+    pub fn from_normal(n: Vector3<Float>) -> Self {
+        let c_vec = (0.5 * n).add_element_wise(0.5);
+        Self(BaseColor::from(c_vec))
     }
 
     pub fn luma(&self) -> Float {
@@ -131,6 +140,15 @@ impl Index<usize> for BaseColor {
 impl IndexMut<usize> for BaseColor {
     fn index_mut(&mut self, i: usize) -> &mut Float {
         &mut self.color[i]
+    }
+}
+
+impl From<Vector3<Float>> for BaseColor {
+    #[allow(clippy::identity_conversion)]
+    fn from(vec: Vector3<Float>) -> Self {
+        Self {
+            color: vec,
+        }
     }
 }
 

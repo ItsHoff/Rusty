@@ -1,5 +1,5 @@
 use cgmath::prelude::*;
-use cgmath::{Matrix4, Point2, Point3, Vector3};
+use cgmath::{Matrix3, Matrix4, Point2, Point3, Vector3};
 
 use rand;
 
@@ -87,6 +87,32 @@ impl Triangle {
         from_barycentric
             .invert()
             .expect("Non invertible barycentric tranform")
+    }
+
+    /// Compute the conversion from tangent space to world space given a normal
+    pub fn tangent_to_world(&self, n: Vector3<Float>) -> Option<Matrix3<Float>> {
+        let v1 = &*self.v1;
+        let v2 = &*self.v2;
+        let v3 = &*self.v3;
+
+        let dp1 = v2.p - v1.p;
+        let dt1 = v2.t - v1.t;
+        let dp2 = v3.p - v1.p;
+        let dt2 = v3.t - v1.t;
+
+        let det = dt1.x * dt2.y - dt1.y * dt2.x;
+        // Triangle has zero area in texture space
+        if det == 0.0 {
+            return None
+        }
+        let g_tangent = dt2.y * dp1 - dt1.y * dp2;
+        // Input normal may not match geometric normal so we need make sure the tangent
+        // is orthogonal with respect to the given normal
+        let bitangent = n.cross(g_tangent).normalize();
+        let tangent = bitangent.cross(n);
+        // TODO: why the bitangent need to be flipped?
+        // TODO: handle mirrored texture coordinates
+        Some(Matrix3::from_cols(tangent, -bitangent, n))
     }
 
     /// Get the barycentric position, normal and texture coordinates

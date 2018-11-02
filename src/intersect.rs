@@ -6,6 +6,7 @@ use cgmath::{Matrix3, Point2, Point3, Vector3};
 use crate::color::Color;
 use crate::consts;
 use crate::material::Material;
+use crate::pt_renderer::RenderConfig;
 use crate::triangle::Triangle;
 use crate::Float;
 
@@ -76,8 +77,15 @@ pub struct Hit<'a> {
 }
 
 impl<'a> Hit<'a> {
-    pub fn interaction(self) -> Interaction<'a> {
-        let (p, n, t) = self.tri.bary_pnt(self.u, self.v);
+    pub fn interaction(self, config: &RenderConfig) -> Interaction<'a> {
+        let (p, mut n, t) = self.tri.bary_pnt(self.u, self.v);
+        if config.normal_mapping {
+            if let Some(ts_normal) = self.tri.material.normal(t) {
+                if let Some(to_world) = self.tri.tangent_to_world(n) {
+                    n = to_world * ts_normal;
+                }
+            }
+        }
         Interaction {
             tri: self.tri,
             to_local: world_to_normal(n),

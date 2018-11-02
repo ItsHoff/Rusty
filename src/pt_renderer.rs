@@ -18,9 +18,89 @@ use crate::camera::Camera;
 use crate::scene::Scene;
 use crate::stats;
 use crate::vertex::RawVertex;
+use crate::Float;
 
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub enum ColorMode {
+    /// Standard radiance
+    Radiance,
+    /// Normals
+    DebugNormals,
+    /// Normals that point away from the camera
+    ForwardNormals,
+}
+
+#[derive(Clone, Debug)]
+pub struct RenderConfig {
+    /// Maximum number of threads to use for rendering
+    pub max_threads: usize,
+    /// Should normal mapping be used
+    pub normal_mapping: bool,
+    /// Source of the image color
+    pub color_mode: ColorMode,
+    /// Maximum number of iterations. None corresponds to manual stop.
+    pub max_iterations: Option<usize>,
+    /// The russian roulette termination probability. None skips russian roulette.
+    pub russian_roulette: Option<Float>,
+    /// Number of bounces before starting russian roulette or terminating the path.
+    pub bounces: usize,
+    /// Samples per pixel per direction. Squared to get the total samples per pixel.
+    pub samples_per_dir: usize,
+    /// Should tone mapping be used
+    pub tone_map: bool,
+}
+
+impl Default for RenderConfig {
+    fn default() -> Self {
+        // Desired expectation value of russian roulette bounces
+        let eb = 2.0;
+        // The matching survival probability from negative binomial distribution
+        let surv_prob = eb / (eb + 1.0);
+
+        RenderConfig {
+            max_threads: 8,
+            normal_mapping: true,
+            color_mode: ColorMode::Radiance,
+            max_iterations: None,
+            russian_roulette: Some(1.0 - surv_prob),
+            bounces: 5,
+            samples_per_dir: 2,
+            tone_map: true,
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl RenderConfig {
+    pub fn benchmark() -> Self {
+        RenderConfig {
+            max_iterations: Some(2),
+            ..Default::default()
+        }
+    }
+
+    pub fn debug_normals() -> Self {
+        RenderConfig {
+            normal_mapping: true,
+            color_mode: ColorMode::DebugNormals,
+            russian_roulette: None,
+            bounces: 0,
+            samples_per_dir: 1,
+            tone_map: false,
+            ..Default::default()
+        }
+    }
+
+    pub fn forward_normals() -> Self {
+        let mut c = Self::debug_normals();
+        c.color_mode = ColorMode::ForwardNormals;
+        c
+    }
+}
 
 pub struct RenderCoordinator {
     width: u32,
@@ -34,13 +114,13 @@ pub struct RenderCoordinator {
 }
 
 impl RenderCoordinator {
-    fn new(width: u32, height: u32, max_iterations: Option<usize>) -> RenderCoordinator {
+    fn new(width: u32, height: u32, config: &RenderConfig) -> RenderCoordinator {
         let block_height = 50;
         let block_width = 50;
         let x_blocks = (f64::from(width) / f64::from(block_width)).ceil() as usize;
         let y_blocks = (f64::from(height) / f64::from(block_height)).ceil() as usize;
         let blocks_per_iter = x_blocks * y_blocks;
-        let max_blocks = max_iterations.map(|iters| iters * blocks_per_iter);
+        let max_blocks = config.max_iterations.map(|iters| iters * blocks_per_iter);
         RenderCoordinator {
             width,
             height,
@@ -81,6 +161,7 @@ struct PTVisualizer {
     vertex_buffer: VertexBuffer<RawVertex>,
     index_buffer: IndexBuffer<u32>,
     texture: Texture2d,
+    tone_map: bool,
 }
 
 fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Texture2d {
@@ -94,7 +175,7 @@ fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Tex
 }
 
 impl PTVisualizer {
-    fn new<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> PTVisualizer {
+    fn new<F: Facade>(facade: &F, texture_source: RawImage2d<f32>, config: &RenderConfig) -> PTVisualizer {
         let vertices = vec![
             RawVertex {
                 pos: [-1.0, -1.0, 0.0],
@@ -138,12 +219,14 @@ impl PTVisualizer {
             vertex_buffer,
             index_buffer,
             texture,
+            tone_map: config.tone_map,
         }
     }
 
     fn render<S: Surface>(&self, target: &mut S) {
         let uniforms = uniform! {
             image: &self.texture,
+            tone_map: self.tone_map,
         };
         let draw_parameters = DrawParameters {
             ..Default::default()
@@ -159,8 +242,9 @@ impl PTVisualizer {
             .unwrap();
     }
 
-    fn new_texture<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>) {
+    fn new_image<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>, config: &RenderConfig) {
         self.texture = create_texture(facade, texture_source);
+        self.tone_map = config.tone_map;
     }
 
     fn update_texture(&mut self, rect: Rect, texture_block: RawImage2d<f32>) {
@@ -183,34 +267,36 @@ impl PTRenderer {
         PTRenderer {
             visualizer: None,
             image,
-            coordinator: Arc::new(RenderCoordinator::new(0, 0, None)),
+            coordinator: Arc::new(RenderCoordinator::new(0, 0, &RenderConfig::default())),
             result_rx: None,
             message_txs: Vec::new(),
             thread_handles: Vec::new(),
         }
     }
 
-    fn start_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: Option<usize>) {
+    fn start_render(&mut self, scene: &Arc<Scene>, camera: &Camera, config: &RenderConfig) {
         stats::start_render();
         let width = camera.width;
         let height = camera.height;
         self.image = TracedImage::empty(width, height);
-        self.coordinator = Arc::new(RenderCoordinator::new(width, height, iterations));
+        self.coordinator = Arc::new(RenderCoordinator::new(width, height, config));
 
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
-        for _ in 0..num_cpus::get_physical() {
+        for _ in 0..num_cpus::get_physical().max(1) {
             let result_tx = result_tx.clone();
             let (message_tx, message_rx) = mpsc::channel();
             self.message_txs.push(message_tx);
             let coordinator = self.coordinator.clone();
             let camera = camera.clone();
+            let config = config.clone();
             let scene = scene.clone();
             let handle = thread::spawn(move || {
                 let worker = RenderWorker::new(
-                    scene.clone(),
-                    camera.clone(),
-                    coordinator.clone(),
+                    scene,
+                    camera,
+                    config,
+                    coordinator,
                     message_rx,
                     result_tx,
                 );
@@ -220,17 +306,19 @@ impl PTRenderer {
         }
     }
 
-    pub fn online_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera) {
-        self.start_render(scene, camera, None);
+    pub fn online_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera,
+                                    config: &RenderConfig) {
+        // TODO: Add support for max_iterations
+        self.start_render(scene, camera, config);
         if let Some(visualizer) = &mut self.visualizer {
-            visualizer.new_texture(facade, self.image.get_texture_source());
+            visualizer.new_image(facade, self.image.get_texture_source(), config);
         } else {
-            self.visualizer = Some(PTVisualizer::new(facade, self.image.get_texture_source()));
+            self.visualizer = Some(PTVisualizer::new(facade, self.image.get_texture_source(), config));
         }
     }
 
-    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, iterations: usize) {
-        self.start_render(scene, camera, Some(iterations));
+    pub fn offline_render(&mut self, scene: &Arc<Scene>, camera: &Camera, config: &RenderConfig) {
+        self.start_render(scene, camera, config);
 
         // Wait for all the threads to finish
         for handle in self.thread_handles.drain(..) {

@@ -34,7 +34,7 @@ use glium::Surface;
 
 use crate::gl_renderer::GLRenderer;
 use crate::input::InputState;
-use crate::pt_renderer::PTRenderer;
+use crate::pt_renderer::{PTRenderer, RenderConfig};
 
 type Float = f64;
 
@@ -54,7 +54,7 @@ fn benchmark() {
         "conference",
         "sponza",
     ];
-    let iterations = 2;
+    let config = RenderConfig::benchmark();
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = root_dir.join("results");
     std::fs::create_dir_all(output_dir.clone()).unwrap();
@@ -65,7 +65,7 @@ fn benchmark() {
         let mut pt_renderer = PTRenderer::new();
         println!("{}...", scene_name);
         let (scene, camera) = load::load_cpu_scene(scene_name);
-        pt_renderer.offline_render(&scene, &camera, iterations);
+        pt_renderer.offline_render(&scene, &camera, &config);
 
         // Save timestamped version in a addition to the default image
         let scene_dir = output_dir.join(scene_name);
@@ -91,6 +91,7 @@ fn online_render() {
     let gl_renderer = GLRenderer::new(&display);
     let mut pt_renderer = PTRenderer::new();
 
+    let mut config = RenderConfig::default();
     let mut input = InputState::new();
     let mut trace = false;
     let mut quit = false;
@@ -124,7 +125,7 @@ fn online_render() {
                     } => {
                         trace = !trace;
                         if trace {
-                            pt_renderer.online_render(&display, &scene, &camera);
+                            pt_renderer.online_render(&display, &scene, &camera, &config);
                         } else {
                             pt_renderer.stop_threads();
                         }
@@ -135,6 +136,13 @@ fn online_render() {
                         ..
                     } => {
                         println!("{:?}, {:?}", camera.pos, camera.rot);
+                    }
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::N),
+                        ..
+                    } => {
+                        config.normal_mapping = !config.normal_mapping;
                     }
                     KeyboardInput {
                         state: ElementState::Pressed,

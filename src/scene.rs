@@ -12,7 +12,7 @@ use rand;
 use crate::aabb::AABB;
 use crate::bvh::{BVHNode, SplitMode, BVH};
 use crate::index_ptr::IndexPtr;
-use crate::intersect::{Interaction, Intersect, Ray};
+use crate::intersect::{Hit, Intersect, Ray};
 use crate::light::{AreaLight, Light};
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
@@ -256,7 +256,7 @@ impl Scene {
         &'a self,
         ray: &mut Ray,
         node_stack: &mut Vec<(&'a BVHNode, Float)>,
-    ) -> Option<Interaction> {
+    ) -> Option<Hit> {
         let bvh = self.bvh.as_ref().unwrap();
         node_stack.push((bvh.root(), 0.0));
         let mut closest_hit = None;
@@ -295,7 +295,7 @@ impl Scene {
                 }
             }
         }
-        closest_hit.map(|h| h.interaction())
+        closest_hit
     }
 }
 
