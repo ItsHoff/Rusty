@@ -3,8 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-use cgmath::prelude::*;
-use cgmath::{Point2, Vector3};
+use cgmath::Point2;
 
 use glium::backend::Facade;
 use glium::texture::{RawImage2d, SrgbTexture2d};
@@ -13,6 +12,10 @@ use image::{DynamicImage, GenericImage, GrayImage, ImageFormat, RgbImage};
 
 use crate::color::{self, Color, SrgbColor};
 use crate::Float;
+
+mod normal_map;
+
+pub use self::normal_map::{NormalMap, load_normal_map};
 
 #[derive(Clone, Debug)]
 pub enum Texture {
@@ -53,37 +56,6 @@ impl Texture {
             // Use empty texture as a placeholder
             Solid(color) => (*color, SrgbTexture2d::empty(facade, 0, 0).unwrap()),
         }
-    }
-}
-
-/// MTL format uses bump maps but commonly normal maps are used instead.
-/// Gray scale images are interpreted as actual bump maps otherwise
-/// a normal map is returned.
-pub fn load_bump_map(path: &Path) -> Result<BumpMap, NormalMap> {
-    use image::DynamicImage::*;
-
-    let image = load_image(path).unwrap();
-    match image {
-        ImageLuma8(map) => Ok(BumpMap { map }),
-        ImageLumaA8(_) => Ok(BumpMap { map: image.to_luma() }),
-        _ => Err(NormalMap { map: image.to_rgb() } ),
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct BumpMap {
-    map: GrayImage
-}
-
-#[derive(Clone, Debug)]
-pub struct NormalMap {
-    map: RgbImage
-}
-
-impl NormalMap {
-    pub fn normal(&self, tex_coords: Point2<Float>) -> Vector3<Float> {
-        let n = bilinear_interp(&self.map, tex_coords).to_vec();
-        (2.0 * n).sub_element_wise(1.0).normalize()
     }
 }
 

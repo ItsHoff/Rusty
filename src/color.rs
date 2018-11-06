@@ -24,6 +24,10 @@ impl SrgbColor {
         Self(BaseColor::from_pixel(rgb))
     }
 
+    pub fn is_gray(&self) -> bool {
+        self.0.is_gray()
+    }
+
     pub fn to_linear(self) -> Color {
         Color(self.0.to_linear())
     }
@@ -114,6 +118,10 @@ impl BaseColor {
 
     fn is_black(&self) -> bool {
         self.color.x == 0.0 && self.color.y == 0.0 && self.color.z == 0.0
+    }
+
+    fn is_gray(&self) -> bool {
+        self.color.x == self.color.y && self.color.y == self.color.z
     }
 
     fn r(&self) -> Float {

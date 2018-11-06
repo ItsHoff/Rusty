@@ -57,6 +57,11 @@ lazy_static::lazy_static! {
                       CameraPos::Defined(Point3::new(-783.01, 184.23, 173.92),
                                          Quaternion::new(0.89, -0.06, 0.44, 0.03)),
                       Some(VirtualKeyCode::Key0));
+        lib.add_scene("sponza-bump".to_string(),
+                      scene_dir.join("sponza_bump").join("sponza.obj"),
+                      CameraPos::Defined(Point3::new(-783.01, 184.23, 173.92),
+                                         Quaternion::new(0.89, -0.06, 0.44, 0.03)),
+                      Some(VirtualKeyCode::Minus));
         lib
     };
 }

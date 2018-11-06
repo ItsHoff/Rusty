@@ -48,11 +48,10 @@ impl Material {
                 Some(Color::from(e))
             }
         });
-        let mut normal_map = None;
-        if let Some(path) = &obj_mat.tex_bump {
-            if let Err(map) = texture::load_bump_map(path) {
-                normal_map = Some(map);
-            }
+        let normal_map = if let Some(path) = &obj_mat.tex_bump {
+            Some(texture::load_normal_map(path))
+        } else {
+            None
         };
         Material {
             bsdf: BSDF::Diffuse,
