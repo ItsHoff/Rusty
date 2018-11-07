@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign};
 use cgmath::prelude::*;
 use cgmath::Vector3;
 
+use crate::consts;
 use crate::util::ConvArr;
 use crate::Float;
 
@@ -121,7 +122,8 @@ impl BaseColor {
     }
 
     fn is_gray(&self) -> bool {
-        self.color.x == self.color.y && self.color.y == self.color.z
+        (self.color.x - self.color.y).abs() < consts::EPSILON
+            && (self.color.y - self.color.z).abs() < consts::EPSILON
     }
 
     fn r(&self) -> Float {
