@@ -146,6 +146,27 @@ fn online_render() {
                     }
                     KeyboardInput {
                         state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::F1),
+                        ..
+                    } => {
+                        config = RenderConfig::default();
+                    }
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::F2),
+                        ..
+                    } => {
+                        config = RenderConfig::debug_normals();
+                    }
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::F3),
+                        ..
+                    } => {
+                        config = RenderConfig::forward_normals();
+                    }
+                    KeyboardInput {
+                        state: ElementState::Pressed,
                         virtual_keycode: Some(keycode),
                         ..
                     } => {
