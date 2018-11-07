@@ -15,7 +15,7 @@ use crate::Float;
 
 mod normal_map;
 
-pub use self::normal_map::{NormalMap, load_normal_map};
+pub use self::normal_map::{load_normal_map, NormalMap};
 
 #[derive(Clone, Debug)]
 pub enum Texture {

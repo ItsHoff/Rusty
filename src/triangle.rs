@@ -75,7 +75,11 @@ impl Triangle {
     }
 
     /// Compute the conversion from world space to barycentric space
-    fn world_to_barycentric(p1: Point3<Float>, p2: Point3<Float>, p3: Point3<Float>) -> Matrix4<Float> {
+    fn world_to_barycentric(
+        p1: Point3<Float>,
+        p2: Point3<Float>,
+        p3: Point3<Float>,
+    ) -> Matrix4<Float> {
         // TODO: there should be a way to do this without matrix inversion
         let z = (p2 - p1).cross(p3 - p1).normalize();
         let from_barycentric = Matrix4::from_cols(
@@ -103,7 +107,7 @@ impl Triangle {
         let det = dt1.x * dt2.y - dt1.y * dt2.x;
         // Triangle has zero area in texture space
         if det == 0.0 {
-            return None
+            return None;
         }
         let g_tangent = dt2.y * dp1 - dt1.y * dp2;
         // Input normal may not match geometric normal so we need make sure the tangent

@@ -154,9 +154,7 @@ impl IndexMut<usize> for BaseColor {
 impl From<Vector3<Float>> for BaseColor {
     #[allow(clippy::identity_conversion)]
     fn from(vec: Vector3<Float>) -> Self {
-        Self {
-            color: vec,
-        }
+        Self { color: vec }
     }
 }
 

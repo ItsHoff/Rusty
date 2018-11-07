@@ -175,7 +175,11 @@ fn create_texture<F: Facade>(facade: &F, texture_source: RawImage2d<f32>) -> Tex
 }
 
 impl PTVisualizer {
-    fn new<F: Facade>(facade: &F, texture_source: RawImage2d<f32>, config: &RenderConfig) -> PTVisualizer {
+    fn new<F: Facade>(
+        facade: &F,
+        texture_source: RawImage2d<f32>,
+        config: &RenderConfig,
+    ) -> PTVisualizer {
         let vertices = vec![
             RawVertex {
                 pos: [-1.0, -1.0, 0.0],
@@ -242,7 +246,12 @@ impl PTVisualizer {
             .unwrap();
     }
 
-    fn new_image<F: Facade>(&mut self, facade: &F, texture_source: RawImage2d<f32>, config: &RenderConfig) {
+    fn new_image<F: Facade>(
+        &mut self,
+        facade: &F,
+        texture_source: RawImage2d<f32>,
+        config: &RenderConfig,
+    ) {
         self.texture = create_texture(facade, texture_source);
         self.tone_map = config.tone_map;
     }
@@ -292,28 +301,31 @@ impl PTRenderer {
             let config = config.clone();
             let scene = scene.clone();
             let handle = thread::spawn(move || {
-                let worker = RenderWorker::new(
-                    scene,
-                    camera,
-                    config,
-                    coordinator,
-                    message_rx,
-                    result_tx,
-                );
+                let worker =
+                    RenderWorker::new(scene, camera, config, coordinator, message_rx, result_tx);
                 worker.run();
             });
             self.thread_handles.push(handle);
         }
     }
 
-    pub fn online_render<F: Facade>(&mut self, facade: &F, scene: &Arc<Scene>, camera: &Camera,
-                                    config: &RenderConfig) {
+    pub fn online_render<F: Facade>(
+        &mut self,
+        facade: &F,
+        scene: &Arc<Scene>,
+        camera: &Camera,
+        config: &RenderConfig,
+    ) {
         // TODO: Add support for max_iterations
         self.start_render(scene, camera, config);
         if let Some(visualizer) = &mut self.visualizer {
             visualizer.new_image(facade, self.image.get_texture_source(), config);
         } else {
-            self.visualizer = Some(PTVisualizer::new(facade, self.image.get_texture_source(), config));
+            self.visualizer = Some(PTVisualizer::new(
+                facade,
+                self.image.get_texture_source(),
+                config,
+            ));
         }
     }
 

@@ -106,11 +106,13 @@ impl RenderWorker {
             let mut isect = hit.interaction(&self.config);
             match self.config.color_mode {
                 ColorMode::DebugNormals => return Color::from_normal(isect.n),
-                ColorMode::ForwardNormals => return if isect.n.dot(ray.dir) > 0.0 {
-                    Color::from_normal(isect.n)
-                } else {
-                    Color::black()
-                },
+                ColorMode::ForwardNormals => {
+                    return if isect.n.dot(ray.dir) > 0.0 {
+                        Color::from_normal(isect.n)
+                    } else {
+                        Color::black()
+                    }
+                }
                 ColorMode::Radiance => {
                     // Flip the normal if its pointing to the opposite side from the hit
                     if isect.n.dot(ray.dir) > 0.0 {
@@ -139,7 +141,9 @@ impl RenderWorker {
                         let (brdf, new_dir, brdf_pdf) = isect.sample_brdf();
                         pdf *= brdf_pdf;
                         let new_ray = isect.ray(new_dir);
-                        c += isect.n.dot(new_dir) * brdf * self.trace_ray(new_ray, node_stack, bounce + 1)
+                        c += isect.n.dot(new_dir)
+                            * brdf
+                            * self.trace_ray(new_ray, node_stack, bounce + 1)
                             / pdf;
                     }
                 }
