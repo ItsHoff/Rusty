@@ -72,6 +72,7 @@ fn normal_to_pixel(n: Vector3<Float>) -> Rgb<u8> {
     Rgb([float_to_u8(p.x), float_to_u8(p.y), float_to_u8(p.z)])
 }
 
+#[rustfmt::skip]
 pub fn bump_to_normal(bump: &GrayImage) -> RgbImage {
     let w = bump.width();
     let h = bump.height();
@@ -89,9 +90,9 @@ pub fn bump_to_normal(bump: &GrayImage) -> RgbImage {
             // [2, 0, -2]  [ 0,  0,  0]
             // [1, 0, -1], [-1, -2, -1]
             let dx = offset(-1, 1) + 2.0 * offset(-1, 0) + offset(-1, -1)
-                - offset(1, 1) - 2.0 * offset(1, 0) - offset(1, -1);
+                   - offset(1, 1)  - 2.0 * offset(1, 0)  - offset(1, -1);
             let dy = offset(1, -1) + 2.0 * offset(0, -1) + offset(-1, -1)
-                - offset(1, 1) - 2.0 * offset(0, 1) - offset(-1, 1);
+                   - offset(1, 1)  - 2.0 * offset(0, 1)  - offset(-1, 1);
             // Gradient that will produce a 45 degree slope.
             // Maximum possible slope is 1 (from black to white in one pixel).
             let slope = 1.0 / 20.0;
