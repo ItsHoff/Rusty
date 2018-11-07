@@ -12,7 +12,8 @@ use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
 use crate::intersect::{Interaction, Ray};
-use crate::pt_renderer::{ColorMode, RenderConfig, RenderCoordinator};
+use crate::light::Light;
+use crate::pt_renderer::{ColorMode, LightMode, RenderConfig, RenderCoordinator};
 use crate::scene::Scene;
 use crate::Float;
 
@@ -153,7 +154,11 @@ impl RenderWorker {
     }
 
     pub fn sample_light(&self, isect: &Interaction) -> (Color, Point3<Float>, Float) {
-        let (light, pdf) = self.scene.sample_light().unwrap_or((&self.camera, 1.0));
+        let (light, pdf) = match self.config.light_mode {
+            LightMode::Scene => self.scene.sample_light().unwrap_or((&self.camera, 1.0)),
+            LightMode::Camera => (&self.camera as &dyn Light, 1.0),
+            LightMode::All => unimplemented!(),
+        };
         let (li, p, lpdf) = light.sample_li(isect);
         (li, p, pdf * lpdf)
     }

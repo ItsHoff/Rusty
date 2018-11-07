@@ -132,41 +132,6 @@ fn online_render() {
                     }
                     KeyboardInput {
                         state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::C),
-                        ..
-                    } => {
-                        println!("{:?}, {:?}", camera.pos, camera.rot);
-                    }
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::N),
-                        ..
-                    } => {
-                        config.normal_mapping = !config.normal_mapping;
-                    }
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::F1),
-                        ..
-                    } => {
-                        config = RenderConfig::default();
-                    }
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::F2),
-                        ..
-                    } => {
-                        config = RenderConfig::debug_normals();
-                    }
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::F3),
-                        ..
-                    } => {
-                        config = RenderConfig::forward_normals();
-                    }
-                    KeyboardInput {
-                        state: ElementState::Pressed,
                         virtual_keycode: Some(keycode),
                         ..
                     } => {
@@ -176,6 +141,7 @@ fn online_render() {
                                 gpu_scene = res.1;
                                 camera = res.2;
                             }
+                            config.handle_key(keycode);
                         }
                     }
                     _ => (),
