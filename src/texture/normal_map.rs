@@ -11,7 +11,7 @@ use super::GetColor;
 
 #[derive(Clone, Debug)]
 pub struct NormalMap {
-    map: RgbImage
+    map: RgbImage,
 }
 
 impl NormalMap {
@@ -27,40 +27,39 @@ pub fn load_normal_map(path: &Path) -> NormalMap {
     use image::DynamicImage::*;
 
     let image = super::load_image(path).unwrap();
-    // TODO: implement caching for converted maps
     let map = match image {
         ImageLuma8(map) => bump_to_normal(&map),
         ImageLumaA8(_) => bump_to_normal(&image.to_luma()),
         _ => {
             let rgb_image = image.to_rgb();
-            if is_gray_scale(&rgb_image) {
-                println!("Found gray scale rgb image {:?}", path);
+            if is_grayscale(&rgb_image) {
+                println!("Found non-grayscale bump map {:?}", path);
                 bump_to_normal(&image.to_luma())
             } else {
                 rgb_image
             }
         }
-
     };
+    // TODO: implement proper caching for converted maps
     // if let Some(name) = path.file_name() {
     //     let mut s = name.to_str().unwrap().to_string();
     //     s.insert_str(0, "to_normal_");
-    //     let save_path = path.with_file_name(s);
+    //     let save_path = path.with_file_name(s).with_extension("png");
     //     map.save(&save_path).unwrap();
     //     println!("saved {:?}", save_path);
     // }
     NormalMap { map }
 }
 
-/// Detect if an RgbImage is infact a gray scale image
-fn is_gray_scale(image: &RgbImage) -> bool {
+/// Detect if an RgbImage is infact a grayscale image
+fn is_grayscale(image: &RgbImage) -> bool {
     let w = image.width();
     let h = image.height();
     // Check some points
     let c1 = image.get_color(0, 0);
     let c2 = image.get_color(w / 2, h / 2);
     let c3 = image.get_color(w / 4, h / 3);
-    // If all points are gray the image is probably gray scale
+    // If all points are gray the image is probably grayscale
     c1.is_gray() && c2.is_gray() && c3.is_gray()
 }
 
@@ -79,35 +78,26 @@ pub fn bump_to_normal(bump: &GrayImage) -> RgbImage {
     let mut nm = RgbImage::new(w, h);
     for y in 0..h {
         for x in 0..w {
-            let dx = if x == 0 {
-                let p1 = bump.get_color(x, y);
-                let p2 = bump.get_color(x + 1, y);
-                p2 - p1
-            } else if x == bump.width() - 1 {
-                let p1 = bump.get_color(x - 1, y);
-                let p2 = bump.get_color(x, y);
-                p2 - p1
-            } else {
-                let p1 = bump.get_color(x - 1, y);
-                let p2 = bump.get_color(x + 1, y);
-                (p2 - p1) / 2.0
+            // Wrapping access to the offset pixels
+            let offset = |dx: i32, dy: i32| {
+                let i = ((x as i32) + dx).mod_euc(w as i32) as u32;
+                let j = ((y as i32) + dy).mod_euc(h as i32) as u32;
+                bump.get_color(i, j)
             };
-            let dy = if y == 0 {
-                let p1 = bump.get_color(x, y);
-                let p2 = bump.get_color(x, y + 1);
-                p2 - p1
-            } else if y == bump.height() - 1 {
-                let p1 = bump.get_color(x, y - 1);
-                let p2 = bump.get_color(x, y);
-                p2 - p1
-            } else {
-                let p1 = bump.get_color(x, y - 1);
-                let p2 = bump.get_color(x, y + 1);
-                (p2 - p1) / 2.0
-            };
-            // dx and dy need to be flipped to match the reference maps
-            // TODO: implement better z scaling
-            let n = Vector3::new(-dx, -dy, 0.1).normalize();
+            // Use sobel filters to compute the gradient
+            // [1, 0, -1]  [ 1,  2,  1]
+            // [2, 0, -2]  [ 0,  0,  0]
+            // [1, 0, -1], [-1, -2, -1]
+            let dx = offset(-1, 1) + 2.0 * offset(-1, 0) + offset(-1, -1)
+                - offset(1, 1) - 2.0 * offset(1, 0) - offset(1, -1);
+            let dy = offset(1, -1) + 2.0 * offset(0, -1) + offset(-1, -1)
+                - offset(1, 1) - 2.0 * offset(0, 1) - offset(-1, 1);
+            // Gradient that will produce a 45 degree slope.
+            // Maximum possible slope is 1 (from black to white in one pixel).
+            let slope = 1.0 / 20.0;
+            // Total filter scale. Interpolation scale is 4 and derivate width is 2.
+            let filter_scale = 8.0;
+            let n = Vector3::new(dx, dy, slope * filter_scale).normalize();
             nm.put_pixel(x, y, normal_to_pixel(n));
         }
     }
