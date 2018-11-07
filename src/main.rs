@@ -3,6 +3,13 @@
 #![feature(self_struct_ctor)]
 #![feature(try_trait)]
 
+use std::path::PathBuf;
+
+use chrono::Local;
+
+use glium::glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use glium::Surface;
+
 mod aabb;
 mod bvh;
 mod camera;
@@ -25,16 +32,9 @@ mod triangle;
 mod util;
 mod vertex;
 
-use std::path::PathBuf;
-
-use chrono::Local;
-
-use glium::glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
-use glium::Surface;
-
-use crate::gl_renderer::GLRenderer;
-use crate::input::InputState;
-use crate::pt_renderer::{PTRenderer, RenderConfig};
+use self::gl_renderer::GLRenderer;
+use self::input::InputState;
+use self::pt_renderer::{PTRenderer, RenderConfig};
 
 type Float = f64;
 
