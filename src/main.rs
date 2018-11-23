@@ -69,6 +69,7 @@ fn benchmark() {
     let events_loop = glium::glutin::EventsLoop::new();
     // Preferably this wouldn't need use a window at all but alas this is the closest I have gotten.
     // There exists HeadlessContext but that still pops up a window (atleast on Windows).
+    // TODO: Maybe change this such that the window displays the current render?
     let window = glium::glutin::WindowBuilder::new()
         .with_dimensions(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
         .with_visibility(false)
@@ -85,13 +86,13 @@ fn benchmark() {
         let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
 
         stats::time("Post-process");
-        // Save timestamped version in a addition to the default image
         let scene_dir = output_dir.join(scene_name);
         std::fs::create_dir_all(scene_dir.clone()).unwrap();
         let timestamped_image = scene_dir.join(format!("{}_{}.png", scene_name, time_stamp));
-        let default_image = output_dir.join(scene_name).with_extension("png");
         pt_renderer.save_image(&timestamped_image);
-        pt_renderer.save_image(&default_image);
+        // Make a copy to the main output directory
+        let default_image = output_dir.join(scene_name).with_extension("png");
+        std::fs::copy(timestamped_image, default_image).unwrap();
     }
     let stats_file = output_dir.join(format!("benchmark_{}.txt", time_stamp));
     stats::print_and_save(&stats_file);
