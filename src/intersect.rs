@@ -4,9 +4,9 @@ use cgmath::prelude::*;
 use cgmath::{Matrix3, Point2, Point3, Vector3};
 
 use crate::color::Color;
+use crate::config::RenderConfig;
 use crate::consts;
 use crate::material::Material;
-use crate::pt_renderer::RenderConfig;
 use crate::triangle::Triangle;
 use crate::Float;
 

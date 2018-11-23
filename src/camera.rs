@@ -5,7 +5,7 @@ use cgmath;
 use cgmath::prelude::*;
 use cgmath::{Matrix4, Point3, Quaternion, Rad, Vector3};
 
-use glium::glutin::{MouseButton, VirtualKeyCode};
+use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
 
 use crate::color::Color;
 use crate::consts;
@@ -21,10 +21,8 @@ pub struct Camera {
     pub pos: Point3<Float>,
     /// Rotation of the camera
     pub rot: Quaternion<Float>,
-    /// Width of the viewport in pixels
-    pub width: u32,
-    /// Height of the viewport in pixels
-    pub height: u32,
+    /// Aspect ratio of the viewport
+    ratio: Float,
     /// Vertical field-of-view of the camera
     fov: Rad<Float>,
     /// Near plane of the camera
@@ -42,8 +40,7 @@ impl Default for Camera {
         Camera {
             pos: Point3::origin(),
             rot: Quaternion::one(),
-            width: 0,
-            height: 0,
+            ratio: 1.0,
             fov: Rad(consts::PI / 3.0),
             near: 0.001,
             far: 10.0,
@@ -62,9 +59,8 @@ impl Camera {
         }
     }
 
-    pub fn update_viewport(&mut self, size: (u32, u32)) {
-        self.width = size.0;
-        self.height = size.1;
+    pub fn update_viewport(&mut self, size: LogicalSize) {
+        self.ratio = (size.width / size.height) as Float;
     }
 
     pub fn set_scale(&mut self, scale: Float) {
@@ -81,7 +77,7 @@ impl Camera {
     fn camera_to_clip(&self) -> Matrix4<Float> {
         cgmath::perspective(
             self.fov,
-            self.width as Float / self.height as Float,
+            self.ratio,
             self.near * self.scale,
             self.far * self.scale,
         )

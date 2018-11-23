@@ -1,4 +1,4 @@
-use glium::glutin::VirtualKeyCode;
+use glium::glutin::{dpi::LogicalSize, VirtualKeyCode};
 
 use crate::Float;
 
@@ -26,6 +26,10 @@ pub enum LightMode {
 
 #[derive(Clone, Debug)]
 pub struct RenderConfig {
+    /// Width of the render target in pixels
+    pub width: u32,
+    /// Height of the render target in pixels
+    pub height: u32,
     /// Maximum number of threads to use for rendering
     pub max_threads: usize,
     /// Should normal mapping be used
@@ -54,6 +58,8 @@ impl Default for RenderConfig {
         let surv_prob = eb / (eb + 1.0);
 
         RenderConfig {
+            width: 1000,
+            height: 800,
             max_threads: 8,
             normal_mapping: true,
             color_mode: ColorMode::Radiance,
@@ -71,6 +77,8 @@ impl Default for RenderConfig {
 impl RenderConfig {
     pub fn benchmark() -> Self {
         RenderConfig {
+            width: 600,
+            height: 400,
             max_iterations: Some(2),
             ..Default::default()
         }
@@ -92,6 +100,10 @@ impl RenderConfig {
         let mut c = Self::debug_normals();
         c.color_mode = ColorMode::ForwardNormals;
         c
+    }
+
+    pub fn dimensions(&self) -> LogicalSize {
+        LogicalSize::from((self.width, self.height))
     }
 
     pub fn handle_key(&mut self, key: VirtualKeyCode) {

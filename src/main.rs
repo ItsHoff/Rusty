@@ -7,13 +7,17 @@ use std::path::PathBuf;
 
 use chrono::Local;
 
-use glium::glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use glium::backend::glutin::headless::Headless;
+use glium::glutin::{
+    ElementState, Event, HeadlessRendererBuilder, KeyboardInput, VirtualKeyCode, WindowEvent,
+};
 use glium::Surface;
 
 mod aabb;
 mod bvh;
 mod camera;
 mod color;
+mod config;
 mod consts;
 mod gl_renderer;
 mod index_ptr;
@@ -32,9 +36,10 @@ mod triangle;
 mod util;
 mod vertex;
 
+use self::config::RenderConfig;
 use self::gl_renderer::GLRenderer;
 use self::input::InputState;
-use self::pt_renderer::{PTRenderer, RenderConfig};
+use self::pt_renderer::PTRenderer;
 
 type Float = f64;
 
@@ -59,14 +64,27 @@ fn benchmark() {
     let output_dir = root_dir.join("results");
     std::fs::create_dir_all(output_dir.clone()).unwrap();
     let time_stamp = Local::now().format("%F_%H%M%S").to_string();
+
+    // Initialize an OpenGL context that is needed for post-processing
+    let events_loop = glium::glutin::EventsLoop::new();
+    // Preferably this wouldn't need use a window at all but alas this is the closest I have gotten.
+    // There exists HeadlessContext but that still pops up a window (atleast on Windows).
+    let window = glium::glutin::WindowBuilder::new()
+        .with_dimensions(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
+        .with_visibility(false)
+        .with_decorations(false)
+        .with_title("Benchmark");
+    let context = glium::glutin::ContextBuilder::new();
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
+
     for scene_name in &scenes {
         stats::new_scene(scene_name);
         let _t = stats::time("Total");
-        let mut pt_renderer = PTRenderer::new();
         println!("{}...", scene_name);
-        let (scene, camera) = load::load_cpu_scene(scene_name);
-        pt_renderer.offline_render(&scene, &camera, &config);
+        let (scene, camera) = load::load_cpu_scene(scene_name, &config);
+        let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
 
+        stats::time("Post-process");
         // Save timestamped version in a addition to the default image
         let scene_dir = output_dir.join(scene_name);
         std::fs::create_dir_all(scene_dir.clone()).unwrap();
@@ -80,34 +98,30 @@ fn benchmark() {
 }
 
 fn online_render() {
+    let mut config = RenderConfig::default();
     let mut events_loop = glium::glutin::EventsLoop::new();
-    let window = glium::glutin::WindowBuilder::new();
+    let window = glium::glutin::WindowBuilder::new()
+        .with_dimensions(config.dimensions())
+        .with_resizable(false); // TODO: enable resizing
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
     let display =
         glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
     let (mut scene, mut gpu_scene, mut camera) =
-        load::load_gpu_scene(VirtualKeyCode::Key1, &display).unwrap();
+        load::load_gpu_scene(VirtualKeyCode::Key1, &display, &config).unwrap();
     let gl_renderer = GLRenderer::new(&display);
-    let mut pt_renderer = PTRenderer::new();
+    let mut pt_renderer: Option<PTRenderer> = None;
 
-    let mut config = RenderConfig::default();
     let mut input = InputState::new();
-    let mut trace = false;
     let mut quit = false;
 
     loop {
         let mut target = display.draw();
-
-        camera.update_viewport(target.get_dimensions());
-        // Don't draw if the window is minimized
-        if camera.width != 0 && camera.height != 0 {
-            target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-            if trace {
-                pt_renderer.render(&mut target);
-            } else {
-                gl_renderer.render(&mut target, &gpu_scene, &camera);
-            }
+        target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
+        if let Some(renderer) = &mut pt_renderer {
+            renderer.update_and_render(&mut target);
+        } else {
+            gl_renderer.render(&mut target, &gpu_scene, &camera);
         }
         target.finish().unwrap();
 
@@ -123,11 +137,11 @@ fn online_render() {
                         virtual_keycode: Some(VirtualKeyCode::Space),
                         ..
                     } => {
-                        trace = !trace;
-                        if trace {
-                            pt_renderer.online_render(&display, &scene, &camera, &config);
+                        if pt_renderer.is_some() {
+                            pt_renderer = None;
                         } else {
-                            pt_renderer.stop_threads();
+                            pt_renderer =
+                                Some(PTRenderer::start_render(&display, &scene, &camera, &config));
                         }
                     }
                     KeyboardInput {
@@ -135,8 +149,8 @@ fn online_render() {
                         virtual_keycode: Some(keycode),
                         ..
                     } => {
-                        if !trace {
-                            if let Some(res) = load::load_gpu_scene(keycode, &display) {
+                        if pt_renderer.is_none() {
+                            if let Some(res) = load::load_gpu_scene(keycode, &display, &config) {
                                 scene = res.0;
                                 gpu_scene = res.1;
                                 camera = res.2;
@@ -156,9 +170,6 @@ fn online_render() {
         camera.process_input(&input);
         input.reset_deltas();
         if quit {
-            if trace {
-                pt_renderer.stop_threads();
-            }
             return;
         }
     }

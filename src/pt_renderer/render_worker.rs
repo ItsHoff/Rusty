@@ -11,9 +11,10 @@ use glium::Rect;
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
+use crate::config::{ColorMode, LightMode, RenderConfig};
 use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
-use crate::pt_renderer::{ColorMode, LightMode, RenderConfig, RenderCoordinator};
+use crate::pt_renderer::RenderCoordinator;
 use crate::scene::Scene;
 use crate::Float;
 

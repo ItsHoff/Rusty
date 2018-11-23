@@ -9,6 +9,7 @@ use glium::backend::Facade;
 use glium::glutin::VirtualKeyCode;
 
 use crate::camera::Camera;
+use crate::config::RenderConfig;
 use crate::scene::{GPUScene, Scene, SceneBuilder};
 use crate::stats;
 use crate::Float;
@@ -114,7 +115,7 @@ impl SceneLibrary {
     }
 }
 
-fn initialize_camera(scene: &Scene, info: &SceneInfo) -> Camera {
+fn initialize_camera(scene: &Scene, info: &SceneInfo, config: &RenderConfig) -> Camera {
     let mut camera = match info.camera_pos {
         CameraPos::Center => Camera::new(scene.center(), Quaternion::one()),
         CameraPos::Offset => Camera::new(
@@ -125,25 +126,26 @@ fn initialize_camera(scene: &Scene, info: &SceneInfo) -> Camera {
         CameraPos::Defined(pos, rot) => Camera::new(pos, rot.normalize()),
     };
     camera.set_scale(scene.size());
-    camera.update_viewport((600, 400));
+    camera.update_viewport(config.dimensions());
     camera
 }
 
-pub fn load_cpu_scene(name: &str) -> (Arc<Scene>, Camera) {
+pub fn load_cpu_scene(name: &str, config: &RenderConfig) -> (Arc<Scene>, Camera) {
     let _t = stats::time("Load");
     let info = SCENE_LIBRARY.get(name).unwrap();
     let scene = SceneBuilder::new().build(&info.path);
-    let camera = initialize_camera(&scene, &info);
+    let camera = initialize_camera(&scene, &info, config);
     (scene, camera)
 }
 
 pub fn load_gpu_scene<F: Facade>(
     key: VirtualKeyCode,
     facade: &F,
+    config: &RenderConfig,
 ) -> Option<(Arc<Scene>, GPUScene, Camera)> {
     let name = SCENE_LIBRARY.key_to_name(key)?;
     stats::new_scene(name);
-    let (scene, camera) = load_cpu_scene(name);
+    let (scene, camera) = load_cpu_scene(name, config);
     let gpu_scene = scene.upload_data(facade);
     println!("Loaded scene {}", name);
     Some((scene, gpu_scene, camera))

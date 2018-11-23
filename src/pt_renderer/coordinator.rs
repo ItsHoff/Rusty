@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use glium::Rect;
 
-use super::config::RenderConfig;
+use crate::pt_renderer::RenderConfig;
 
 pub struct RenderCoordinator {
     pub width: u32,
@@ -16,7 +16,9 @@ pub struct RenderCoordinator {
 }
 
 impl RenderCoordinator {
-    pub fn new(width: u32, height: u32, config: &RenderConfig) -> RenderCoordinator {
+    pub fn new(config: &RenderConfig) -> RenderCoordinator {
+        let width = config.width;
+        let height = config.height;
         let block_height = 50;
         let block_width = 50;
         let x_blocks = (f64::from(width) / f64::from(block_width)).ceil() as usize;
