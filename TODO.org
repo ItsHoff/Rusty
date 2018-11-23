@@ -46,9 +46,6 @@
    * organization (hot & cold)
    * alignment
 ** Quality
-*** Implement post processing for offline images
-    * Preferably use the same shaders rather than doing this on the cpu
-    * Headless context + texture as a framebuffer
 *** Termination probability based on current ray throughput
 *** Proper sRGB gamma curve
    * PBRT 621
