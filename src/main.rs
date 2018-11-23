@@ -7,9 +7,8 @@ use std::path::PathBuf;
 
 use chrono::Local;
 
-use glium::backend::glutin::headless::Headless;
 use glium::glutin::{
-    ElementState, Event, HeadlessRendererBuilder, KeyboardInput, VirtualKeyCode, WindowEvent,
+    ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent,
 };
 use glium::Surface;
 
@@ -89,7 +88,7 @@ fn benchmark() {
         let scene_dir = output_dir.join(scene_name);
         std::fs::create_dir_all(scene_dir.clone()).unwrap();
         let timestamped_image = scene_dir.join(format!("{}_{}.png", scene_name, time_stamp));
-        pt_renderer.save_image(&timestamped_image);
+        pt_renderer.save_image(&display, &timestamped_image);
         // Make a copy to the main output directory
         let default_image = output_dir.join(scene_name).with_extension("png");
         std::fs::copy(timestamped_image, default_image).unwrap();

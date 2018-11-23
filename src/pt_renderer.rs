@@ -87,8 +87,8 @@ impl PTRenderer {
         self.image.render(target);
     }
 
-    pub fn save_image(&self, path: &Path) {
-        self.image.save_image(path);
+    pub fn save_image<F: Facade>(&self, facade: &F, path: &Path) {
+        self.image.save(facade, path);
     }
 }
 

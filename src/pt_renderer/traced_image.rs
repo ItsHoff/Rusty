@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use glium::backend::Facade;
-use glium::texture::{MipmapsOption, RawImage2d, Texture2d, UncompressedFloatFormat};
+use glium::framebuffer::SimpleFrameBuffer;
+use glium::texture::{MipmapsOption, RawImage2d, SrgbTexture2d, Texture2d, UncompressedFloatFormat};
 use glium::{uniform, DrawParameters, IndexBuffer, Rect, Surface, VertexBuffer};
 
 use crate::pt_renderer::RenderConfig;
@@ -57,16 +58,20 @@ impl TracedImage {
         self.visualizer.render(target);
     }
 
-    pub fn save_image(&self, path: &Path) {
-        let mapped_image: Vec<u8> = self
-            .pixels
-            .iter()
-            .map(|p| (255.0 * p.powf(1.0 / 2.2).min(1.0)) as u8)
-            .collect();
-        let image = image::DynamicImage::ImageRgb8(
-            image::RgbImage::from_raw(self.width, self.height, mapped_image).unwrap(),
-        );
-        let image = image.flipv();
+    pub fn save<F: Facade>(&self, facade: &F, path: &Path) {
+        let texture = SrgbTexture2d::empty(
+            facade,
+            self.width,
+            self.height,
+        ).unwrap();
+        let mut target = SimpleFrameBuffer::new(facade, &texture).unwrap();
+        target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
+        self.visualizer.render(&mut target);
+        let pb = texture.read_to_pixel_buffer();
+        let raw_image: RawImage2d<u8> = pb.read_as_texture_2d().unwrap();
+        let image = image::RgbaImage::from_vec(self.width, self.height,
+                                        raw_image.data.to_vec()).unwrap();
+        let image = image::imageops::flip_vertical(&image);
         image.save(path).unwrap();
     }
 }
