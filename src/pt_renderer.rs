@@ -214,7 +214,7 @@ impl PTRenderer {
 
         let (result_tx, result_rx) = mpsc::channel();
         self.result_rx = Some(result_rx);
-        for _ in 0..num_cpus::get_physical().max(1) {
+        for _ in 0..num_cpus::get_physical() {
             let result_tx = result_tx.clone();
             let (message_tx, message_rx) = mpsc::channel();
             self.message_txs.push(message_tx);
