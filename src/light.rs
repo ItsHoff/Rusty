@@ -46,7 +46,7 @@ impl Light for AreaLight {
         let dp = p - recv.p;
         let dir = dp.normalize();
         // Convert pdf to solid angle
-        pdf *= dp.magnitude2() / n.dot(-dir).abs();
+        pdf *= dp.magnitude2() / n.dot(dir).abs();
         let li = self.tri.le(-dir);
         (li, p, pdf)
     }
