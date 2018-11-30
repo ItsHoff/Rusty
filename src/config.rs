@@ -83,10 +83,10 @@ impl RenderConfig {
             normal_mapping: true,
             color_mode: ColorMode::Radiance,
             light_mode: LightMode::Scene,
-            max_iterations: Some(2),
+            max_iterations: Some(1),
             russian_roulette: None,
             bounces: 5,
-            samples_per_dir: 2,
+            samples_per_dir: 3,
             tone_map: true,
         }
     }
