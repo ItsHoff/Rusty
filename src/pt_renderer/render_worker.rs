@@ -78,7 +78,17 @@ impl RenderWorker {
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = Point3::from_homogeneous(clip_to_world * clip_p);
                                 let ray = Ray::from_point(self.camera.pos, world_p);
-                                c += self.trace_ray(ray, &mut node_stack, 0);
+                                c += match self.config.color_mode {
+                                    ColorMode::DebugNormals => {
+                                        self.trace_normals(ray, &mut node_stack, false)
+                                    }
+                                    ColorMode::ForwardNormals => {
+                                        self.trace_normals(ray, &mut node_stack, true)
+                                    }
+                                    ColorMode::Radiance => {
+                                        self.trace_radiance(ray, &mut node_stack, 0)
+                                    }
+                                }
                             }
                         }
                         c /= self.config.samples_per_dir.pow(2) as Float;
@@ -97,7 +107,23 @@ impl RenderWorker {
         }
     }
 
-    fn trace_ray<'a>(
+    fn trace_normals<'a>(
+        &'a self,
+        mut ray: Ray,
+        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+        forward_only: bool,
+    ) -> Color {
+        let mut c = Color::black();
+        if let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
+            let isect = hit.interaction(&self.config);
+            if !forward_only || isect.n.dot(ray.dir) > 0.0 {
+                c = Color::from_normal(isect.n);
+            }
+        }
+        c
+    }
+
+    fn trace_radiance<'a>(
         &'a self,
         mut ray: Ray,
         node_stack: &mut Vec<(&'a BVHNode, Float)>,
@@ -106,47 +132,35 @@ impl RenderWorker {
         let mut c = Color::black();
         if let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
             let mut isect = hit.interaction(&self.config);
-            match self.config.color_mode {
-                ColorMode::DebugNormals => return Color::from_normal(isect.n),
-                ColorMode::ForwardNormals => {
-                    return if isect.n.dot(ray.dir) > 0.0 {
-                        Color::from_normal(isect.n)
-                    } else {
-                        Color::black()
-                    }
-                }
-                ColorMode::Radiance => {
-                    // Flip the normal if its pointing to the opposite side from the hit
-                    if isect.n.dot(ray.dir) > 0.0 {
-                        isect.n *= -1.0;
-                    }
-                    if bounce == 0 {
-                        c += isect.le(-ray.dir);
-                    }
-                    let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
-                    if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
-                        let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
-                        c += le * isect.brdf() * cos_t / light_pdf;
-                    }
-                    let mut pdf = 1.0;
-                    let terminate = if bounce < self.config.bounces {
-                        false
-                    } else if let Some(rr_prob) = self.config.russian_roulette {
-                        let rr = rand::random::<Float>();
-                        pdf *= 1.0 - rr_prob;
-                        rr < rr_prob
-                    } else {
-                        true
-                    };
-                    if !terminate {
-                        let (brdf, new_ray, brdf_pdf) = isect.sample_brdf();
-                        pdf *= brdf_pdf;
-                        c += isect.n.dot(new_ray.dir).abs()
-                            * brdf
-                            * self.trace_ray(new_ray, node_stack, bounce + 1)
-                            / pdf;
-                    }
-                }
+            // Flip the normal if its pointing to the opposite side from the hit
+            if isect.n.dot(ray.dir) > 0.0 {
+                isect.n *= -1.0;
+            }
+            if bounce == 0 {
+                c += isect.le(-ray.dir);
+            }
+            let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
+            if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
+                let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
+                c += le * isect.brdf() * cos_t / light_pdf;
+            }
+            let mut pdf = 1.0;
+            let terminate = if bounce < self.config.bounces {
+                false
+            } else if let Some(rr_prob) = self.config.russian_roulette {
+                let rr = rand::random::<Float>();
+                pdf *= 1.0 - rr_prob;
+                rr < rr_prob
+            } else {
+                true
+            };
+            if !terminate {
+                let (brdf, new_ray, brdf_pdf) = isect.sample_brdf();
+                pdf *= brdf_pdf;
+                c += isect.n.dot(new_ray.dir).abs()
+                    * brdf
+                    * self.trace_radiance(new_ray, node_stack, bounce + 1)
+                    / pdf;
             }
         }
         c
