@@ -13,6 +13,7 @@ use glium::glutin::{
 use glium::Surface;
 
 mod aabb;
+mod bsdf;
 mod bvh;
 mod camera;
 mod color;

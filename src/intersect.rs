@@ -1,12 +1,12 @@
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 use cgmath::prelude::*;
-use cgmath::{Matrix3, Point2, Point3, Vector3};
+use cgmath::{Matrix3, Point3, Vector3};
 
+use crate::bsdf::BSDF;
 use crate::color::Color;
 use crate::config::RenderConfig;
 use crate::consts;
-use crate::material::Material;
 use crate::triangle::Triangle;
 use crate::Float;
 
@@ -91,8 +91,7 @@ impl<'a> Hit<'a> {
             to_local: world_to_normal(n),
             p,
             n,
-            t,
-            mat: &*self.tri.material,
+            bsdf: self.tri.material.bsdf(t),
         }
     }
 }
@@ -114,8 +113,7 @@ pub struct Interaction<'a> {
     to_local: Matrix3<Float>,
     p: Point3<Float>,
     pub n: Vector3<Float>,
-    t: Point2<Float>,
-    mat: &'a Material,
+    bsdf: Box<dyn BSDF>,
 }
 
 impl Interaction<'_> {
@@ -135,18 +133,16 @@ impl Interaction<'_> {
         self.p + consts::EPSILON * self.n
     }
 
-    pub fn brdf(&self) -> Color {
-        self.mat.diffuse(self.t) / consts::PI
+    pub fn bsdf(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color {
+        let in_dir = self.to_local * in_dir;
+        let out_dir = self.to_local * out_dir;
+        self.bsdf.eval(in_dir, out_dir)
     }
 
-    pub fn sample_brdf(&self) -> (Color, Ray, Float) {
-        let angle = 2.0 * consts::PI * rand::random::<Float>();
-        let length = rand::random::<Float>().sqrt();
-        let x = length * angle.cos();
-        let y = length * angle.sin();
-        let z = (1.0 - length.powi(2)).sqrt();
-        let dir = self.to_local.transpose() * Vector3::new(x, y, z);
-        let pdf = z / consts::PI;
-        (self.brdf(), self.ray(dir), pdf)
+    pub fn sample_bsdf(&self, out_dir: Vector3<Float>) -> (Color, Ray, Float) {
+        let out_dir = self.to_local * out_dir;
+        let (bsdf, dir, pdf) = self.bsdf.sample(out_dir);
+        let dir = self.to_local.transpose() * dir;
+        (bsdf, self.ray(dir), pdf)
     }
 }

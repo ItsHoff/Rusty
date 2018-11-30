@@ -142,7 +142,7 @@ impl RenderWorker {
             let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
             if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
                 let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
-                c += le * isect.brdf() * cos_t / light_pdf;
+                c += le * isect.bsdf(-shadow_ray.dir, -ray.dir) * cos_t / light_pdf;
             }
             let mut pdf = 1.0;
             let terminate = if bounce < self.config.bounces {
@@ -155,7 +155,7 @@ impl RenderWorker {
                 true
             };
             if !terminate {
-                let (brdf, new_ray, brdf_pdf) = isect.sample_brdf();
+                let (brdf, new_ray, brdf_pdf) = isect.sample_bsdf(-ray.dir);
                 pdf *= brdf_pdf;
                 c += isect.n.dot(new_ray.dir).abs()
                     * brdf

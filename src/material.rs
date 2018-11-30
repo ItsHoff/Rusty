@@ -3,21 +3,15 @@ use cgmath::{Point2, Vector3};
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 
+use crate::bsdf::{BSDF, LambertianBRDF};
 use crate::color::Color;
 use crate::obj_load;
 use crate::texture::{self, NormalMap, Texture};
 use crate::Float;
 
-#[derive(Clone, Debug)]
-pub enum BSDF {
-    Diffuse,
-    Specular,
-}
-
 /// Material for CPU rendering
 #[derive(Clone, Debug)]
 pub struct Material {
-    bsdf: BSDF,
     texture: Texture,
     normal_map: Option<NormalMap>,
     pub emissive: Option<Color>,
@@ -34,6 +28,15 @@ pub struct GPUMaterial {
 impl Material {
     /// Create a new material based on a material loaded from the scene file
     pub fn new(obj_mat: &obj_load::Material) -> Material {
+        // let bsdf = match obj_mat.illumination_model.unwrap_or(0) {
+        //     5 => BSDF::Specular,
+        //     i if i <= 10 => BSDF::Diffuse,
+        //     i => {
+        //         println!("Illumination model {} is not defined in the mtl spec!", i);
+        //         println!("Defaulting to diffuse BSDF.");
+        //         BSDF::Diffuse
+        //     }
+        // };
         let texture = match obj_mat.tex_diffuse {
             Some(ref path) => Texture::from_image_path(path),
             None => {
@@ -54,7 +57,6 @@ impl Material {
             None
         };
         Material {
-            bsdf: BSDF::Diffuse,
             texture,
             normal_map,
             emissive,
@@ -72,8 +74,9 @@ impl Material {
         }
     }
 
-    pub fn diffuse(&self, tex_coords: Point2<Float>) -> Color {
-        self.texture.color(tex_coords)
+    pub fn bsdf(&self, tex_coords: Point2<Float>) -> Box<dyn BSDF> {
+        let bsdf = LambertianBRDF::new(self.texture.color(tex_coords));
+        Box::new(bsdf)
     }
 
     pub fn normal(&self, tex_coords: Point2<Float>) -> Option<Vector3<Float>> {
