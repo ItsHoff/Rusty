@@ -110,12 +110,12 @@ fn world_to_normal(n: Vector3<Float>) -> Matrix3<Float> {
 }
 
 pub struct Interaction<'a> {
-    pub tri: &'a Triangle,
+    tri: &'a Triangle,
     to_local: Matrix3<Float>,
     pub p: Point3<Float>,
     pub n: Vector3<Float>,
-    pub t: Point2<Float>,
-    pub mat: &'a Material,
+    t: Point2<Float>,
+    mat: &'a Material,
 }
 
 impl Interaction<'_> {
