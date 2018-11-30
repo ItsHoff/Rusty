@@ -60,7 +60,7 @@ impl Default for RenderConfig {
         RenderConfig {
             width: 1000,
             height: 800,
-            max_threads: 8,
+            max_threads: num_cpus::get_physical(),
             normal_mapping: true,
             color_mode: ColorMode::Radiance,
             light_mode: LightMode::Scene,

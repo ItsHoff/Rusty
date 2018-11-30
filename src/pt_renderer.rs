@@ -42,7 +42,7 @@ impl PTRenderer {
         let mut thread_handles = Vec::new();
 
         let (result_tx, result_rx) = mpsc::channel();
-        for _ in 0..num_cpus::get_physical() {
+        for _ in 0..num_cpus::get().min(config.max_threads) {
             let result_tx = result_tx.clone();
             let (message_tx, message_rx) = mpsc::channel();
             message_txs.push(message_tx);
