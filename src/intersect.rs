@@ -112,7 +112,7 @@ fn world_to_normal(n: Vector3<Float>) -> Matrix3<Float> {
 pub struct Interaction<'a> {
     tri: &'a Triangle,
     to_local: Matrix3<Float>,
-    pub p: Point3<Float>,
+    p: Point3<Float>,
     pub n: Vector3<Float>,
     t: Point2<Float>,
     mat: &'a Material,
@@ -139,7 +139,7 @@ impl Interaction<'_> {
         self.mat.diffuse(self.t) / consts::PI
     }
 
-    pub fn sample_brdf(&self) -> (Color, Vector3<Float>, Float) {
+    pub fn sample_brdf(&self) -> (Color, Ray, Float) {
         let angle = 2.0 * consts::PI * rand::random::<Float>();
         let length = rand::random::<Float>().sqrt();
         let x = length * angle.cos();
@@ -147,6 +147,6 @@ impl Interaction<'_> {
         let z = (1.0 - length.powi(2)).sqrt();
         let dir = self.to_local.transpose() * Vector3::new(x, y, z);
         let pdf = z / consts::PI;
-        (self.brdf(), dir, pdf)
+        (self.brdf(), self.ray(dir), pdf)
     }
 }

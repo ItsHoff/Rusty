@@ -10,7 +10,7 @@ use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
 use crate::color::Color;
 use crate::consts;
 use crate::input::InputState;
-use crate::intersect::Interaction;
+use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
 use crate::Float;
 
@@ -175,9 +175,10 @@ impl Light for Camera {
 
     /// Sample radiance toward receiving interaction.
     /// Return radiance, shadow ray and the pdf
-    fn sample_li(&self, recv: &Interaction) -> (Color, Point3<Float>, Float) {
-        let li = self.scaled_intensity() / (self.pos - recv.p).magnitude2();
-        (li, self.pos, 1.0)
+    fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float) {
+        let ray = recv.shadow_ray(self.pos);
+        let li = self.scaled_intensity() / ray.length.powi(2);
+        (li, ray, 1.0)
     }
 
     // fn pdf_li(&self) {}

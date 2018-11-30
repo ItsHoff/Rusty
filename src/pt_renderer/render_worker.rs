@@ -123,8 +123,7 @@ impl RenderWorker {
                     if bounce == 0 {
                         c += isect.le(-ray.dir);
                     }
-                    let (le, light_p, light_pdf) = self.sample_light(&isect);
-                    let mut shadow_ray = isect.shadow_ray(light_p);
+                    let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
                     if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
                         let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
                         c += le * isect.brdf() * cos_t / light_pdf;
@@ -140,10 +139,9 @@ impl RenderWorker {
                         true
                     };
                     if !terminate {
-                        let (brdf, new_dir, brdf_pdf) = isect.sample_brdf();
+                        let (brdf, new_ray, brdf_pdf) = isect.sample_brdf();
                         pdf *= brdf_pdf;
-                        let new_ray = isect.ray(new_dir);
-                        c += isect.n.dot(new_dir)
+                        c += isect.n.dot(new_ray.dir).abs()
                             * brdf
                             * self.trace_ray(new_ray, node_stack, bounce + 1)
                             / pdf;
@@ -154,13 +152,13 @@ impl RenderWorker {
         c
     }
 
-    pub fn sample_light(&self, isect: &Interaction) -> (Color, Point3<Float>, Float) {
+    pub fn sample_light(&self, isect: &Interaction) -> (Color, Ray, Float) {
         let (light, pdf) = match self.config.light_mode {
             LightMode::Scene => self.scene.sample_light().unwrap_or((&self.camera, 1.0)),
             LightMode::Camera => (&self.camera as &dyn Light, 1.0),
             LightMode::All => unimplemented!(),
         };
-        let (li, p, lpdf) = light.sample_li(isect);
-        (li, p, pdf * lpdf)
+        let (li, ray, lpdf) = light.sample_li(isect);
+        (li, ray, pdf * lpdf)
     }
 }

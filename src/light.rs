@@ -1,10 +1,9 @@
 use cgmath::prelude::*;
-use cgmath::Point3;
 
 use crate::color::Color;
 use crate::consts;
 use crate::index_ptr::IndexPtr;
-use crate::intersect::Interaction;
+use crate::intersect::{Interaction, Ray};
 use crate::triangle::Triangle;
 use crate::Float;
 
@@ -13,7 +12,7 @@ pub trait Light {
 
     /// Sample radiance toward receiving interaction.
     /// Return radiance, shadow ray and the pdf
-    fn sample_li(&self, recv: &Interaction) -> (Color, Point3<Float>, Float);
+    fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float);
 
     // fn pdf_li(&self) {}
 
@@ -39,16 +38,15 @@ impl Light for AreaLight {
 
     /// Sample radiance toward receiving interaction.
     /// Return radiance, shadow ray and the pdf
-    fn sample_li(&self, recv: &Interaction) -> (Color, Point3<Float>, Float) {
+    fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float) {
         let (u, v) = Triangle::sample();
         let (p, n, _) = self.tri.bary_pnt(u, v);
         let mut pdf = self.tri.pdf_a();
-        let dp = p - recv.p;
-        let dir = dp.normalize();
+        let ray = recv.shadow_ray(p);
         // Convert pdf to solid angle
-        pdf *= dp.magnitude2() / n.dot(dir).abs();
-        let li = self.tri.le(-dir);
-        (li, p, pdf)
+        pdf *= ray.length.powi(2) / n.dot(ray.dir).abs();
+        let li = self.tri.le(-ray.dir);
+        (li, ray, pdf)
     }
 
     // fn pdf_li(&self) {}
