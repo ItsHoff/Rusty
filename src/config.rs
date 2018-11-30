@@ -79,8 +79,15 @@ impl RenderConfig {
         RenderConfig {
             width: 600,
             height: 400,
+            max_threads: 8,
+            normal_mapping: true,
+            color_mode: ColorMode::Radiance,
+            light_mode: LightMode::Scene,
             max_iterations: Some(2),
-            ..Default::default()
+            russian_roulette: None,
+            bounces: 5,
+            samples_per_dir: 2,
+            tone_map: true,
         }
     }
 
