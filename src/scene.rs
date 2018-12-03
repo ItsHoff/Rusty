@@ -208,7 +208,7 @@ impl Scene {
             meshes.push(mesh.upload_data(facade));
         }
         for material in &self.materials {
-            materials.push(material.upload_textures(facade));
+            materials.push(material.upload(facade));
         }
         GPUScene {
             meshes,

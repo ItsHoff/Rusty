@@ -26,8 +26,8 @@ lazy_static::lazy_static! {
                       CameraPos::Defined(Point3::new(-0.74, 0.4, 0.97),
                                          Quaternion::new(0.95, -0.15, -0.28, -0.04)),
                       Some(VirtualKeyCode::Key2));
-        lib.add_scene("cornell".to_string(),
-                      scene_dir.join("cornell-box").join("CornellBox-Original.obj"),
+        lib.add_scene("cornell-sphere".to_string(),
+                      scene_dir.join("cornell-box").join("CornellBox-Sphere.obj"),
                       CameraPos::Offset, Some(VirtualKeyCode::Key3));
         lib.add_scene("cornell-glossy".to_string(),
                       scene_dir.join("cornell-box").join("CornellBox-Glossy.obj"),

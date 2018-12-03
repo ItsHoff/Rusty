@@ -3,7 +3,7 @@ use std::ops::Deref;
 /// Pointer to specific element of a vector.
 /// It is up to the user to ensure the vector is not moved
 /// and that the index used to access the element stays valid.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct IndexPtr<T> {
     vec: *const Vec<T>,
     i: usize,
@@ -22,6 +22,14 @@ impl<T> Deref for IndexPtr<T> {
     fn deref(&self) -> &T {
         let vec = unsafe { &*self.vec };
         &vec[self.i]
+    }
+}
+
+// Needs to be implemented explicitly because
+// using derive requires T: Clone
+impl<T> Clone for IndexPtr<T> {
+    fn clone(&self) -> Self {
+        Self { vec: self.vec, i: self.i }
     }
 }
 

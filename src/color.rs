@@ -17,6 +17,10 @@ fn to_linear(c: Float) -> Float {
     c.powf(2.2)
 }
 
+fn to_srgb(c: Float) -> Float {
+    c.powf(1.0 / 2.2)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct SrgbColor(BaseColor);
 
@@ -36,6 +40,18 @@ impl SrgbColor {
     pub fn to_vec(self) -> Vector3<Float> {
         self.0.color
     }
+
+    pub fn r(&self) -> Float {
+        self.0.r()
+    }
+
+    pub fn g(&self) -> Float {
+        self.0.g()
+    }
+
+    pub fn b(&self) -> Float {
+        self.0.b()
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -53,6 +69,10 @@ impl Color {
     pub fn from_normal(n: Vector3<Float>) -> Self {
         let c_vec = (0.5 * n).add_element_wise(0.5);
         Self(BaseColor::from(c_vec))
+    }
+
+    pub fn to_srgb(self) -> SrgbColor {
+        SrgbColor(self.0.to_srgb())
     }
 
     pub fn luma(&self) -> Float {
@@ -109,6 +129,14 @@ impl BaseColor {
             to_linear(self.color[0]),
             to_linear(self.color[1]),
             to_linear(self.color[2]),
+        )
+    }
+
+    fn to_srgb(self) -> Self {
+        Self::new(
+            to_srgb(self.color[0]),
+            to_srgb(self.color[1]),
+            to_srgb(self.color[2]),
         )
     }
 

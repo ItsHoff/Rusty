@@ -11,6 +11,7 @@ use glium::texture::{RawImage2d, SrgbTexture2d};
 use image::{DynamicImage, GenericImage, GrayImage, ImageFormat, RgbImage};
 
 use crate::color::{self, Color, SrgbColor};
+use crate::util::ConvArr;
 use crate::Float;
 
 mod normal_map;
@@ -42,19 +43,21 @@ impl Texture {
         }
     }
 
-    pub fn upload<F: Facade>(&self, facade: &F) -> (Color, SrgbTexture2d) {
+    pub fn upload<F: Facade>(&self, facade: &F) -> SrgbTexture2d {
         match self {
             Image(image) => {
                 let image_dim = image.dimensions();
                 let tex_image =
                     RawImage2d::from_raw_rgb_reversed(&image.clone().into_raw(), image_dim);
-                (
-                    Color::black(),
-                    SrgbTexture2d::new(facade, tex_image).unwrap(),
-                )
+                    SrgbTexture2d::new(facade, tex_image).unwrap()
             }
-            // Use empty texture as a placeholder
-            Solid(color) => (*color, SrgbTexture2d::empty(facade, 0, 0).unwrap()),
+            Solid(color) => {
+                // Create a 1x1 monochrome texture
+                let srgb = color.to_srgb();
+                let data = srgb.to_vec().into_arr();
+                let tex_image = RawImage2d::from_raw_rgb(data.to_vec(), (1, 1));
+                SrgbTexture2d::new(facade, tex_image).unwrap()
+            },
         }
     }
 }
