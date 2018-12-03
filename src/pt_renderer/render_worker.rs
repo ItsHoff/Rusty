@@ -116,8 +116,8 @@ impl RenderWorker {
         let mut c = Color::black();
         if let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
             let isect = hit.interaction(&self.config);
-            if !forward_only || isect.n.dot(ray.dir) > 0.0 {
-                c = Color::from_normal(isect.n);
+            if !forward_only || isect.ns.dot(ray.dir) > 0.0 {
+                c = Color::from_normal(isect.ns);
             }
         }
         c
@@ -131,18 +131,14 @@ impl RenderWorker {
     ) -> Color {
         let mut c = Color::black();
         if let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
-            let mut isect = hit.interaction(&self.config);
-            // Flip the normal if its pointing to the opposite side from the hit
-            if isect.n.dot(ray.dir) > 0.0 {
-                isect.n *= -1.0;
-            }
+            let isect = hit.interaction(&self.config);
             if bounce == 0 {
                 c += isect.le(-ray.dir);
             }
             let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
             if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
-                let cos_t = isect.n.dot(shadow_ray.dir).max(0.0);
-                c += le * isect.bsdf(-shadow_ray.dir, -ray.dir) * cos_t / light_pdf;
+                let cos_t = isect.ns.dot(shadow_ray.dir).abs();
+                c += le * isect.bsdf(shadow_ray.dir, -ray.dir) * cos_t / light_pdf;
             }
             let mut pdf = 1.0;
             let terminate = if bounce < self.config.bounces {
@@ -157,7 +153,7 @@ impl RenderWorker {
             if !terminate {
                 let (brdf, new_ray, brdf_pdf) = isect.sample_bsdf(-ray.dir);
                 pdf *= brdf_pdf;
-                c += isect.n.dot(new_ray.dir).abs()
+                c += isect.ns.dot(new_ray.dir).abs()
                     * brdf
                     * self.trace_radiance(new_ray, node_stack, bounce + 1)
                     / pdf;

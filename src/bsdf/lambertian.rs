@@ -56,10 +56,13 @@ impl BSDF for LambertianBRDF {
         let length = rand::random::<Float>().sqrt();
         let x = length * angle.cos();
         let y = length * angle.sin();
-        let z = (1.0 - length.powi(2)).sqrt();
+        let mut z = (1.0 - length.powi(2)).sqrt();
+        let pdf = z / consts::PI;
+        if out_dir.z < 0.0 {
+            z *= -1.0;
+        }
         let in_dir = Vector3::new(x, y, z);
         let val = self.eval(in_dir, out_dir);
-        let pdf = z / consts::PI;
         (val, in_dir, pdf)
     }
 }

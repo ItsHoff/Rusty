@@ -33,7 +33,9 @@ pub trait ShadingModel: std::fmt::Debug + Send + Sync {
 }
 
 /// Trait for handling local light transport.
-/// in_dir and out_dir refer to the direction of the photons.
+/// Directions should both point away from the intersection.
+/// in_dir corresponds to the direction photons arrive from and
+/// out_dir refer to the direction of the photons scatter towards.
 /// Directions should be given in a surface local coordinate system,
 /// where (0, 0, 1) is the normal
 pub trait BSDF {

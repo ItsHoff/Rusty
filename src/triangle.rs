@@ -50,7 +50,7 @@ pub struct Triangle {
     v2: IndexPtr<Vertex>,
     v3: IndexPtr<Vertex>,
     /// Geometric normal
-    ng: Vector3<Float>,
+    pub ng: Vector3<Float>, // TODO: check if this is worth saving
     to_barycentric: Matrix4<Float>,
     pub material: IndexPtr<Material>,
 }

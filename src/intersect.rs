@@ -78,19 +78,20 @@ pub struct Hit<'a> {
 
 impl<'a> Hit<'a> {
     pub fn interaction(self, config: &RenderConfig) -> Interaction<'a> {
-        let (p, mut n, t) = self.tri.bary_pnt(self.u, self.v);
+        let (p, mut ns, t) = self.tri.bary_pnt(self.u, self.v);
         if config.normal_mapping {
             if let Some(ts_normal) = self.tri.material.normal(t) {
-                if let Some(to_world) = self.tri.tangent_to_world(n) {
-                    n = to_world * ts_normal;
+                if let Some(to_world) = self.tri.tangent_to_world(ns) {
+                    ns = to_world * ts_normal;
                 }
             }
         }
         Interaction {
             tri: self.tri,
-            to_local: world_to_normal(n),
+            to_local: world_to_normal(ns),
             p,
-            n,
+            ns,
+            ng: self.tri.ng,
             bsdf: self.tri.material.bsdf(t),
         }
     }
@@ -112,7 +113,8 @@ pub struct Interaction<'a> {
     tri: &'a Triangle,
     to_local: Matrix3<Float>,
     p: Point3<Float>,
-    pub n: Vector3<Float>,
+    pub ns: Vector3<Float>,
+    ng: Vector3<Float>,
     bsdf: Box<dyn BSDF>,
 }
 
@@ -122,27 +124,36 @@ impl Interaction<'_> {
     }
 
     pub fn ray(&self, dir: Vector3<Float>) -> Ray {
-        Ray::from_dir(self.ray_origin(), dir)
+        Ray::from_dir(self.ray_origin(dir), dir)
     }
 
     pub fn shadow_ray(&self, to: Point3<Float>) -> Ray {
-        Ray::shadow(self.ray_origin(), to)
+        Ray::shadow(self.ray_origin(to - self.p), to)
     }
 
-    fn ray_origin(&self) -> Point3<Float> {
-        self.p + consts::EPSILON * self.n
+    fn ray_origin(&self, dir: Vector3<Float>) -> Point3<Float> {
+        if dir.dot(self.ng) > 0.0 {
+            self.p + consts::EPSILON * self.ng
+        } else {
+            self.p - consts::EPSILON * self.ng
+        }
     }
 
     pub fn bsdf(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color {
-        let in_dir = self.to_local * in_dir;
-        let out_dir = self.to_local * out_dir;
-        self.bsdf.eval(in_dir, out_dir)
+        if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
+            // TODO: evaluate transmission
+            return Color::black();
+        }
+        let local_in = self.to_local * in_dir;
+        let local_out = self.to_local * out_dir;
+        self.bsdf.eval(local_in, local_out)
     }
 
     pub fn sample_bsdf(&self, out_dir: Vector3<Float>) -> (Color, Ray, Float) {
-        let out_dir = self.to_local * out_dir;
-        let (bsdf, dir, pdf) = self.bsdf.sample(out_dir);
-        let dir = self.to_local.transpose() * dir;
-        (bsdf, self.ray(dir), pdf)
+        let local_out = self.to_local * out_dir;
+        let (bsdf, local_in, pdf) = self.bsdf.sample(local_out);
+        let in_dir = self.to_local.transpose() * local_in;
+        // TODO: avoid light leaks caused by shading normals
+        (bsdf, self.ray(in_dir), pdf)
     }
 }
