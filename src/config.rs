@@ -75,6 +75,14 @@ impl Default for RenderConfig {
 
 #[allow(dead_code)]
 impl RenderConfig {
+    pub fn direct() -> Self {
+        RenderConfig {
+            russian_roulette: None,
+            bounces: 0,
+            ..Default::default()
+        }
+    }
+
     pub fn benchmark() -> Self {
         RenderConfig {
             width: 600,
