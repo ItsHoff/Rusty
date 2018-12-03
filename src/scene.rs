@@ -164,6 +164,7 @@ impl Scene {
     fn build_bvh(&mut self, split_mode: SplitMode) {
         let (bvh, permutation) = BVH::build(&self.triangles, split_mode);
         self.bvh = Some(bvh);
+        // TODO: this could be done better
         self.triangles = permutation
             .iter()
             .map(|i| self.triangles[*i].clone())

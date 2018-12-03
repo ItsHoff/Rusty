@@ -31,7 +31,7 @@
 *** Spectral rendering
 * Improvements
 ** Utils
-*** Config for render parameters
+*** Runtime config for render parameters
 *** Arbitrary scene loading
 *** UI
 ** Performance
@@ -54,6 +54,3 @@
 ** Refactoring
 *** Statistics api
     * Stat prints for online rendering
-*** Let materials handle bxdfs
-*** Constant textures in materials?
-*** Refer to tris from light rather than copy tri
