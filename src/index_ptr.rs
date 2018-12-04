@@ -29,7 +29,10 @@ impl<T> Deref for IndexPtr<T> {
 // using derive requires T: Clone
 impl<T> Clone for IndexPtr<T> {
     fn clone(&self) -> Self {
-        Self { vec: self.vec, i: self.i }
+        Self {
+            vec: self.vec,
+            i: self.i,
+        }
     }
 }
 

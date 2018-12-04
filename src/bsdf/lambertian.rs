@@ -1,12 +1,12 @@
 use cgmath::{Point2, Vector3};
 
-use crate::consts;
 use crate::color::Color;
+use crate::consts;
 use crate::obj_load;
 use crate::texture::Texture;
 use crate::Float;
 
-use super::{BSDF, ShadingModel};
+use super::{ShadingModel, BSDF};
 
 #[derive(Debug)]
 pub struct LambertianReflection {

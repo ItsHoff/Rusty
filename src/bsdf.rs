@@ -13,12 +13,8 @@ use self::specular::*;
 
 pub fn model_from_obj(obj_mat: &obj_load::Material) -> Box<dyn ShadingModel> {
     match obj_mat.illumination_model.unwrap_or(0) {
-        5 => {
-            Box::new(SpecularReflection::new(obj_mat))
-        },
-        7 => {
-            Box::new(SpecularTransmission::new(obj_mat))
-        }
+        5 => Box::new(SpecularReflection::new(obj_mat)),
+        7 => Box::new(SpecularTransmission::new(obj_mat)),
         i => {
             if i > 10 {
                 println!("Illumination model {} is not defined in the mtl spec!", i);

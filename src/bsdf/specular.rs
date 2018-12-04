@@ -6,7 +6,7 @@ use crate::obj_load;
 use crate::texture::Texture;
 use crate::Float;
 
-use super::{BSDF, ShadingModel};
+use super::{ShadingModel, BSDF};
 
 #[derive(Debug)]
 pub struct SpecularReflection {
@@ -67,9 +67,15 @@ pub struct SpecularTransmission {
 impl SpecularTransmission {
     pub fn new(obj_mat: &obj_load::Material) -> Self {
         let color = Color::from(
-            obj_mat.c_translucency.expect("No translucent color for translucent material"));
+            obj_mat
+                .c_translucency
+                .expect("No translucent color for translucent material"),
+        );
         let texture = Texture::from_color(color);
-        let eta = obj_mat.refraction_i.expect("No index of refraction for translucent material").into();
+        let eta = obj_mat
+            .refraction_i
+            .expect("No index of refraction for translucent material")
+            .into();
         Self { texture, eta }
     }
 }

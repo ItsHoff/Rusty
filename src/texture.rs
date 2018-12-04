@@ -49,7 +49,7 @@ impl Texture {
                 let image_dim = image.dimensions();
                 let tex_image =
                     RawImage2d::from_raw_rgb_reversed(&image.clone().into_raw(), image_dim);
-                    SrgbTexture2d::new(facade, tex_image).unwrap()
+                SrgbTexture2d::new(facade, tex_image).unwrap()
             }
             Solid(color) => {
                 // Create a 1x1 monochrome texture
@@ -57,7 +57,7 @@ impl Texture {
                 let data = srgb.to_vec().into_arr();
                 let tex_image = RawImage2d::from_raw_rgb(data.to_vec(), (1, 1));
                 SrgbTexture2d::new(facade, tex_image).unwrap()
-            },
+            }
         }
     }
 }

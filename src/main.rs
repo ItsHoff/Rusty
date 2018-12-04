@@ -7,9 +7,7 @@ use std::path::PathBuf;
 
 use chrono::Local;
 
-use glium::glutin::{
-    ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent,
-};
+use glium::glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use glium::Surface;
 
 mod aabb;

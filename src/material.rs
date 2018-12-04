@@ -3,7 +3,7 @@ use cgmath::{Point2, Vector3};
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 
-use crate::bsdf::{self, BSDF, ShadingModel};
+use crate::bsdf::{self, ShadingModel, BSDF};
 use crate::color::Color;
 use crate::obj_load;
 use crate::texture::{self, NormalMap};
