@@ -9,30 +9,30 @@ use crate::Float;
 use super::{BSDF, ShadingModel};
 
 #[derive(Debug)]
-pub struct LambertianModel {
-    color: Texture,
+pub struct LambertianReflection {
+    texture: Texture,
 }
 
-impl LambertianModel {
+impl LambertianReflection {
     pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let color = match &obj_mat.tex_diffuse {
+        let texture = match &obj_mat.tex_diffuse {
             Some(path) => Texture::from_image_path(path),
             None => {
                 let color = Color::from(obj_mat.c_diffuse.unwrap());
                 Texture::from_color(color)
             }
         };
-        Self { color }
+        Self { texture }
     }
 }
 
-impl ShadingModel for LambertianModel {
+impl ShadingModel for LambertianReflection {
     fn bsdf(&self, tex_coords: Point2<Float>) -> Box<dyn BSDF> {
-        Box::new(LambertianBRDF::new(self.color.color(tex_coords)))
+        Box::new(LambertianBRDF::new(self.texture.color(tex_coords)))
     }
 
     fn preview_texture(&self) -> &Texture {
-        &self.color
+        &self.texture
     }
 }
 

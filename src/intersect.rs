@@ -105,7 +105,7 @@ fn world_to_normal(n: Vector3<Float>) -> Matrix3<Float> {
     } else {
         Vector3::new(0.0, -n.z, n.y).normalize()
     };
-    let ny = n.cross(nx);
+    let ny = n.cross(nx).normalize();
     Matrix3::from_cols(nx, ny, n).transpose()
 }
 
@@ -140,10 +140,10 @@ impl Interaction<'_> {
     }
 
     pub fn bsdf(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color {
-        if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
-            // TODO: evaluate transmission
-            return Color::black();
-        }
+        // if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
+        //     // TODO: evaluate transmission
+        //     return Color::black();
+        // }
         let local_in = self.to_local * in_dir;
         let local_out = self.to_local * out_dir;
         self.bsdf.eval(local_in, local_out)
