@@ -131,9 +131,10 @@ impl RenderWorker {
         let mut c = Color::black();
         let mut beta = Color::white();
         let mut bounce = 0;
+        let mut specular_bounce = false;
         while let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
             let isect = hit.interaction(&self.config);
-            if bounce == 0 {
+            if bounce == 0 || specular_bounce {
                 c += beta * isect.le(-ray.dir);
             }
             let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
@@ -157,6 +158,7 @@ impl RenderWorker {
                 pdf *= brdf_pdf;
                 beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
                 bounce += 1;
+                specular_bounce = isect.is_specular();
             } else {
                 break;
             }

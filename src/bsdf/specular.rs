@@ -48,6 +48,10 @@ impl SpecularBRDF {
 }
 
 impl BSDFT for SpecularBRDF {
+    fn is_specular(&self) -> bool {
+        true
+    }
+
     fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
         Color::black()
     }
@@ -102,6 +106,10 @@ impl SpecularBTDF {
 }
 
 impl BSDFT for SpecularBTDF {
+    fn is_specular(&self) -> bool {
+        true
+    }
+
     fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
         Color::black()
     }

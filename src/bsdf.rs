@@ -64,6 +64,7 @@ impl Deref for ShadingModel {
 /// Directions should be given in a surface local coordinate system,
 /// where (0, 0, 1) is the normal
 pub trait BSDFT {
+    fn is_specular(&self) -> bool;
     fn eval(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color;
     fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float);
 }

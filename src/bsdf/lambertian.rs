@@ -47,6 +47,10 @@ impl LambertianBRDF {
 }
 
 impl BSDFT for LambertianBRDF {
+    fn is_specular(&self) -> bool {
+        false
+    }
+
     fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
         self.color / consts::PI
     }

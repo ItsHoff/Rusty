@@ -139,6 +139,10 @@ impl Interaction<'_> {
         }
     }
 
+    pub fn is_specular(&self) -> bool {
+        self.bsdf.is_specular()
+    }
+
     pub fn bsdf(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color {
         // if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
         //     // TODO: evaluate transmission
