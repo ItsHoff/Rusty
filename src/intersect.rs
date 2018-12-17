@@ -109,6 +109,7 @@ fn world_to_normal(n: Vector3<Float>) -> Matrix3<Float> {
     Matrix3::from_cols(nx, ny, n).transpose()
 }
 
+#[derive(Debug)]
 pub struct Interaction<'a> {
     tri: &'a Triangle,
     to_local: Matrix3<Float>,

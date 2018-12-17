@@ -69,6 +69,7 @@ pub trait BSDFT {
     fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float);
 }
 
+#[derive(Debug)]
 pub enum BSDF {
     LR(LambertianBRDF),
     SR(SpecularBRDF),

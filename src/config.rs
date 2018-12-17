@@ -1,7 +1,5 @@
 use glium::glutin::{dpi::LogicalSize, VirtualKeyCode};
 
-use crate::Float;
-
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum ColorMode {
@@ -41,7 +39,7 @@ pub struct RenderConfig {
     /// Maximum number of iterations. None corresponds to manual stop.
     pub max_iterations: Option<usize>,
     /// The russian roulette termination probability. None skips russian roulette.
-    pub russian_roulette: Option<Float>,
+    pub russian_roulette: bool,
     /// Number of bounces before starting russian roulette or terminating the path.
     pub bounces: usize,
     /// Samples per pixel per direction. Squared to get the total samples per pixel.
@@ -52,11 +50,6 @@ pub struct RenderConfig {
 
 impl Default for RenderConfig {
     fn default() -> Self {
-        // Desired expectation value of russian roulette bounces
-        let eb = 2.0;
-        // The matching survival probability from negative binomial distribution
-        let surv_prob = eb / (eb + 1.0);
-
         RenderConfig {
             width: 1000,
             height: 800,
@@ -65,7 +58,7 @@ impl Default for RenderConfig {
             color_mode: ColorMode::Radiance,
             light_mode: LightMode::Scene,
             max_iterations: None,
-            russian_roulette: Some(1.0 - surv_prob),
+            russian_roulette: true,
             bounces: 5,
             samples_per_dir: 2,
             tone_map: true,
@@ -77,7 +70,7 @@ impl Default for RenderConfig {
 impl RenderConfig {
     pub fn direct() -> Self {
         RenderConfig {
-            russian_roulette: None,
+            russian_roulette: false,
             bounces: 0,
             ..Default::default()
         }
@@ -92,7 +85,7 @@ impl RenderConfig {
             color_mode: ColorMode::Radiance,
             light_mode: LightMode::Scene,
             max_iterations: Some(1),
-            russian_roulette: None,
+            russian_roulette: false,
             bounces: 5,
             samples_per_dir: 3,
             tone_map: true,
@@ -103,7 +96,7 @@ impl RenderConfig {
         RenderConfig {
             normal_mapping: true,
             color_mode: ColorMode::DebugNormals,
-            russian_roulette: None,
+            russian_roulette: false,
             bounces: 0,
             samples_per_dir: 1,
             tone_map: false,

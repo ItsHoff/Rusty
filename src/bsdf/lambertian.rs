@@ -36,6 +36,7 @@ impl ShadingModelT for LambertianReflection {
     }
 }
 
+#[derive(Debug)]
 pub struct LambertianBRDF {
     color: Color,
 }

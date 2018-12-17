@@ -37,6 +37,7 @@ impl ShadingModelT for SpecularReflection {
     }
 }
 
+#[derive(Debug)]
 pub struct SpecularBRDF {
     color: Color,
 }
@@ -94,6 +95,7 @@ impl ShadingModelT for SpecularTransmission {
     }
 }
 
+#[derive(Debug)]
 pub struct SpecularBTDF {
     color: Color,
     eta: Float,
