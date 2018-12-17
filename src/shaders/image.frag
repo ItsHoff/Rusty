@@ -22,7 +22,8 @@ void main() {
     color = texture(image, v_tex_coords);
     float luma = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
     if (tone_map) {
-        // The last division defines the white point
-        color.rgb *= hable(luma) / luma / hable(4000.0);
+        float hable_scale = hable(luma) / luma;
+        float white_scale = 1.0 / hable(10.0);
+        color.rgb *= hable_scale * white_scale;
     }
 }
