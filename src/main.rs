@@ -145,6 +145,11 @@ fn online_render() {
                     }
                     KeyboardInput {
                         state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::C),
+                        ..
+                    } => println!("camera: {:?}", camera.pos),
+                    KeyboardInput {
+                        state: ElementState::Pressed,
                         virtual_keycode: Some(keycode),
                         ..
                     } => {
