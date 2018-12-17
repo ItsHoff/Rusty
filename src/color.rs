@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
 use cgmath::prelude::*;
 use cgmath::Vector3;
@@ -288,6 +288,21 @@ impl Mul<BaseColor> for Float {
     }
 }
 
+impl Sub for BaseColor {
+    type Output = Self;
+
+    fn sub(mut self, rhs: Self) -> Self {
+        self -= rhs;
+        self
+    }
+}
+
+impl SubAssign for BaseColor {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.color -= rhs.color;
+    }
+}
+
 // Color operations delegated to BaseColor
 
 impl Add for Color {
@@ -345,6 +360,21 @@ impl Mul<Color> for Float {
     // Delegate to BaseColor Mul
     fn mul(self, rhs: Color) -> Self::Output {
         rhs * self
+    }
+}
+
+impl Sub for Color {
+    type Output = Self;
+
+    fn sub(mut self, rhs: Self) -> Self {
+        self.0 -= rhs.0;
+        self
+    }
+}
+
+impl SubAssign for Color {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
     }
 }
 
