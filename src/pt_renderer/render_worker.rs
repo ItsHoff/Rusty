@@ -86,7 +86,7 @@ impl RenderWorker {
                                         self.trace_normals(ray, &mut node_stack, true)
                                     }
                                     ColorMode::Radiance => {
-                                        self.trace_radiance(ray, &mut node_stack, 0)
+                                        self.trace_radiance(ray, &mut node_stack)
                                     }
                                 }
                             }
@@ -127,18 +127,19 @@ impl RenderWorker {
         &'a self,
         mut ray: Ray,
         node_stack: &mut Vec<(&'a BVHNode, Float)>,
-        bounce: usize,
     ) -> Color {
         let mut c = Color::black();
-        if let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
+        let mut beta = Color::white();
+        let mut bounce = 0;
+        while let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
             let isect = hit.interaction(&self.config);
             if bounce == 0 {
-                c += isect.le(-ray.dir);
+                c += beta * isect.le(-ray.dir);
             }
             let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
             if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
                 let cos_t = isect.ns.dot(shadow_ray.dir).abs();
-                c += le * isect.bsdf(shadow_ray.dir, -ray.dir) * cos_t / light_pdf;
+                c += beta * le * isect.bsdf(shadow_ray.dir, -ray.dir) * cos_t / light_pdf;
             }
             let mut pdf = 1.0;
             let terminate = if bounce < self.config.bounces {
@@ -152,11 +153,12 @@ impl RenderWorker {
             };
             if !terminate {
                 let (brdf, new_ray, brdf_pdf) = isect.sample_bsdf(-ray.dir);
+                ray = new_ray;
                 pdf *= brdf_pdf;
-                c += isect.ns.dot(new_ray.dir).abs()
-                    * brdf
-                    * self.trace_radiance(new_ray, node_stack, bounce + 1)
-                    / pdf;
+                beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
+                bounce += 1;
+            } else {
+                break;
             }
         }
         c
