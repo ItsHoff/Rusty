@@ -6,7 +6,7 @@ use crate::obj_load;
 use crate::texture::Texture;
 use crate::Float;
 
-use super::{ShadingModel, BSDF};
+use super::{ShadingModelT, BSDF, BSDFT};
 
 #[derive(Debug)]
 pub struct LambertianReflection {
@@ -26,9 +26,9 @@ impl LambertianReflection {
     }
 }
 
-impl ShadingModel for LambertianReflection {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> Box<dyn BSDF> {
-        Box::new(LambertianBRDF::new(self.texture.color(tex_coords)))
+impl ShadingModelT for LambertianReflection {
+    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
+        BSDF::LR(LambertianBRDF::new(self.texture.color(tex_coords)))
     }
 
     fn preview_texture(&self) -> &Texture {
@@ -46,7 +46,7 @@ impl LambertianBRDF {
     }
 }
 
-impl BSDF for LambertianBRDF {
+impl BSDFT for LambertianBRDF {
     fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
         self.color / consts::PI
     }

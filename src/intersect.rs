@@ -115,7 +115,7 @@ pub struct Interaction<'a> {
     p: Point3<Float>,
     pub ns: Vector3<Float>,
     ng: Vector3<Float>,
-    bsdf: Box<dyn BSDF>,
+    bsdf: BSDF,
 }
 
 impl Interaction<'_> {

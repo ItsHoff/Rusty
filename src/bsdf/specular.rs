@@ -6,7 +6,7 @@ use crate::obj_load;
 use crate::texture::Texture;
 use crate::Float;
 
-use super::{ShadingModel, BSDF};
+use super::{ShadingModelT, BSDF, BSDFT};
 
 #[derive(Debug)]
 pub struct SpecularReflection {
@@ -27,9 +27,9 @@ impl SpecularReflection {
     }
 }
 
-impl ShadingModel for SpecularReflection {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> Box<dyn BSDF> {
-        Box::new(SpecularBRDF::new(self.texture.color(tex_coords)))
+impl ShadingModelT for SpecularReflection {
+    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
+        BSDF::SR(SpecularBRDF::new(self.texture.color(tex_coords)))
     }
 
     fn preview_texture(&self) -> &Texture {
@@ -47,7 +47,7 @@ impl SpecularBRDF {
     }
 }
 
-impl BSDF for SpecularBRDF {
+impl BSDFT for SpecularBRDF {
     fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
         Color::black()
     }
@@ -80,9 +80,9 @@ impl SpecularTransmission {
     }
 }
 
-impl ShadingModel for SpecularTransmission {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> Box<dyn BSDF> {
-        Box::new(SpecularBTDF::new(self.texture.color(tex_coords), self.eta))
+impl ShadingModelT for SpecularTransmission {
+    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
+        BSDF::ST(SpecularBTDF::new(self.texture.color(tex_coords), self.eta))
     }
 
     fn preview_texture(&self) -> &Texture {
@@ -101,7 +101,7 @@ impl SpecularBTDF {
     }
 }
 
-impl BSDF for SpecularBTDF {
+impl BSDFT for SpecularBTDF {
     fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
         Color::black()
     }
@@ -121,6 +121,6 @@ impl BSDF for SpecularBTDF {
         }
         let cos_t = (1.0 - sin2_t).sqrt();
         let in_dir = -out_dir * eta + (eta * cos_i - cos_t) * n;
-        (Color::white() / in_dir.z.abs(), in_dir, 1.0)
+        (self.color / in_dir.z.abs(), in_dir, 1.0)
     }
 }
