@@ -14,7 +14,7 @@ use self::lambertian::*;
 use self::specular::*;
 
 /// Shading model over the whole surface
-pub trait ShadingModelT: std::fmt::Debug + Send + Sync {
+pub trait ShadingModelT {
     fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF;
     fn preview_texture(&self) -> &Texture;
 }
@@ -23,7 +23,7 @@ pub trait ShadingModelT: std::fmt::Debug + Send + Sync {
 pub enum ShadingModel {
     LR(LambertianReflection),
     SR(SpecularReflection),
-    ST(SpecularTransmission),
+    F(FresnelSpecular),
 }
 
 impl ShadingModel {
@@ -32,7 +32,7 @@ impl ShadingModel {
 
         match obj_mat.illumination_model.unwrap_or(0) {
             5 => SR(SpecularReflection::new(obj_mat)),
-            7 => ST(SpecularTransmission::new(obj_mat)),
+            7 => F(FresnelSpecular::new(obj_mat)),
             i => {
                 if i > 10 {
                     println!("Illumination model {} is not defined in the mtl spec!", i);
@@ -52,7 +52,7 @@ impl Deref for ShadingModel {
         match self {
             LR(inner) => inner,
             SR(inner) => inner,
-            ST(inner) => inner,
+            F(inner) => inner,
         }
     }
 }
@@ -73,7 +73,7 @@ pub trait BSDFT {
 pub enum BSDF {
     LR(LambertianBRDF),
     SR(SpecularBRDF),
-    ST(SpecularBTDF),
+    F(FresnelBSDF),
 }
 
 impl Deref for BSDF {
@@ -84,7 +84,7 @@ impl Deref for BSDF {
         match self {
             LR(inner) => inner,
             SR(inner) => inner,
-            ST(inner) => inner,
+            F(inner) => inner,
         }
     }
 }
