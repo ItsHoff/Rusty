@@ -146,11 +146,10 @@ impl RenderWorker {
             let terminate = if bounce < self.config.bounces {
                 false
             } else if self.config.russian_roulette {
-                let rr = rand::random::<Float>();
                 // Survival probability
                 let prob = beta.luma().min(0.95);
                 pdf *= prob;
-                rr > prob
+                rand::random::<Float>() > prob
             } else {
                 true
             };
