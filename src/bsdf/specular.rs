@@ -71,11 +71,14 @@ pub struct SpecularTransmission {
 
 impl SpecularTransmission {
     pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let color = Color::from(
+        let filter = Color::from(
             obj_mat
                 .c_translucency
                 .expect("No translucent color for translucent material"),
         );
+        // TODO: not sure if this is always correct or
+        // interpreted differently on different scenes
+        let color = Color::white() - filter;
         let texture = Texture::from_color(color);
         let eta = obj_mat
             .refraction_i
