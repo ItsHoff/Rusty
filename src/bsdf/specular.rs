@@ -82,8 +82,8 @@ impl SpecularTransmission {
         );
         // TODO: not sure if which is the correct interpretation
         // or if it is even scene dependant
-        let color = Color::white() - filter;
-        // let color = filter;
+        // let color = Color::white() - filter;
+        let color = filter;
         let texture = Texture::from_color(color);
         let eta = obj_mat
             .refraction_i
@@ -160,7 +160,7 @@ impl ShadingModelT for FresnelSpecular {
     }
 
     fn preview_texture(&self) -> &Texture {
-        &self.reflection.preview_texture()
+        &self.transmission.texture
     }
 }
 

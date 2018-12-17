@@ -32,7 +32,7 @@ impl ShadingModel {
 
         match obj_mat.illumination_model.unwrap_or(0) {
             5 => SR(SpecularReflection::new(obj_mat)),
-            7 => F(FresnelSpecular::new(obj_mat)),
+            4 | 7 => F(FresnelSpecular::new(obj_mat)),
             i => {
                 if i > 10 {
                     println!("Illumination model {} is not defined in the mtl spec!", i);
