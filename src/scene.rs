@@ -11,6 +11,7 @@ use rand;
 
 use crate::aabb::AABB;
 use crate::bvh::{BVHNode, SplitMode, BVH};
+use crate::config::RenderConfig;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
 use crate::light::{AreaLight, Light};
@@ -27,16 +28,10 @@ pub struct SceneBuilder {
 }
 
 impl SceneBuilder {
-    pub fn new() -> Self {
+    pub fn new(config: &RenderConfig) -> Self {
         Self {
-            split_mode: SplitMode::SAH,
+            split_mode: config.bvh_split,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn with_bvh(&mut self, split_mode: SplitMode) -> &mut Self {
-        self.split_mode = split_mode;
-        self
     }
 
     pub fn build(&self, scene_file: &Path) -> Arc<Scene> {

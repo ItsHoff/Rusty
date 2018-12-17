@@ -1,5 +1,7 @@
 use glium::glutin::{dpi::LogicalSize, VirtualKeyCode};
 
+use crate::bvh::SplitMode;
+
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum ColorMode {
@@ -46,6 +48,8 @@ pub struct RenderConfig {
     pub samples_per_dir: usize,
     /// Should tone mapping be used
     pub tone_map: bool,
+    /// Splitting method for bvh
+    pub bvh_split: SplitMode,
 }
 
 impl Default for RenderConfig {
@@ -62,6 +66,7 @@ impl Default for RenderConfig {
             bounces: 5,
             samples_per_dir: 2,
             tone_map: true,
+            bvh_split: SplitMode::SAH,
         }
     }
 }
@@ -89,6 +94,7 @@ impl RenderConfig {
             bounces: 5,
             samples_per_dir: 3,
             tone_map: true,
+            bvh_split: SplitMode::SAH,
         }
     }
 

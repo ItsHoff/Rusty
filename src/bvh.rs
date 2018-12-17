@@ -12,7 +12,7 @@ use crate::Float;
 const MAX_LEAF_SIZE: usize = 8;
 
 #[allow(dead_code)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum SplitMode {
     Object,
     Spatial,

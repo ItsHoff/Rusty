@@ -133,7 +133,7 @@ fn initialize_camera(scene: &Scene, info: &SceneInfo, config: &RenderConfig) -> 
 pub fn load_cpu_scene(name: &str, config: &RenderConfig) -> (Arc<Scene>, Camera) {
     let _t = stats::time("Load");
     let info = SCENE_LIBRARY.get(name).unwrap();
-    let scene = SceneBuilder::new().build(&info.path);
+    let scene = SceneBuilder::new(config).build(&info.path);
     let camera = initialize_camera(&scene, &info, config);
     (scene, camera)
 }
