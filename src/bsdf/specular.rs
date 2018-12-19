@@ -90,10 +90,10 @@ impl FresnelBSDF {
 
 fn fresnel_dielectric(mut cos_i: Float, eta_mat: Float) -> Float {
     let (eta_i, eta_t) = if cos_i > 0.0 {
-        (eta_mat, 1.0)
+        (1.0, eta_mat)
     } else {
         cos_i = -cos_i;
-        (1.0, eta_mat)
+        (eta_mat, 1.0)
     };
     let sin2_i = (1.0 - cos_i.powi(2)).max(0.0);
     let sin2_t = (eta_i / eta_t).powi(2) * sin2_i;
@@ -119,11 +119,9 @@ impl BSDFT for FresnelBSDF {
     fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float) {
         let f = fresnel_dielectric(out_dir.z, self.btdf.eta);
         if rand::random::<Float>() < f {
-            // println!("reflect: {:?}", f);
             let (color, in_dir, pdf) = self.brdf.sample(out_dir);
             (f * color, in_dir, f * pdf)
         } else {
-            // println!("transmit: {:?}, {:?}", f, out_dir.z);
             let (color, in_dir, pdf) = self.btdf.sample(out_dir);
             let ft = 1.0 - f;
             (ft * color, in_dir, ft * pdf)
