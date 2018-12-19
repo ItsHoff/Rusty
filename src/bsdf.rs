@@ -1,10 +1,8 @@
 use std::ops::Deref;
 
-use cgmath::{Point2, Vector3};
+use cgmath::Vector3;
 
 use crate::color::Color;
-use crate::obj_load;
-use crate::texture::Texture;
 use crate::Float;
 
 mod lambertian;
@@ -12,50 +10,6 @@ mod specular;
 
 use self::lambertian::*;
 use self::specular::*;
-
-/// Shading model over the whole surface
-pub trait ShadingModelT {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF;
-    fn preview_texture(&self) -> &Texture;
-}
-
-#[derive(Debug)]
-pub enum ShadingModel {
-    LR(LambertianReflection),
-    SR(SpecularReflection),
-    F(FresnelSpecular),
-}
-
-impl ShadingModel {
-    pub fn from_obj(obj_mat: &obj_load::Material) -> Self {
-        use self::ShadingModel::*;
-
-        match obj_mat.illumination_model.unwrap_or(0) {
-            5 => SR(SpecularReflection::new(obj_mat)),
-            4 | 7 => F(FresnelSpecular::new(obj_mat)),
-            i => {
-                if i > 10 {
-                    println!("Illumination model {} is not defined in the mtl spec!", i);
-                    println!("Defaulting to diffuse BSDF.");
-                }
-                LR(LambertianReflection::new(obj_mat))
-            }
-        }
-    }
-}
-
-impl Deref for ShadingModel {
-    type Target = dyn ShadingModelT;
-
-    fn deref(&self) -> &Self::Target {
-        use self::ShadingModel::*;
-        match self {
-            LR(inner) => inner,
-            SR(inner) => inner,
-            F(inner) => inner,
-        }
-    }
-}
 
 /// Trait for handling local light transport.
 /// Directions should both point away from the intersection.
@@ -73,7 +27,26 @@ pub trait BSDFT {
 pub enum BSDF {
     LR(LambertianBRDF),
     SR(SpecularBRDF),
+    ST(SpecularBTDF),
     F(FresnelBSDF),
+}
+
+impl BSDF {
+    pub fn lambertian_brdf(color: Color) -> Self {
+        BSDF::LR(LambertianBRDF::new(color))
+    }
+
+    pub fn specular_brdf(color: Color) -> Self {
+        BSDF::SR(SpecularBRDF::new(color))
+    }
+
+    pub fn specular_btdf(color: Color, eta: Float) -> Self {
+        BSDF::ST(SpecularBTDF::new(color, eta))
+    }
+
+    pub fn fresnel_specular(reflect: Color, transmit: Color, eta: Float) -> Self {
+        BSDF::F(FresnelBSDF::new(reflect, transmit, eta))
+    }
 }
 
 impl Deref for BSDF {
@@ -84,6 +57,7 @@ impl Deref for BSDF {
         match self {
             LR(inner) => inner,
             SR(inner) => inner,
+            ST(inner) => inner,
             F(inner) => inner,
         }
     }

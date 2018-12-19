@@ -1,40 +1,10 @@
-use cgmath::{Point2, Vector3};
+use cgmath::Vector3;
 
 use crate::color::Color;
 use crate::consts;
-use crate::obj_load;
-use crate::texture::Texture;
 use crate::Float;
 
-use super::{ShadingModelT, BSDF, BSDFT};
-
-#[derive(Debug)]
-pub struct LambertianReflection {
-    texture: Texture,
-}
-
-impl LambertianReflection {
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let texture = match &obj_mat.tex_diffuse {
-            Some(path) => Texture::from_image_path(path),
-            None => {
-                let color = Color::from(obj_mat.c_diffuse.unwrap());
-                Texture::from_color(color)
-            }
-        };
-        Self { texture }
-    }
-}
-
-impl ShadingModelT for LambertianReflection {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
-        BSDF::LR(LambertianBRDF::new(self.texture.color(tex_coords)))
-    }
-
-    fn preview_texture(&self) -> &Texture {
-        &self.texture
-    }
-}
+use super::BSDFT;
 
 #[derive(Debug)]
 pub struct LambertianBRDF {

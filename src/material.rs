@@ -3,16 +3,17 @@ use cgmath::{Point2, Vector3};
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 
-use crate::bsdf::{ShadingModel, BSDF};
+use crate::bsdf::BSDF;
 use crate::color::Color;
 use crate::obj_load;
+use crate::scattering::Scattering;
 use crate::texture::{self, NormalMap};
 use crate::Float;
 
 /// Material for CPU rendering
 #[derive(Debug)]
 pub struct Material {
-    shading_model: ShadingModel,
+    scattering: Scattering,
     normal_map: Option<NormalMap>,
     pub emissive: Option<Color>,
 }
@@ -26,7 +27,7 @@ pub struct GPUMaterial {
 impl Material {
     /// Create a new material based on a material loaded from the scene file
     pub fn new(obj_mat: &obj_load::Material) -> Material {
-        let shading_model = ShadingModel::from_obj(obj_mat);
+        let scattering = Scattering::from_obj(obj_mat);
         let emissive = obj_mat.c_emissive.and_then(|e| {
             if e == [0.0, 0.0, 0.0] {
                 None
@@ -40,7 +41,7 @@ impl Material {
             None
         };
         Material {
-            shading_model,
+            scattering,
             normal_map,
             emissive,
         }
@@ -48,7 +49,7 @@ impl Material {
 
     /// Upload textures to the GPU
     pub fn upload<F: Facade>(&self, facade: &F) -> GPUMaterial {
-        let preview = self.shading_model.preview_texture();
+        let preview = self.scattering.preview_texture();
         let texture = preview.upload(facade);
         GPUMaterial {
             texture,
@@ -57,7 +58,7 @@ impl Material {
     }
 
     pub fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
-        self.shading_model.bsdf(tex_coords)
+        self.scattering.local(tex_coords)
     }
 
     pub fn normal(&self, tex_coords: Point2<Float>) -> Option<Vector3<Float>> {

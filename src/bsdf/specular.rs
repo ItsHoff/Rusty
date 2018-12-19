@@ -1,45 +1,10 @@
 use cgmath::prelude::*;
-use cgmath::{Point2, Vector3};
+use cgmath::Vector3;
 
 use crate::color::Color;
-use crate::obj_load;
-use crate::texture::Texture;
 use crate::Float;
 
-use super::{ShadingModelT, BSDF, BSDFT};
-
-#[derive(Debug)]
-pub struct SpecularReflection {
-    texture: Texture,
-}
-
-impl SpecularReflection {
-    // TODO: use specular color to figure out fresnel coeffs or use Schlick
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let texture = match &obj_mat.tex_specular {
-            Some(path) => Texture::from_image_path(path),
-            None => {
-                let color = Color::from(obj_mat.c_specular.unwrap());
-                Texture::from_color(color)
-            }
-        };
-        Self { texture }
-    }
-
-    fn scattering(&self, tex_coords: Point2<Float>) -> SpecularBRDF {
-        SpecularBRDF::new(self.texture.color(tex_coords))
-    }
-}
-
-impl ShadingModelT for SpecularReflection {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
-        BSDF::SR(self.scattering(tex_coords))
-    }
-
-    fn preview_texture(&self) -> &Texture {
-        &self.texture
-    }
-}
+use super::BSDFT;
 
 #[derive(Debug)]
 pub struct SpecularBRDF {
@@ -64,36 +29,6 @@ impl BSDFT for SpecularBRDF {
     fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float) {
         let in_dir = Vector3::new(-out_dir.x, -out_dir.y, out_dir.z);
         (self.color, in_dir, 1.0)
-    }
-}
-
-#[derive(Debug)]
-pub struct SpecularTransmission {
-    texture: Texture,
-    eta: Float,
-}
-
-impl SpecularTransmission {
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let filter = Color::from(
-            obj_mat
-                .c_translucency
-                .expect("No translucent color for translucent material"),
-        );
-        // TODO: not sure if which is the correct interpretation
-        // or if it is even scene dependant
-        // let color = Color::white() - filter;
-        let color = filter;
-        let texture = Texture::from_color(color);
-        let eta = obj_mat
-            .refraction_i
-            .expect("No index of refraction for translucent material")
-            .into();
-        Self { texture, eta }
-    }
-
-    fn scattering(&self, tex_coords: Point2<Float>) -> SpecularBTDF {
-        SpecularBTDF::new(self.texture.color(tex_coords), self.eta)
     }
 }
 
@@ -138,40 +73,15 @@ impl BSDFT for SpecularBTDF {
 }
 
 #[derive(Debug)]
-pub struct FresnelSpecular {
-    reflection: SpecularReflection,
-    transmission: SpecularTransmission,
-}
-
-impl FresnelSpecular {
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        Self {
-            reflection: SpecularReflection::new(obj_mat),
-            transmission: SpecularTransmission::new(obj_mat),
-        }
-    }
-}
-
-impl ShadingModelT for FresnelSpecular {
-    fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
-        let brdf = self.reflection.scattering(tex_coords);
-        let btdf = self.transmission.scattering(tex_coords);
-        BSDF::F(FresnelBSDF::new(brdf, btdf))
-    }
-
-    fn preview_texture(&self) -> &Texture {
-        &self.transmission.texture
-    }
-}
-
-#[derive(Debug)]
 pub struct FresnelBSDF {
     brdf: SpecularBRDF,
     btdf: SpecularBTDF,
 }
 
 impl FresnelBSDF {
-    fn new(brdf: SpecularBRDF, btdf: SpecularBTDF) -> Self {
+    pub fn new(reflect: Color, transmit: Color, eta: Float) -> Self {
+        let brdf = SpecularBRDF::new(reflect);
+        let btdf = SpecularBTDF::new(transmit, eta);
         Self {
             brdf, btdf
         }
