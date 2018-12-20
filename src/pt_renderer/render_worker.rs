@@ -135,12 +135,12 @@ impl RenderWorker {
         while let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
             let isect = hit.interaction(&self.config);
             if bounce == 0 || specular_bounce {
-                c += beta * isect.le(-ray.dir);
+                c += beta * isect.le(&ray);
             }
             let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
             if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
                 let cos_t = isect.ns.dot(shadow_ray.dir).abs();
-                c += beta * le * isect.bsdf(shadow_ray.dir, -ray.dir) * cos_t / light_pdf;
+                c += beta * le * isect.bsdf(&ray, &shadow_ray) * cos_t / light_pdf;
             }
             let mut pdf = 1.0;
             let terminate = if bounce < self.config.bounces {
@@ -154,12 +154,15 @@ impl RenderWorker {
                 true
             };
             if !terminate {
-                let (brdf, new_ray, brdf_pdf) = isect.sample_bsdf(-ray.dir);
-                ray = new_ray;
-                pdf *= brdf_pdf;
-                beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
-                bounce += 1;
-                specular_bounce = isect.is_specular();
+                if let Some((brdf, new_ray, brdf_pdf)) = isect.sample_bsdf(&ray) {
+                    ray = new_ray;
+                    pdf *= brdf_pdf;
+                    beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
+                    bounce += 1;
+                    specular_bounce = isect.is_specular();
+                } else {
+                    break;
+                }
             } else {
                 break;
             }

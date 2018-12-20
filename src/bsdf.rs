@@ -16,14 +16,12 @@ use self::specular::*;
 
 /// Trait for handling local light transport.
 /// Directions should both point away from the intersection.
-/// in_dir corresponds to the direction photons arrive from and
-/// out_dir refer to the direction of the photons scatter towards.
 /// Directions should be given in a surface local coordinate system,
 /// where (0, 0, 1) is the normal
 pub trait BSDFT {
     fn is_specular(&self) -> bool;
-    fn eval(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color;
-    fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float);
+    fn eval(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
+    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)>;
 }
 
 #[derive(Debug)]

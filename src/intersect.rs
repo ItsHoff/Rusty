@@ -120,8 +120,8 @@ pub struct Interaction<'a> {
 }
 
 impl Interaction<'_> {
-    pub fn le(&self, dir: Vector3<Float>) -> Color {
-        self.tri.le(dir)
+    pub fn le(&self, in_ray: &Ray) -> Color {
+        self.tri.le(-in_ray.dir)
     }
 
     pub fn ray(&self, dir: Vector3<Float>) -> Ray {
@@ -144,21 +144,21 @@ impl Interaction<'_> {
         self.bsdf.is_specular()
     }
 
-    pub fn bsdf(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color {
+    pub fn bsdf(&self, in_ray: &Ray, out_ray: &Ray) -> Color {
         // if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
         //     // TODO: evaluate transmission
         //     return Color::black();
         // }
-        let local_in = self.to_local * in_dir;
-        let local_out = self.to_local * out_dir;
-        self.bsdf.eval(local_in, local_out)
+        let wo_local = -self.to_local * in_ray.dir;
+        let wi_local = self.to_local * out_ray.dir;
+        self.bsdf.eval(wo_local, wi_local)
     }
 
-    pub fn sample_bsdf(&self, out_dir: Vector3<Float>) -> (Color, Ray, Float) {
-        let local_out = self.to_local * out_dir;
-        let (bsdf, local_in, pdf) = self.bsdf.sample(local_out);
-        let in_dir = self.to_local.transpose() * local_in;
+    pub fn sample_bsdf(&self, in_ray: &Ray) -> Option<(Color, Ray, Float)> {
+        let wo = -self.to_local * in_ray.dir;
+        let (bsdf, wi, pdf) = self.bsdf.sample(wo)?;
+        let out_dir = self.to_local.transpose() * wi;
         // TODO: avoid light leaks caused by shading normals
-        (bsdf, self.ray(in_dir), pdf)
+        Some((bsdf, self.ray(out_dir), pdf))
     }
 }

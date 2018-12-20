@@ -1,10 +1,10 @@
-use cgmath::prelude::*;
 use cgmath::Vector3;
 
 use crate::color::Color;
 use crate::Float;
 
 use super::BSDFT;
+use super::util;
 
 #[derive(Debug)]
 pub struct SpecularBRDF {
@@ -22,13 +22,13 @@ impl BSDFT for SpecularBRDF {
         true
     }
 
-    fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
+    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
     }
 
-    fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float) {
-        let in_dir = Vector3::new(-out_dir.x, -out_dir.y, out_dir.z);
-        (self.color, in_dir, 1.0)
+    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+        let wi = util::reflect_n(wo);
+        Some((self.color, wi, 1.0))
     }
 }
 
@@ -49,26 +49,13 @@ impl BSDFT for SpecularBTDF {
         true
     }
 
-    fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
+    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
     }
 
-    fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float) {
-        let (n, eta) = if out_dir.z > 0.0 {
-            (Vector3::unit_z(), 1.0 / self.eta)
-        } else {
-            (-Vector3::unit_z(), self.eta)
-        };
-        let cos_i = out_dir.dot(n);
-        let sin2_i = (1.0 - cos_i.powi(2)).max(0.0);
-        let sin2_t = eta.powi(2) * sin2_i;
-        // Total internal reflection
-        if sin2_t >= 1.0 {
-            return (Color::black(), Vector3::unit_z(), 1.0);
-        }
-        let cos_t = (1.0 - sin2_t).sqrt();
-        let in_dir = -out_dir * eta + (eta * cos_i - cos_t) * n;
-        (self.color / in_dir.z.abs(), in_dir, 1.0)
+    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+        let wi = util::refract_n(wo, self.eta)?;
+        Some((self.color / util::cos_t(wi).abs(), wi, 1.0))
     }
 }
 
@@ -86,43 +73,24 @@ impl FresnelBSDF {
     }
 }
 
-fn fresnel_dielectric(mut cos_i: Float, eta_mat: Float) -> Float {
-    let (eta_i, eta_t) = if cos_i > 0.0 {
-        (1.0, eta_mat)
-    } else {
-        cos_i = -cos_i;
-        (eta_mat, 1.0)
-    };
-    let sin2_i = (1.0 - cos_i.powi(2)).max(0.0);
-    let sin2_t = (eta_i / eta_t).powi(2) * sin2_i;
-    // Total internal reflection
-    if sin2_t >= 1.0 {
-        return 1.0;
-    }
-    let cos_t = (1.0 - sin2_t).sqrt();
-    let paral = (eta_t * cos_i - eta_i * cos_t) / (eta_t * cos_i + eta_i * cos_t);
-    let perp = (eta_i * cos_i - eta_t * cos_t) / (eta_i * cos_i + eta_t * cos_t);
-    (paral.powi(2) + perp.powi(2)) / 2.0
-}
-
 impl BSDFT for FresnelBSDF {
     fn is_specular(&self) -> bool {
         true
     }
 
-    fn eval(&self, _in_dir: Vector3<Float>, _out_dir: Vector3<Float>) -> Color {
+    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
     }
 
-    fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float) {
-        let f = fresnel_dielectric(out_dir.z, self.btdf.eta);
-        if rand::random::<Float>() < f {
-            let (color, in_dir, pdf) = self.brdf.sample(out_dir);
-            (f * color, in_dir, f * pdf)
+    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+        let fr = util::fresnel_dielectric(wo, self.btdf.eta);
+        if rand::random::<Float>() < fr {
+            let (color, wi, pdf) = self.brdf.sample(wo)?;
+            Some((fr * color, wi, fr * pdf))
         } else {
-            let (color, in_dir, pdf) = self.btdf.sample(out_dir);
-            let ft = 1.0 - f;
-            (ft * color, in_dir, ft * pdf)
+            let (color, wi, pdf) = self.btdf.sample(wo)?;
+            let ft = 1.0 - fr;
+            Some((ft * color, wi, ft * pdf))
         }
     }
 }

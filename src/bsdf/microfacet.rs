@@ -22,9 +22,9 @@ impl MicrofacetBRDF {
         }
     }
 
-    fn g(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Float {
-        let l1 = self.microfacets.lambda(in_dir);
-        let l2 = self.microfacets.lambda(out_dir);
+    fn g(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        let l1 = self.microfacets.lambda(wo);
+        let l2 = self.microfacets.lambda(wi);
         1.0 / (1.0 + l1 + l2)
     }
 }
@@ -34,25 +34,23 @@ impl BSDFT for MicrofacetBRDF {
         false
     }
 
-    fn eval(&self, in_dir: Vector3<Float>, out_dir: Vector3<Float>) -> Color {
-        let g = self.g(in_dir, out_dir);
-        let half = (in_dir + out_dir).normalize();
-        let d = self.microfacets.d(half);
-        let denom = 4.0 * in_dir.z * out_dir.z;
+    fn eval(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+        let g = self.g(wo, wi);
+        let wh = (wo + wi).normalize();
+        let d = self.microfacets.d_wh(wh);
+        let denom = 4.0 * wo.z * wi.z;
         self.color * d * g / denom
     }
 
-    fn sample(&self, out_dir: Vector3<Float>) -> (Color, Vector3<Float>, Float) {
-        let half = self.microfacets.sample_half(out_dir);
-        // Reflect around half vector
-        let in_dir = -out_dir + 2.0 * half.dot(out_dir) * half;
-        // Reflected direction not in the same hemisphere
-        if out_dir.z * in_dir.z < 0.0 {
-            return (Color::black(), Vector3::unit_z(), 1.0);
+    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+        let wh = self.microfacets.sample_wh(wo);
+        let wi = util::reflect(wo, wh);
+        if !util::same_hemisphere(wo, wi) {
+            return None;
         }
-        let pdf = self.microfacets.pdf_half(out_dir, half) / (4.0 * out_dir.dot(half).abs());
-        let val = self.eval(in_dir, out_dir);
-        (val, in_dir, pdf)
+        let pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
+        let val = self.eval(wo, wi);
+        Some((val, wi, pdf))
     }
 }
 
@@ -72,22 +70,22 @@ impl GGX {
         }
     }
 
-    fn d(&self, half: Vector3<Float>) -> Float {
-        let cos2_t = util::cos2_t(half);
+    fn d_wh(&self, wh: Vector3<Float>) -> Float {
+        let cos2_t = util::cos2_t(wh);
         let a2 = self.alpha.powi(2);
         let denom = consts::PI * (cos2_t * (a2 - 1.0) + 1.0).powi(2);
         a2 / denom
     }
 
-    fn lambda(&self, dir: Vector3<Float>) -> Float {
+    fn lambda(&self, w: Vector3<Float>) -> Float {
         let a2 = self.alpha.powi(2);
-        let tan2_t = util::tan2_t(dir);
+        let tan2_t = util::tan2_t(w);
         ((1.0 + a2 * tan2_t).sqrt() - 1.0) / 2.0
     }
 
     // https://agraphicsguy.wordpress.com/2015/11/01/sampling-microfacet-brdf/
     // TODO: Take shadowing into account
-    fn sample_half(&self, _out_dir: Vector3<Float>) -> Vector3<Float> {
+    fn sample_wh(&self, _wo: Vector3<Float>) -> Vector3<Float> {
         let phi = 2.0 * consts::PI * rand::random::<Float>();
         let r1 = rand::random::<Float>();
         let a2 = self.alpha.powi(2);
@@ -99,7 +97,7 @@ impl GGX {
         Vector3::new(x, y, z)
     }
 
-    fn pdf_half(&self, _out_dir: Vector3<Float>, half: Vector3<Float>) -> Float {
-        self.d(half) * half.z
+    fn pdf_wh(&self, _wo: Vector3<Float>, wh: Vector3<Float>) -> Float {
+        self.d_wh(wh) * util::cos_t(wh)
     }
 }
