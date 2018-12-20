@@ -8,9 +8,11 @@ use crate::texture::Texture;
 use crate::Float;
 
 mod diffuse;
+mod glossy;
 mod specular;
 
 use self::diffuse::*;
+use self::glossy::*;
 use self::specular::*;
 
 /// Scattering model over the whole surface
@@ -26,6 +28,7 @@ pub enum Scattering {
     DR(DiffuseReflection),
     SR(SpecularReflection),
     F(FresnelSpecular),
+    GR(GlossyReflection),
 }
 
 impl Scattering {
@@ -33,6 +36,7 @@ impl Scattering {
         use self::Scattering::*;
 
         match obj_mat.illumination_model.unwrap_or(0) {
+            2 => GR(GlossyReflection::new(obj_mat)),
             5 => SR(SpecularReflection::new(obj_mat)),
             4 | 6 | 7 => F(FresnelSpecular::new(obj_mat)),
             i => {
@@ -55,6 +59,7 @@ impl Deref for Scattering {
             DR(inner) => inner,
             SR(inner) => inner,
             F(inner) => inner,
+            GR(inner) => inner,
         }
     }
 }

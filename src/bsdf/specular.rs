@@ -82,9 +82,7 @@ impl FresnelBSDF {
     pub fn new(reflect: Color, transmit: Color, eta: Float) -> Self {
         let brdf = SpecularBRDF::new(reflect);
         let btdf = SpecularBTDF::new(transmit, eta);
-        Self {
-            brdf, btdf
-        }
+        Self { brdf, btdf }
     }
 }
 
@@ -99,7 +97,7 @@ fn fresnel_dielectric(mut cos_i: Float, eta_mat: Float) -> Float {
     let sin2_t = (eta_i / eta_t).powi(2) * sin2_i;
     // Total internal reflection
     if sin2_t >= 1.0 {
-        return 1.0
+        return 1.0;
     }
     let cos_t = (1.0 - sin2_t).sqrt();
     let paral = (eta_t * cos_i - eta_i * cos_t) / (eta_t * cos_i + eta_i * cos_t);

@@ -6,9 +6,12 @@ use crate::color::Color;
 use crate::Float;
 
 mod lambertian;
+mod microfacet;
 mod specular;
+mod util;
 
 use self::lambertian::*;
+use self::microfacet::*;
 use self::specular::*;
 
 /// Trait for handling local light transport.
@@ -29,6 +32,7 @@ pub enum BSDF {
     SR(SpecularBRDF),
     ST(SpecularBTDF),
     F(FresnelBSDF),
+    MR(MicrofacetBRDF),
 }
 
 impl BSDF {
@@ -47,6 +51,10 @@ impl BSDF {
     pub fn fresnel_specular(reflect: Color, transmit: Color, eta: Float) -> Self {
         BSDF::F(FresnelBSDF::new(reflect, transmit, eta))
     }
+
+    pub fn microfacet_brdf(color: Color, shininess: Float) -> Self {
+        BSDF::MR(MicrofacetBRDF::new(color, shininess))
+    }
 }
 
 impl Deref for BSDF {
@@ -59,6 +67,7 @@ impl Deref for BSDF {
             SR(inner) => inner,
             ST(inner) => inner,
             F(inner) => inner,
+            MR(inner) => inner,
         }
     }
 }
