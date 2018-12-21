@@ -1,12 +1,10 @@
-use cgmath::conv::*;
-
 use glium;
 use glium::backend::Facade;
 use glium::{uniform, DrawParameters, Surface};
 
 use crate::camera::Camera;
+use crate::float::IntoArray;
 use crate::scene::GPUScene;
-use crate::util::ToF32;
 
 pub struct GLRenderer {
     shader: glium::Program,
@@ -23,7 +21,6 @@ impl GLRenderer {
     }
 
     pub fn render<S: Surface>(&self, target: &mut S, scene: &GPUScene, camera: &Camera) {
-        let world_to_clip = camera.world_to_clip().to_f32();
         let draw_parameters = DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
@@ -36,7 +33,7 @@ impl GLRenderer {
         for mesh in &scene.meshes {
             let material = &scene.materials[mesh.material_i];
             let uniforms = uniform! {
-                world_to_clip: array4x4(world_to_clip),
+                world_to_clip: camera.world_to_clip().into_array(),
                 u_light: [-1.0, 0.4, 0.9f32],
                 u_is_emissive: material.is_emissive,
                 tex: &material.texture

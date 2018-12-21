@@ -3,7 +3,7 @@ use std::ops::Deref;
 use cgmath::Vector3;
 
 use crate::color::Color;
-use crate::Float;
+use crate::float::*;
 
 mod lambertian;
 mod microfacet;

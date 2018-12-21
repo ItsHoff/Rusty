@@ -2,9 +2,9 @@ use cgmath::Point2;
 
 use crate::bsdf::BSDF;
 use crate::color::Color;
+use crate::float::*;
 use crate::obj_load;
 use crate::texture::Texture;
-use crate::Float;
 
 use super::ScatteringT;
 

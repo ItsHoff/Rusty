@@ -2,10 +2,10 @@ use cgmath::prelude::*;
 
 use crate::color::Color;
 use crate::consts;
+use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Interaction, Ray};
 use crate::triangle::Triangle;
-use crate::Float;
 
 pub trait Light {
     fn power(&self) -> Color;

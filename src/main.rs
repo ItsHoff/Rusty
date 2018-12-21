@@ -17,6 +17,7 @@ mod camera;
 mod color;
 mod config;
 mod consts;
+mod float;
 mod gl_renderer;
 mod index_ptr;
 mod input;
@@ -32,15 +33,12 @@ mod scene;
 mod stats;
 mod texture;
 mod triangle;
-mod util;
 mod vertex;
 
 use self::config::RenderConfig;
 use self::gl_renderer::GLRenderer;
 use self::input::InputState;
 use self::pt_renderer::PTRenderer;
-
-type Float = f64;
 
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {

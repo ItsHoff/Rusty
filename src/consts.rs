@@ -1,4 +1,4 @@
-use crate::Float;
+use crate::float::*;
 
 pub const EPSILON: Float = 1e-5;
 pub const INFINITY: Float = std::f64::INFINITY as Float;

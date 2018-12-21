@@ -10,9 +10,9 @@ use glium::glutin::VirtualKeyCode;
 
 use crate::camera::Camera;
 use crate::config::RenderConfig;
+use crate::float::*;
 use crate::scene::{GPUScene, Scene, SceneBuilder};
 use crate::stats;
-use crate::Float;
 
 lazy_static::lazy_static! {
     static ref SCENE_LIBRARY: SceneLibrary = {

@@ -6,8 +6,8 @@ use std::time::{Duration, Instant};
 use prettytable::{cell, Row, Table};
 
 use crate::bvh::BVH;
+use crate::float::*;
 use crate::intersect::Ray;
-use crate::Float;
 
 // Helper trait to print out Float type used
 trait FloatName {
@@ -200,8 +200,7 @@ impl SceneStatistics {
     fn mrps(&self) -> String {
         let render_timer = self.get_timer("Render").unwrap();
         let render_duration = render_timer.duration.unwrap();
-        let float_time = render_duration.as_secs() as f64
-            + f64::from(render_duration.subsec_nanos()) / 1_000_000_000.0;
+        let float_time = render_duration.as_float_secs();
         let mrps = self.ray_count as f64 / float_time / 1_000_000.0;
         format!("{:#.2?}", mrps)
     }

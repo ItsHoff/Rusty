@@ -2,9 +2,9 @@ use cgmath::Point2;
 
 use crate::bsdf::BSDF;
 use crate::color::Color;
+use crate::float::*;
 use crate::obj_load;
 use crate::texture::Texture;
-use crate::Float;
 
 use super::ScatteringT;
 
@@ -58,7 +58,7 @@ impl SpecularTransmission {
         let eta = obj_mat
             .refraction_i
             .expect("No index of refraction for translucent material")
-            .into();
+            .to_float();
         Self { texture, eta }
     }
 }

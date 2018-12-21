@@ -12,11 +12,11 @@ use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
 use crate::config::{ColorMode, LightMode, RenderConfig};
+use crate::float::*;
 use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
 use crate::pt_renderer::RenderCoordinator;
 use crate::scene::Scene;
-use crate::Float;
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -46,7 +46,6 @@ impl RenderWorker {
         }
     }
 
-    #[allow(clippy::cast_lossless)]
     pub fn run(&self) {
         let (width, height) = (self.coordinator.width, self.coordinator.height);
         let clip_to_world = self.camera.world_to_clip().invert().unwrap();
@@ -67,14 +66,16 @@ impl RenderWorker {
                         let mut c = Color::black();
                         for j in 0..self.config.samples_per_dir {
                             for i in 0..self.config.samples_per_dir {
-                                let dx = (i as Float + rand::random::<Float>())
-                                    / self.config.samples_per_dir as Float;
-                                let dy = (j as Float + rand::random::<Float>())
-                                    / self.config.samples_per_dir as Float;
-                                let clip_x =
-                                    2.0 * ((rect.left + w) as Float + dx) / width as Float - 1.0;
-                                let clip_y =
-                                    2.0 * ((rect.bottom + h) as Float + dy) / height as Float - 1.0;
+                                let dx = (i.to_float() + rand::random::<Float>())
+                                    / self.config.samples_per_dir.to_float();
+                                let dy = (j.to_float() + rand::random::<Float>())
+                                    / self.config.samples_per_dir.to_float();
+                                let clip_x = 2.0 * ((rect.left + w).to_float() + dx)
+                                    / width.to_float()
+                                    - 1.0;
+                                let clip_y = 2.0 * ((rect.bottom + h).to_float() + dy)
+                                    / height.to_float()
+                                    - 1.0;
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = Point3::from_homogeneous(clip_to_world * clip_p);
                                 let ray = Ray::from_point(self.camera.pos, world_p);
@@ -91,11 +92,10 @@ impl RenderWorker {
                                 }
                             }
                         }
-                        c /= self.config.samples_per_dir.pow(2) as Float;
+                        c /= self.config.samples_per_dir.pow(2).to_float();
                         let pixel_i = 3 * (h * rect.width + w) as usize;
-                        block[pixel_i] = c.r() as f32;
-                        block[pixel_i + 1] = c.g() as f32;
-                        block[pixel_i + 2] = c.b() as f32;
+                        let data: [f32; 3] = c.into();
+                        block[pixel_i..pixel_i + 3].copy_from_slice(&data);
                     }
                 }
                 self.result_tx

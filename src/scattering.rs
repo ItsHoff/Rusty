@@ -3,9 +3,9 @@ use std::ops::Deref;
 use cgmath::Point2;
 
 use crate::bsdf::BSDF;
+use crate::float::*;
 use crate::obj_load;
 use crate::texture::Texture;
-use crate::Float;
 
 mod diffuse;
 mod glossy;

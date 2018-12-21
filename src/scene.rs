@@ -12,6 +12,7 @@ use rand;
 use crate::aabb::AABB;
 use crate::bvh::{BVHNode, SplitMode, BVH};
 use crate::config::RenderConfig;
+use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
 use crate::light::{AreaLight, Light};
@@ -21,7 +22,6 @@ use crate::obj_load;
 use crate::stats;
 use crate::triangle::{Triangle, TriangleBuilder};
 use crate::vertex::{RawVertex, Vertex};
-use crate::Float;
 
 pub struct SceneBuilder {
     split_mode: SplitMode,

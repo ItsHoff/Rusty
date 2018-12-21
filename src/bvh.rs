@@ -4,10 +4,10 @@ use cgmath::Point3;
 
 use crate::aabb::AABB;
 use crate::consts;
+use crate::float::*;
 use crate::intersect::{Intersect, Ray};
 use crate::stats;
 use crate::triangle::Triangle;
-use crate::Float;
 
 const MAX_LEAF_SIZE: usize = 8;
 
@@ -146,7 +146,7 @@ impl BVH {
         let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();
         let tris = Triangles::new(triangles, &centers, &mut permutation, 0);
-        let mut nodes = Vec::with_capacity(Float::log2(triangles.len() as Float) as usize);
+        let mut nodes = Vec::with_capacity(Float::log2(triangles.len().to_float()) as usize);
         nodes.push(BVHNode::new(&tris));
         let mut split_stack = vec![(0usize, tris)];
 
@@ -254,8 +254,9 @@ fn sah_split(triangles: &mut Triangles) -> Option<usize> {
         for i in 0..triangles.len() {
             left_bb.add_aabb(&triangles[i].aabb());
             let right_bb = &right_bbs[right_bbs.len() - 1 - i];
-            let score =
-                i as Float * left_bb.area() + (triangles.len() - i) as Float * right_bb.area();
+            let n_left = i.to_float();
+            let n_right = (triangles.len() - i).to_float();
+            let score = n_left * left_bb.area() + n_right * right_bb.area();
             if score < min_score {
                 min_score = score;
                 min_axis = axis;

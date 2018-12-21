@@ -7,8 +7,8 @@ use crate::bsdf::BSDF;
 use crate::color::Color;
 use crate::config::RenderConfig;
 use crate::consts;
+use crate::float::*;
 use crate::triangle::Triangle;
-use crate::Float;
 
 static RAY_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
 

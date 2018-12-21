@@ -1,10 +1,10 @@
 use cgmath::Vector3;
 
 use crate::color::Color;
-use crate::Float;
+use crate::float::*;
 
-use super::BSDFT;
 use super::util;
+use super::BSDFT;
 
 #[derive(Debug)]
 pub struct SpecularBRDF {

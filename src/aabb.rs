@@ -2,8 +2,8 @@ use cgmath::prelude::*;
 use cgmath::Point3;
 
 use crate::consts;
+use crate::float::*;
 use crate::intersect::{Intersect, Ray};
-use crate::Float;
 
 #[derive(Clone, Debug)]
 pub struct AABB {

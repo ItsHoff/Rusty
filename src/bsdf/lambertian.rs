@@ -2,7 +2,7 @@ use cgmath::Vector3;
 
 use crate::color::Color;
 use crate::consts;
-use crate::Float;
+use crate::float::*;
 
 use super::BSDFT;
 

@@ -9,10 +9,10 @@ use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
 
 use crate::color::Color;
 use crate::consts;
+use crate::float::*;
 use crate::input::InputState;
 use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
-use crate::Float;
 
 /// Representation of a camera
 #[derive(Clone)]
@@ -60,7 +60,7 @@ impl Camera {
     }
 
     pub fn update_viewport(&mut self, size: LogicalSize) {
-        self.ratio = (size.width / size.height) as Float;
+        self.ratio = (size.width / size.height).to_float();
     }
 
     pub fn set_scale(&mut self, scale: Float) {
@@ -73,7 +73,6 @@ impl Camera {
     }
 
     /// Get the camera to clip space transformation matrix
-    #[allow(clippy::cast_lossless)]
     fn camera_to_clip(&self) -> Matrix4<Float> {
         cgmath::perspective(
             self.fov,
@@ -97,7 +96,7 @@ impl Camera {
     /// Get the speed of the camera based on the duration of the input
     fn get_speed(dt: Duration) -> Float {
         // Use tanh acceleration curve
-        let x = dt.as_float_secs() as Float - 2.0;
+        let x = dt.as_float_secs().to_float() - 2.0;
         x.tanh() + 1.05
     }
 
@@ -130,7 +129,7 @@ impl Camera {
     /// Move camera based on input event
     pub fn process_input(&mut self, input: &InputState) {
         let dt = input.last_reset.elapsed();
-        let time_scale = 10.0 * dt.as_float_secs() as Float;
+        let time_scale = 10.0 * dt.as_float_secs().to_float();
         for (key, t) in &input.key_presses {
             let t_press = t.elapsed(); // Length of the key press
             let d_pos = time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);
@@ -156,8 +155,8 @@ impl Camera {
             // Rotate camera while holding left mouse button
             if let MouseButton::Left = *button {
                 let (dx, dy) = input.d_mouse;
-                self.rotate_y(-Rad(dx as Float / 250.0));
-                self.rotate_x(-Rad(dy as Float / 250.0));
+                self.rotate_y(-Rad(dx.to_float() / 250.0));
+                self.rotate_x(-Rad(dy.to_float() / 250.0));
             }
         }
     }

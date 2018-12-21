@@ -5,10 +5,10 @@ use glium::texture::SrgbTexture2d;
 
 use crate::bsdf::BSDF;
 use crate::color::Color;
+use crate::float::*;
 use crate::obj_load;
 use crate::scattering::Scattering;
 use crate::texture::{self, NormalMap};
-use crate::Float;
 
 /// Material for CPU rendering
 #[derive(Debug)]

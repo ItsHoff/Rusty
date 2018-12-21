@@ -4,12 +4,24 @@ use cgmath::prelude::*;
 use cgmath::Vector3;
 
 use crate::consts;
-use crate::util::ConvArr;
-use crate::Float;
+use crate::float::*;
 
 /// Convert u8 color to float color in range [0, 1]
-pub fn to_float(c: u8) -> Float {
-    Float::from(c) / 255.0
+pub fn component_to_float(c: u8) -> Float {
+    c.to_float() / std::u8::MAX.to_float()
+}
+
+pub fn pixel_to_vector(pixel: image::Rgb<u8>) -> Vector3<Float> {
+    Vector3::new(
+        component_to_float(pixel.data[0]),
+        component_to_float(pixel.data[1]),
+        component_to_float(pixel.data[2]),
+    )
+}
+
+pub fn vector_to_pixel(vec: Vector3<Float>) -> image::Rgb<u8> {
+    let conv = |f: Float| (f * std::u8::MAX.to_float()) as u8;
+    image::Rgb([conv(vec.x), conv(vec.y), conv(vec.z)])
 }
 
 /// Convert srgb color to linear color
@@ -25,8 +37,8 @@ fn to_srgb(c: Float) -> Float {
 pub struct SrgbColor(BaseColor);
 
 impl SrgbColor {
-    pub fn from_pixel(rgb: image::Rgb<u8>) -> Self {
-        Self(BaseColor::from_pixel(rgb))
+    pub fn from_pixel(pixel: image::Rgb<u8>) -> Self {
+        Self(BaseColor::from_pixel(pixel))
     }
 
     pub fn is_gray(&self) -> bool {
@@ -116,12 +128,10 @@ impl BaseColor {
         Self::new(1.0, 1.0, 1.0)
     }
 
-    fn from_pixel(rgb: image::Rgb<u8>) -> Self {
-        Self::new(
-            to_float(rgb.data[0]),
-            to_float(rgb.data[1]),
-            to_float(rgb.data[2]),
-        )
+    fn from_pixel(pixel: image::Rgb<u8>) -> Self {
+        Self {
+            color: pixel_to_vector(pixel),
+        }
     }
 
     fn to_linear(self) -> Self {
@@ -182,29 +192,26 @@ impl IndexMut<usize> for BaseColor {
 }
 
 impl From<Vector3<Float>> for BaseColor {
-    #[allow(clippy::identity_conversion)]
     fn from(vec: Vector3<Float>) -> Self {
         Self { color: vec }
     }
 }
 
 impl From<[f32; 3]> for BaseColor {
-    #[allow(clippy::identity_conversion)]
     fn from(arr: [f32; 3]) -> Self {
         Self {
-            color: Vector3::from_arr(arr),
+            color: Vector3::from_array(arr),
         }
     }
 }
 
 impl Into<[f32; 3]> for BaseColor {
     fn into(self) -> [f32; 3] {
-        self.color.into_arr()
+        self.color.into_array()
     }
 }
 
 impl From<[f32; 3]> for Color {
-    #[allow(clippy::identity_conversion)]
     fn from(arr: [f32; 3]) -> Self {
         Self(BaseColor::from(arr))
     }

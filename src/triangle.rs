@@ -5,12 +5,11 @@ use rand;
 
 use crate::aabb::{self, AABB};
 use crate::color::Color;
+use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
 use crate::material::Material;
-use crate::util::ConvArr;
 use crate::vertex::Vertex;
-use crate::Float;
 
 #[derive(Default)]
 pub struct TriangleBuilder {
@@ -36,7 +35,7 @@ impl TriangleBuilder {
                 self.vertices[0].clone(),
                 self.vertices[1].clone(),
                 self.vertices[2].clone(),
-                Vector3::from_arr(ng),
+                Vector3::from_array(ng),
                 material,
             ))
         }

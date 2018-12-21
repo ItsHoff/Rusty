@@ -4,7 +4,7 @@
 use cgmath::prelude::*;
 use cgmath::Vector3;
 
-use crate::Float;
+use crate::float::*;
 
 /// Check if the vectors are in the same hemisphere
 pub fn same_hemisphere(w1: Vector3<Float>, w2: Vector3<Float>) -> bool {

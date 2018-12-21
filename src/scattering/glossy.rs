@@ -2,9 +2,9 @@ use cgmath::Point2;
 
 use crate::bsdf::BSDF;
 use crate::color::Color;
+use crate::float::*;
 use crate::obj_load;
 use crate::texture::Texture;
-use crate::Float;
 
 use super::ScatteringT;
 
@@ -24,7 +24,7 @@ impl GlossyReflection {
                 Texture::from_color(color)
             }
         };
-        let shininess = Float::from(obj_mat.shininess.unwrap());
+        let shininess = obj_mat.shininess.unwrap().to_float();
         Self { texture, shininess }
     }
 }

@@ -5,7 +5,8 @@ use cgmath::{Point2, Vector3};
 
 use image::{GrayImage, Rgb, RgbImage};
 
-use crate::Float;
+use crate::color;
+use crate::float::*;
 
 use super::GetColor;
 
@@ -63,13 +64,9 @@ fn is_grayscale(image: &RgbImage) -> bool {
     c1.is_gray() && c2.is_gray() && c3.is_gray()
 }
 
-fn float_to_u8(f: Float) -> u8 {
-    (f * Float::from(std::u8::MAX)) as u8
-}
-
 fn normal_to_pixel(n: Vector3<Float>) -> Rgb<u8> {
-    let p = (0.5 * n).add_element_wise(0.5);
-    Rgb([float_to_u8(p.x), float_to_u8(p.y), float_to_u8(p.z)])
+    let vec = (0.5 * n).add_element_wise(0.5);
+    color::vector_to_pixel(vec)
 }
 
 #[rustfmt::skip]
