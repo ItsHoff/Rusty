@@ -35,7 +35,7 @@ pub enum Scattering {
 }
 
 fn diffuse_texture(obj_mat: &obj_load::Material) -> Texture {
-     match &obj_mat.tex_diffuse {
+    match &obj_mat.tex_diffuse {
         Some(path) => Texture::from_image_path(path),
         None => {
             let color = Color::from(obj_mat.c_diffuse.unwrap());
@@ -45,7 +45,7 @@ fn diffuse_texture(obj_mat: &obj_load::Material) -> Texture {
 }
 
 fn specular_texture(obj_mat: &obj_load::Material) -> Texture {
-     match &obj_mat.tex_specular {
+    match &obj_mat.tex_specular {
         Some(path) => Texture::from_image_path(path),
         None => {
             let color = Color::from(obj_mat.c_specular.unwrap());
