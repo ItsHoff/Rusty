@@ -1,9 +1,7 @@
 use cgmath::Point2;
 
 use crate::bsdf::BSDF;
-use crate::color::Color;
 use crate::float::*;
-use crate::obj_load;
 use crate::texture::Texture;
 
 use super::ScatteringT;
@@ -14,14 +12,7 @@ pub struct DiffuseReflection {
 }
 
 impl DiffuseReflection {
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let texture = match &obj_mat.tex_diffuse {
-            Some(path) => Texture::from_image_path(path),
-            None => {
-                let color = Color::from(obj_mat.c_diffuse.unwrap());
-                Texture::from_color(color)
-            }
-        };
+    pub fn new(texture: Texture) -> Self {
         Self { texture }
     }
 }

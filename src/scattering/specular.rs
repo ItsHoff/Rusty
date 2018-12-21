@@ -1,9 +1,7 @@
 use cgmath::Point2;
 
 use crate::bsdf::BSDF;
-use crate::color::Color;
 use crate::float::*;
-use crate::obj_load;
 use crate::texture::Texture;
 
 use super::ScatteringT;
@@ -14,15 +12,7 @@ pub struct SpecularReflection {
 }
 
 impl SpecularReflection {
-    // TODO: use specular color to figure out fresnel coeffs or use Schlick
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let texture = match &obj_mat.tex_specular {
-            Some(path) => Texture::from_image_path(path),
-            None => {
-                let color = Color::from(obj_mat.c_specular.unwrap());
-                Texture::from_color(color)
-            }
-        };
+    pub fn new(texture: Texture) -> Self {
         Self { texture }
     }
 }
@@ -44,21 +34,7 @@ pub struct SpecularTransmission {
 }
 
 impl SpecularTransmission {
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
-        let filter = Color::from(
-            obj_mat
-                .c_translucency
-                .expect("No translucent color for translucent material"),
-        );
-        // TODO: not sure if which is the correct interpretation
-        // or if it is even scene dependant
-        // let color = Color::white() - filter;
-        let color = filter;
-        let texture = Texture::from_color(color);
-        let eta = obj_mat
-            .refraction_i
-            .expect("No index of refraction for translucent material")
-            .to_float();
+    pub fn new(texture: Texture, eta: Float) -> Self {
         Self { texture, eta }
     }
 }
@@ -81,10 +57,10 @@ pub struct FresnelSpecular {
 }
 
 impl FresnelSpecular {
-    pub fn new(obj_mat: &obj_load::Material) -> Self {
+    pub fn new(specular: Texture, transmissive: Texture, eta: Float) -> Self {
         Self {
-            reflection: SpecularReflection::new(obj_mat),
-            transmission: SpecularTransmission::new(obj_mat),
+            reflection: SpecularReflection::new(specular),
+            transmission: SpecularTransmission::new(transmissive, eta),
         }
     }
 }
