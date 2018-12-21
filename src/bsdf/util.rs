@@ -30,7 +30,7 @@ pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
     } else {
         (-Vector3::unit_z(), eta_mat)
     };
-    let cos_ti = cos_t(w);
+    let cos_ti = cos_t(w).abs();
     let sin2_ti = (1.0 - cos_ti.powi(2)).max(0.0);
     let sin2_tt = eta.powi(2) * sin2_ti;
     // Total internal reflection
