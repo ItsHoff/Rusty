@@ -145,13 +145,16 @@ impl Interaction<'_> {
     }
 
     pub fn bsdf(&self, in_ray: &Ray, out_ray: &Ray) -> Color {
-        // if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
-        //     // TODO: evaluate transmission
-        //     return Color::black();
-        // }
-        let wo_local = -self.to_local * in_ray.dir;
-        let wi_local = self.to_local * out_ray.dir;
-        self.bsdf.eval(wo_local, wi_local)
+        let in_dir = -in_ray.dir;
+        let out_dir = out_ray.dir;
+        let wo_local = self.to_local * in_dir;
+        let wi_local = self.to_local * out_dir;
+        // Check if the interaction is geometrically transmitted or reflected
+        if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
+            self.bsdf.btdf(wo_local, wi_local)
+        } else {
+            self.bsdf.brdf(wo_local, wi_local)
+        }
     }
 
     pub fn sample_bsdf(&self, in_ray: &Ray) -> Option<(Color, Ray, Float)> {

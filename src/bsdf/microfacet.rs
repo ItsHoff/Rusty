@@ -34,12 +34,16 @@ impl BSDFT for MicrofacetBRDF {
         false
     }
 
-    fn eval(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+    fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
         let g = self.g(wo, wi);
         let wh = (wo + wi).normalize();
         let d = self.microfacets.d_wh(wh);
         let denom = 4.0 * wo.z * wi.z;
         self.color * d * g / denom
+    }
+
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+        Color::black()
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
@@ -49,7 +53,7 @@ impl BSDFT for MicrofacetBRDF {
             return None;
         }
         let pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
-        let val = self.eval(wo, wi);
+        let val = self.brdf(wo, wi);
         Some((val, wi, pdf))
     }
 }

@@ -22,8 +22,12 @@ impl BSDFT for LambertianBRDF {
         false
     }
 
-    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn brdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         self.color / consts::PI
+    }
+
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+        Color::black()
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
@@ -37,7 +41,7 @@ impl BSDFT for LambertianBRDF {
             z *= -1.0;
         }
         let wi = Vector3::new(x, y, z);
-        let val = self.eval(wo, wi);
+        let val = self.brdf(wo, wi);
         Some((val, wi, pdf))
     }
 }

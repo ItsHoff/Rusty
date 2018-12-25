@@ -20,7 +20,11 @@ use self::specular::*;
 /// where (0, 0, 1) is the normal
 pub trait BSDFT {
     fn is_specular(&self) -> bool;
-    fn eval(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
+    /// Evaluate reflected irradiance
+    fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
+    /// Evaluate transmitted irradiance
+    fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
+    /// Sample the distribution
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)>;
 }
 

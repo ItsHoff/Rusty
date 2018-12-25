@@ -22,7 +22,11 @@ impl BSDFT for SpecularBRDF {
         true
     }
 
-    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn brdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+        Color::black()
+    }
+
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
     }
 
@@ -49,7 +53,11 @@ impl BSDFT for SpecularBTDF {
         true
     }
 
-    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn brdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+        Color::black()
+    }
+
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
     }
 
@@ -78,7 +86,11 @@ impl BSDFT for FresnelBSDF {
         true
     }
 
-    fn eval(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn brdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+        Color::black()
+    }
+
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
     }
 
