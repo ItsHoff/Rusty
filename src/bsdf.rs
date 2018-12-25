@@ -17,7 +17,7 @@ use self::specular::*;
 /// Trait for handling local light transport.
 /// Directions should both point away from the intersection.
 /// Directions should be given in a surface local coordinate system,
-/// where (0, 0, 1) is the normal
+/// where (0, 0, 1) is the normal pointing outwards
 pub trait BSDFT {
     fn is_specular(&self) -> bool;
     /// Evaluate reflected irradiance

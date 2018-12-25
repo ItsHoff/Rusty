@@ -147,10 +147,14 @@ impl Interaction<'_> {
     pub fn bsdf(&self, in_ray: &Ray, out_ray: &Ray) -> Color {
         let in_dir = -in_ray.dir;
         let out_dir = out_ray.dir;
-        let wo_local = self.to_local * in_dir;
-        let wi_local = self.to_local * out_dir;
+        self.eval_bsdf(in_dir, out_dir)
+    }
+
+    fn eval_bsdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+        let wo_local = self.to_local * wo;
+        let wi_local = self.to_local * wi;
         // Check if the interaction is geometrically transmitted or reflected
-        if self.ng.dot(in_dir) * self.ng.dot(out_dir) < 0.0 {
+        if self.ng.dot(wo) * self.ng.dot(wi) < 0.0 {
             self.bsdf.btdf(wo_local, wi_local)
         } else {
             self.bsdf.brdf(wo_local, wi_local)
@@ -158,10 +162,14 @@ impl Interaction<'_> {
     }
 
     pub fn sample_bsdf(&self, in_ray: &Ray) -> Option<(Color, Ray, Float)> {
-        let wo = -self.to_local * in_ray.dir;
-        let (bsdf, wi, pdf) = self.bsdf.sample(wo)?;
-        let out_dir = self.to_local.transpose() * wi;
-        // TODO: avoid light leaks caused by shading normals
-        Some((bsdf, self.ray(out_dir), pdf))
+        let wo = -in_ray.dir;
+        let wo_local = self.to_local * wo;
+        let (mut bsdf, wi_local, pdf) = self.bsdf.sample(wo_local)?;
+        let wi = self.to_local.transpose() * wi_local;
+        // Avoid light leaks caused by shading normals
+        if !self.bsdf.is_specular() {
+            bsdf = self.eval_bsdf(wo, wi);
+        }
+        Some((bsdf, self.ray(wi), pdf))
     }
 }
