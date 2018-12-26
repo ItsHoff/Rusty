@@ -4,6 +4,7 @@ use crate::color::Color;
 use crate::float::*;
 
 use super::util;
+use super::fresnel::FresnelBSDF;
 use super::BSDFT;
 
 #[derive(Debug)]
@@ -67,42 +68,12 @@ impl BSDFT for SpecularBTDF {
     }
 }
 
-#[derive(Debug)]
-pub struct FresnelBSDF {
-    brdf: SpecularBRDF,
-    btdf: SpecularBTDF,
-}
+pub type SpecularBSDF = FresnelBSDF<SpecularBRDF, SpecularBTDF>;
 
-impl FresnelBSDF {
+impl SpecularBSDF {
     pub fn new(reflect: Color, transmit: Color, eta: Float) -> Self {
         let brdf = SpecularBRDF::new(reflect);
         let btdf = SpecularBTDF::new(transmit, eta);
-        Self { brdf, btdf }
-    }
-}
-
-impl BSDFT for FresnelBSDF {
-    fn is_specular(&self) -> bool {
-        true
-    }
-
-    fn brdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
-        Color::black()
-    }
-
-    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
-        Color::black()
-    }
-
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
-        let fr = util::fresnel_dielectric(wo, self.btdf.eta);
-        if rand::random::<Float>() < fr {
-            let (color, wi, pdf) = self.brdf.sample(wo)?;
-            Some((fr * color, wi, fr * pdf))
-        } else {
-            let (color, wi, pdf) = self.btdf.sample(wo)?;
-            let ft = 1.0 - fr;
-            Some((ft * color, wi, ft * pdf))
-        }
+        Self { brdf, btdf, eta }
     }
 }

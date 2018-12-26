@@ -5,6 +5,7 @@ use cgmath::Vector3;
 use crate::color::Color;
 use crate::float::*;
 
+mod fresnel;
 mod lambertian;
 mod microfacet;
 mod specular;
@@ -31,10 +32,9 @@ pub trait BSDFT {
 #[derive(Debug)]
 pub enum BSDF {
     LR(LambertianBRDF),
-    SR(SpecularBRDF),
-    ST(SpecularBTDF),
-    F(FresnelBSDF),
     MR(MicrofacetBRDF),
+    SR(SpecularBRDF),
+    SS(SpecularBSDF),
 }
 
 impl BSDF {
@@ -42,20 +42,16 @@ impl BSDF {
         BSDF::LR(LambertianBRDF::new(color))
     }
 
+    pub fn microfacet_brdf(color: Color, shininess: Float) -> Self {
+        BSDF::MR(MicrofacetBRDF::new(color, shininess))
+    }
+
     pub fn specular_brdf(color: Color) -> Self {
         BSDF::SR(SpecularBRDF::new(color))
     }
 
-    pub fn specular_btdf(color: Color, eta: Float) -> Self {
-        BSDF::ST(SpecularBTDF::new(color, eta))
-    }
-
-    pub fn fresnel_specular(reflect: Color, transmit: Color, eta: Float) -> Self {
-        BSDF::F(FresnelBSDF::new(reflect, transmit, eta))
-    }
-
-    pub fn microfacet_brdf(color: Color, shininess: Float) -> Self {
-        BSDF::MR(MicrofacetBRDF::new(color, shininess))
+    pub fn specular_bsdf(reflect: Color, transmit: Color, eta: Float) -> Self {
+        BSDF::SS(SpecularBSDF::new(reflect, transmit, eta))
     }
 }
 
@@ -66,10 +62,9 @@ impl Deref for BSDF {
         use self::BSDF::*;
         match self {
             LR(inner) => inner,
-            SR(inner) => inner,
-            ST(inner) => inner,
-            F(inner) => inner,
             MR(inner) => inner,
+            SR(inner) => inner,
+            SS(inner) => inner,
         }
     }
 }

@@ -41,27 +41,6 @@ pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
     Some(-w * eta + (eta * cos_ti - cos_tt) * n)
 }
 
-/// Fresnel reflection for w
-pub fn fresnel_dielectric(w: Vector3<Float>, eta_mat: Float) -> Float {
-    // Determine if w is entering or exiting the material
-    let (eta_i, eta_t) = if w.z > 0.0 {
-        (1.0, eta_mat)
-    } else {
-        (eta_mat, 1.0)
-    };
-    let cos_ti = cos_t(w).abs();
-    let sin2_ti = (1.0 - cos_ti.powi(2)).max(0.0);
-    let sin2_tt = (eta_i / eta_t).powi(2) * sin2_ti;
-    // Total internal reflection
-    if sin2_tt >= 1.0 {
-        return 1.0;
-    }
-    let cos_tt = (1.0 - sin2_tt).sqrt();
-    let paral = (eta_t * cos_ti - eta_i * cos_tt) / (eta_t * cos_ti + eta_i * cos_tt);
-    let perp = (eta_i * cos_ti - eta_t * cos_tt) / (eta_i * cos_ti + eta_t * cos_tt);
-    (paral.powi(2) + perp.powi(2)) / 2.0
-}
-
 // Trigonometric functions
 
 pub fn cos_t(vec: Vector3<Float>) -> Float {

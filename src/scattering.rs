@@ -30,7 +30,6 @@ pub enum Scattering {
     DR(DiffuseReflection),
     SR(SpecularReflection),
     ST(SpecularTransmission),
-    F(FresnelSpecular),
     GR(GlossyReflection),
 }
 
@@ -87,7 +86,7 @@ impl Scattering {
                     .refraction_i
                     .expect("No index of refraction for translucent material")
                     .to_float();
-                F(FresnelSpecular::new(specular, transmissive, eta))
+                ST(SpecularTransmission::new(specular, transmissive, eta))
             }
             i => {
                 if i > 10 {
@@ -110,7 +109,6 @@ impl Deref for Scattering {
             DR(inner) => inner,
             SR(inner) => inner,
             ST(inner) => inner,
-            F(inner) => inner,
             GR(inner) => inner,
         }
     }
