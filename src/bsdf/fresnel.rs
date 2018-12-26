@@ -7,7 +7,7 @@ use super::util;
 use super::BSDFT;
 
 /// Fresnel reflection for w
-fn fresnel_dielectric(w: Vector3<Float>, eta_mat: Float) -> Float {
+fn dielectric(w: Vector3<Float>, eta_mat: Float) -> Float {
     // Determine if w is entering or exiting the material
     let (eta_i, eta_t) = if w.z > 0.0 {
         (1.0, eta_mat)
@@ -27,6 +27,11 @@ fn fresnel_dielectric(w: Vector3<Float>, eta_mat: Float) -> Float {
     (paral.powi(2) + perp.powi(2)) / 2.0
 }
 
+pub fn schlick(w: Vector3<Float>, specular: Color) -> Color {
+    let cos_t = util::cos_t(w).abs();
+    specular + (1.0 - cos_t).powi(5) * (Color::white() - specular)
+}
+
 #[derive(Debug)]
 pub struct FresnelBSDF<R: BSDFT, T: BSDFT> {
     pub brdf: R,
@@ -40,18 +45,18 @@ impl<R: BSDFT, T: BSDFT> BSDFT for FresnelBSDF<R, T> {
     }
 
     fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
-        let fr = fresnel_dielectric(wo, self.eta);
+        let fr = dielectric(wo, self.eta);
         fr * self.brdf.brdf(wo, wi)
     }
 
     fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
-        let fr = fresnel_dielectric(wo, self.eta);
+        let fr = dielectric(wo, self.eta);
         let ft = 1.0 - fr;
         ft * self.btdf.btdf(wo, wi)
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
-        let fr = fresnel_dielectric(wo, self.eta);
+        let fr = dielectric(wo, self.eta);
         if rand::random::<Float>() < fr {
             let (color, wi, pdf) = self.brdf.sample(wo)?;
             Some((fr * color, wi, fr * pdf))

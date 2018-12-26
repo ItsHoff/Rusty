@@ -4,17 +4,22 @@ use crate::color::Color;
 use crate::float::*;
 
 use super::util;
-use super::fresnel::FresnelBSDF;
+use super::fresnel::{self, FresnelBSDF};
 use super::BSDFT;
 
 #[derive(Debug)]
 pub struct SpecularBRDF {
     color: Color,
+    use_schlick: bool,
 }
 
 impl SpecularBRDF {
-    pub fn new(color: Color) -> Self {
-        Self { color }
+    pub fn with_schlick(color: Color) -> Self {
+        Self { color, use_schlick: true }
+    }
+
+    pub fn without_schlick(color: Color) -> Self {
+        Self { color, use_schlick: false }
     }
 }
 
@@ -33,7 +38,12 @@ impl BSDFT for SpecularBRDF {
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::reflect_n(wo);
-        Some((self.color, wi, 1.0))
+        let color = if self.use_schlick {
+            fresnel::schlick(wo, self.color)
+        } else {
+            self.color
+        };
+        Some((color, wi, 1.0))
     }
 }
 
@@ -72,7 +82,7 @@ pub type SpecularBSDF = FresnelBSDF<SpecularBRDF, SpecularBTDF>;
 
 impl SpecularBSDF {
     pub fn new(reflect: Color, transmit: Color, eta: Float) -> Self {
-        let brdf = SpecularBRDF::new(reflect);
+        let brdf = SpecularBRDF::without_schlick(reflect);
         let btdf = SpecularBTDF::new(transmit, eta);
         Self { brdf, btdf, eta }
     }

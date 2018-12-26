@@ -43,11 +43,11 @@ impl BSDF {
     }
 
     pub fn microfacet_brdf(color: Color, shininess: Float) -> Self {
-        BSDF::MR(MicrofacetBRDF::new(color, shininess))
+        BSDF::MR(MicrofacetBRDF::with_schlick(color, shininess))
     }
 
     pub fn specular_brdf(color: Color) -> Self {
-        BSDF::SR(SpecularBRDF::new(color))
+        BSDF::SR(SpecularBRDF::with_schlick(color))
     }
 
     pub fn specular_bsdf(reflect: Color, transmit: Color, eta: Float) -> Self {

@@ -5,6 +5,7 @@ use crate::color::Color;
 use crate::consts;
 use crate::float::*;
 
+use super::fresnel;
 use super::util;
 use super::BSDFT;
 
@@ -12,15 +13,26 @@ use super::BSDFT;
 pub struct MicrofacetBRDF {
     color: Color,
     microfacets: GGX,
+    use_schlick: bool,
 }
 
 impl MicrofacetBRDF {
-    pub fn new(color: Color, shininess: Float) -> Self {
+    pub fn with_schlick(color: Color, shininess: Float) -> Self {
         Self {
             color,
             microfacets: GGX::from_shininess(shininess),
+            use_schlick: true,
         }
     }
+
+    // TODO: Implement microfacet bsdf
+    // pub fn without_schlick(color: Color, shininess: Float) -> Self {
+    //     Self {
+    //         color,
+    //         microfacets: GGX::from_shininess(shininess),
+    //         use_schlick: false,
+    //     }
+    // }
 
     fn g(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
         let l1 = self.microfacets.lambda(wo);
@@ -39,7 +51,12 @@ impl BSDFT for MicrofacetBRDF {
         let wh = (wo + wi).normalize();
         let d = self.microfacets.d_wh(wh);
         let denom = 4.0 * wo.z * wi.z;
-        self.color * d * g / denom
+        let color = if self.use_schlick {
+            fresnel::schlick(wo, self.color)
+        } else {
+            self.color
+        };
+        color * d * g / denom
     }
 
     fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
