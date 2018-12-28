@@ -170,7 +170,9 @@ fn online_render() {
                 _ => (),
             }
         });
-        camera.process_input(&input);
+        if pt_renderer.is_none() {
+            camera.process_input(&input);
+        }
         input.reset_deltas();
         if quit {
             return;
