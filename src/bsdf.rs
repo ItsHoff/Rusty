@@ -33,6 +33,7 @@ pub trait BSDFT {
 pub enum BSDF {
     LR(LambertianBRDF),
     MR(MicrofacetBRDF),
+    MS(MicrofacetBSDF),
     SR(SpecularBRDF),
     SS(SpecularBSDF),
 }
@@ -44,6 +45,10 @@ impl BSDF {
 
     pub fn microfacet_brdf(color: Color, shininess: Float) -> Self {
         BSDF::MR(MicrofacetBRDF::with_schlick(color, shininess))
+    }
+
+    pub fn microfacet_bsdf(reflect: Color, transmit: Color, shininess: Float, eta: Float) -> Self {
+        BSDF::MS(MicrofacetBSDF::new(reflect, transmit, shininess, eta))
     }
 
     pub fn specular_brdf(color: Color) -> Self {
@@ -63,6 +68,7 @@ impl Deref for BSDF {
         match self {
             LR(inner) => inner,
             MR(inner) => inner,
+            MS(inner) => inner,
             SR(inner) => inner,
             SS(inner) => inner,
         }

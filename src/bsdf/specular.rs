@@ -3,8 +3,8 @@ use cgmath::Vector3;
 use crate::color::Color;
 use crate::float::*;
 
-use super::util;
 use super::fresnel::{self, FresnelBSDF};
+use super::util;
 use super::BSDFT;
 
 #[derive(Debug)]
@@ -15,11 +15,17 @@ pub struct SpecularBRDF {
 
 impl SpecularBRDF {
     pub fn with_schlick(color: Color) -> Self {
-        Self { color, use_schlick: true }
+        Self {
+            color,
+            use_schlick: true,
+        }
     }
 
     pub fn without_schlick(color: Color) -> Self {
-        Self { color, use_schlick: false }
+        Self {
+            color,
+            use_schlick: false,
+        }
     }
 }
 

@@ -27,3 +27,38 @@ impl ScatteringT for GlossyReflection {
         &self.texture
     }
 }
+
+#[derive(Debug)]
+pub struct GlossyTransmission {
+    reflective: Texture,
+    transmissive: Texture,
+    shininess: Float,
+    eta: Float,
+}
+
+impl GlossyTransmission {
+    pub fn new(reflective: Texture, transmissive: Texture, shininess: Float, eta: Float) -> Self {
+        if (eta - 1.0).abs() < crate::consts::EPSILON {
+            // TODO: can it be made to work properly?
+            println!("IOR ({:?}) is almost one. This will probably not work properly.", eta);
+        }
+        Self {
+            reflective,
+            transmissive,
+            shininess,
+            eta,
+        }
+    }
+}
+
+impl ScatteringT for GlossyTransmission {
+    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
+        let reflect = self.reflective.color(tex_coords);
+        let transmit = self.transmissive.color(tex_coords);
+        BSDF::microfacet_bsdf(reflect, transmit, self.shininess, self.eta)
+    }
+
+    fn preview_texture(&self) -> &Texture {
+        &self.transmissive
+    }
+}

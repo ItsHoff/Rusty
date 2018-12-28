@@ -28,9 +28,10 @@ pub trait ScatteringT {
 #[allow(dead_code)]
 pub enum Scattering {
     DR(DiffuseReflection),
+    GR(GlossyReflection),
+    GT(GlossyTransmission),
     SR(SpecularReflection),
     ST(SpecularTransmission),
-    GR(GlossyReflection),
 }
 
 fn diffuse_texture(obj_mat: &obj_load::Material) -> Texture {
@@ -82,11 +83,18 @@ impl Scattering {
             4 | 6 | 7 => {
                 let specular = specular_texture(obj_mat);
                 let transmissive = transmissive_texture(obj_mat);
+                let shininess = obj_mat.shininess.unwrap().to_float();
                 let eta = obj_mat
                     .refraction_i
                     .expect("No index of refraction for translucent material")
                     .to_float();
-                ST(SpecularTransmission::new(specular, transmissive, eta))
+                GT(GlossyTransmission::new(
+                    specular,
+                    transmissive,
+                    shininess,
+                    eta,
+                ))
+                // ST(SpecularTransmission::new(specular, transmissive, eta))
             }
             i => {
                 if i > 10 {
@@ -107,9 +115,10 @@ impl Deref for Scattering {
         use self::Scattering::*;
         match self {
             DR(inner) => inner,
+            GR(inner) => inner,
+            GT(inner) => inner,
             SR(inner) => inner,
             ST(inner) => inner,
-            GR(inner) => inner,
         }
     }
 }

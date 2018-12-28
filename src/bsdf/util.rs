@@ -21,16 +21,16 @@ pub fn reflect_n(w: Vector3<Float>) -> Vector3<Float> {
     Vector3::new(-w.x, -w.y, w.z)
 }
 
-/// Refract w around n, where eta_mat defines the index of refraction
-/// inside the material (outside is assumed to be air).
-pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
+/// Refract w around wh, which is assumed to be in the same hemisphere as w.
+/// eta_mat defines the index of refraction inside the material (outside is assumed to be air).
+pub fn refract(w: Vector3<Float>, wh: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
     // Determine if w is entering or exiting the material
-    let (n, eta) = if w.z > 0.0 {
-        (Vector3::unit_z(), 1.0 / eta_mat)
+    let eta = if w.z > 0.0 {
+        1.0 / eta_mat
     } else {
-        (-Vector3::unit_z(), eta_mat)
+        eta_mat
     };
-    let cos_ti = cos_t(w).abs();
+    let cos_ti = w.dot(wh).abs();
     let sin2_ti = (1.0 - cos_ti.powi(2)).max(0.0);
     let sin2_tt = eta.powi(2) * sin2_ti;
     // Total internal reflection
@@ -38,7 +38,14 @@ pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
         return None;
     }
     let cos_tt = (1.0 - sin2_tt).sqrt();
-    Some(-w * eta + (eta * cos_ti - cos_tt) * n)
+    Some(-w * eta + (eta * cos_ti - cos_tt) * wh)
+}
+
+/// Refract w around the shading normal (0, 0, 1)
+pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
+    // Make sure normal is in the same hemisphere as w
+    let n = w.z.signum() * Vector3::unit_z();
+    refract(w, n, eta_mat)
 }
 
 // Trigonometric functions
