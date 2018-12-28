@@ -79,7 +79,7 @@ fn benchmark() {
         stats::new_scene(scene_name);
         let _t = stats::time("Total");
         println!("{}...", scene_name);
-        let (scene, camera) = load::load_cpu_scene(scene_name, &config);
+        let (scene, camera) = load::cpu_scene_from_name(scene_name, &config);
         let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
 
         stats::time("Post-process");
@@ -106,7 +106,7 @@ fn online_render() {
         glium::Display::new(window, context, &events_loop).expect("Failed to create display");
 
     let (mut scene, mut gpu_scene, mut camera) =
-        load::load_gpu_scene(VirtualKeyCode::Key1, &display, &config).unwrap();
+        load::gpu_scene_from_key(&display, VirtualKeyCode::Key1, &config).unwrap();
     let gl_renderer = GLRenderer::new(&display);
     let mut pt_renderer: Option<PTRenderer> = None;
 
@@ -153,7 +153,7 @@ fn online_render() {
                         ..
                     } => {
                         if pt_renderer.is_none() {
-                            if let Some(res) = load::load_gpu_scene(keycode, &display, &config) {
+                            if let Some(res) = load::gpu_scene_from_key(&display, keycode, &config) {
                                 scene = res.0;
                                 gpu_scene = res.1;
                                 camera = res.2;
@@ -167,6 +167,19 @@ fn online_render() {
                     event: WindowEvent::CloseRequested,
                     ..
                 } => quit = true,
+                Event::WindowEvent {
+                    event: WindowEvent::DroppedFile(path),
+                    ..
+                } => {
+                    if pt_renderer.is_none() {
+                        if let Some(res) = load::gpu_scene_from_path(&display, &path, &config) {
+                            scene = res.0;
+                            gpu_scene = res.1;
+                            camera = res.2;
+                            // TODO: would be nice if this grabbed the focus
+                        }
+                    }
+                }
                 _ => (),
             }
         });

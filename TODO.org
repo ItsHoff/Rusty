@@ -23,8 +23,6 @@
 *** Spectral rendering
 * Improvements
 ** Utils
-*** Runtime config for render parameters
-*** Arbitrary scene loading
 *** UI
 ** Performance
 *** Parallel building of BVH

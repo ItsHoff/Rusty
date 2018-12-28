@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::ffi::OsStr;
+use std::path::{PathBuf, Path};
 use std::sync::Arc;
 
 use cgmath::prelude::*;
@@ -68,6 +69,7 @@ lazy_static::lazy_static! {
 }
 
 #[allow(dead_code)]
+#[derive(Clone, Copy)]
 enum CameraPos {
     Center,
     Offset,
@@ -115,8 +117,8 @@ impl SceneLibrary {
     }
 }
 
-fn initialize_camera(scene: &Scene, info: &SceneInfo, config: &RenderConfig) -> Camera {
-    let mut camera = match info.camera_pos {
+fn initialize_camera(scene: &Scene, pos: CameraPos, config: &RenderConfig) -> Camera {
+    let mut camera = match pos {
         CameraPos::Center => Camera::new(scene.center(), Quaternion::one()),
         CameraPos::Offset => Camera::new(
             scene.center() + scene.size() * Vector3::new(0.0, 0.0, 1.0),
@@ -130,23 +132,47 @@ fn initialize_camera(scene: &Scene, info: &SceneInfo, config: &RenderConfig) -> 
     camera
 }
 
-pub fn load_cpu_scene(name: &str, config: &RenderConfig) -> (Arc<Scene>, Camera) {
-    let _t = stats::time("Load");
-    let info = SCENE_LIBRARY.get(name).unwrap();
-    let scene = SceneBuilder::new(config).build(&info.path);
-    let camera = initialize_camera(&scene, &info, config);
+fn cpu_scene(path: &Path, camera_pos: CameraPos, config: &RenderConfig) -> (Arc<Scene>, Camera) {
+    let scene = SceneBuilder::new(config).build(path);
+    let camera = initialize_camera(&scene, camera_pos, config);
     (scene, camera)
 }
 
-pub fn load_gpu_scene<F: Facade>(
-    key: VirtualKeyCode,
+fn gpu_scene<F: Facade>(facade: &F, path: &Path, camera_pos: CameraPos, config: &RenderConfig)
+                        -> (Arc<Scene>, GPUScene, Camera) {
+    let (scene, camera) = cpu_scene(path, camera_pos, config);
+    let gpu_scene = scene.upload_data(facade);
+    (scene, gpu_scene, camera)
+}
+
+pub fn cpu_scene_from_name(name: &str, config: &RenderConfig) -> (Arc<Scene>, Camera) {
+    let _t = stats::time("Load");
+    let info = SCENE_LIBRARY.get(name).unwrap();
+    cpu_scene(&info.path, info.camera_pos, config)
+}
+
+pub fn gpu_scene_from_path<F: Facade>(facade: &F, path: &Path, config: &RenderConfig)
+                            -> Option<(Arc<Scene>, GPUScene, Camera)> {
+    if let Some("obj") = path.extension().and_then(OsStr::to_str) {
+        stats::new_scene(path.to_str().unwrap());
+        let res = gpu_scene(facade, path, CameraPos::Offset, config);
+        println!("Loaded scene from {:?}", path);
+        Some(res)
+    } else {
+        println!("{:?} is not object file (.obj)", path);
+        None
+    }
+}
+
+pub fn gpu_scene_from_key<F: Facade>(
     facade: &F,
+    key: VirtualKeyCode,
     config: &RenderConfig,
 ) -> Option<(Arc<Scene>, GPUScene, Camera)> {
     let name = SCENE_LIBRARY.key_to_name(key)?;
     stats::new_scene(name);
-    let (scene, camera) = load_cpu_scene(name, config);
-    let gpu_scene = scene.upload_data(facade);
+    let info = SCENE_LIBRARY.get(name).unwrap();
+    let res = gpu_scene(facade, &info.path, info.camera_pos, config);
     println!("Loaded scene {}", name);
-    Some((scene, gpu_scene, camera))
+    Some(res)
 }
