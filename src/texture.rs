@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -17,7 +18,7 @@ mod normal_map;
 
 pub use self::normal_map::{load_normal_map, NormalMap};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Texture {
     Solid(Color),
     Image(RgbImage),
@@ -33,6 +34,14 @@ impl Texture {
 
     pub fn from_image_path(path: &Path) -> Self {
         Image(load_image(path).unwrap().to_rgb())
+    }
+
+    pub fn is_black(&self) -> bool {
+        match self {
+            Solid(color) => color.is_black(),
+            // Just assume that a texture is not completely black
+            Image(_) => false,
+        }
     }
 
     pub fn color(&self, tex_coords: Point2<Float>) -> Color {
@@ -57,6 +66,16 @@ impl Texture {
                 let tex_image = RawImage2d::from_raw_rgb(data.to_vec(), (1, 1));
                 SrgbTexture2d::new(facade, tex_image).unwrap()
             }
+        }
+    }
+}
+
+// Implement debug manually because images default implementation just prints the whole image
+impl fmt::Debug for Texture {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Image(_) => write!(f, "Image"),
+            Solid(color) => color.fmt(f),
         }
     }
 }

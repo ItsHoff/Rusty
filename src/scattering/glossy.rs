@@ -29,6 +29,35 @@ impl ScatteringT for GlossyReflection {
 }
 
 #[derive(Debug)]
+pub struct GlossyBlend {
+    diffuse: Texture,
+    specular: Texture,
+    shininess: Float,
+}
+
+impl GlossyBlend {
+    pub fn new(diffuse: Texture, specular: Texture, shininess: Float) -> Self {
+        Self {
+            diffuse,
+            specular,
+            shininess,
+        }
+    }
+}
+
+impl ScatteringT for GlossyBlend {
+    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
+        let diffuse = self.diffuse.color(tex_coords);
+        let specular = self.specular.color(tex_coords);
+        BSDF::fresnel_blend_brdf(diffuse, specular, self.shininess)
+    }
+
+    fn preview_texture(&self) -> &Texture {
+        &self.diffuse
+    }
+}
+
+#[derive(Debug)]
 pub struct GlossyTransmission {
     reflective: Texture,
     transmissive: Texture,
@@ -40,7 +69,10 @@ impl GlossyTransmission {
     pub fn new(reflective: Texture, transmissive: Texture, shininess: Float, eta: Float) -> Self {
         if (eta - 1.0).abs() < crate::consts::EPSILON {
             // TODO: can it be made to work properly?
-            println!("IOR ({:?}) is almost one. This will probably not work properly.", eta);
+            println!(
+                "IOR ({:?}) is almost one. This will probably not work properly.",
+                eta
+            );
         }
         Self {
             reflective,

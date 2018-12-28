@@ -31,6 +31,7 @@ pub trait BSDFT {
 
 #[derive(Debug)]
 pub enum BSDF {
+    FBR(FresnelBlendBRDF),
     LR(LambertianBRDF),
     MR(MicrofacetBRDF),
     MS(MicrofacetBSDF),
@@ -39,6 +40,10 @@ pub enum BSDF {
 }
 
 impl BSDF {
+    pub fn fresnel_blend_brdf(diffuse: Color, specular: Color, shininess: Float) -> Self {
+        BSDF::FBR(FresnelBlendBRDF::new(diffuse, specular, shininess))
+    }
+
     pub fn lambertian_brdf(color: Color) -> Self {
         BSDF::LR(LambertianBRDF::new(color))
     }
@@ -66,6 +71,7 @@ impl Deref for BSDF {
     fn deref(&self) -> &Self::Target {
         use self::BSDF::*;
         match self {
+            FBR(inner) => inner,
             LR(inner) => inner,
             MR(inner) => inner,
             MS(inner) => inner,

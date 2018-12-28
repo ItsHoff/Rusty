@@ -28,6 +28,7 @@ pub trait ScatteringT {
 #[allow(dead_code)]
 pub enum Scattering {
     DR(DiffuseReflection),
+    GB(GlossyBlend),
     GR(GlossyReflection),
     GT(GlossyTransmission),
     SR(SpecularReflection),
@@ -38,7 +39,7 @@ fn diffuse_texture(obj_mat: &obj_load::Material) -> Texture {
     match &obj_mat.tex_diffuse {
         Some(path) => Texture::from_image_path(path),
         None => {
-            let color = Color::from(obj_mat.c_diffuse.unwrap());
+            let color = Color::from(obj_mat.c_diffuse.unwrap_or([0.0, 0.0, 0.0]));
             Texture::from_color(color)
         }
     }
@@ -48,7 +49,7 @@ fn specular_texture(obj_mat: &obj_load::Material) -> Texture {
     match &obj_mat.tex_specular {
         Some(path) => Texture::from_image_path(path),
         None => {
-            let color = Color::from(obj_mat.c_specular.unwrap());
+            let color = Color::from(obj_mat.c_specular.unwrap_or([0.0, 0.0, 0.0]));
             Texture::from_color(color)
         }
     }
@@ -70,18 +71,24 @@ impl Scattering {
     pub fn from_obj(obj_mat: &obj_load::Material) -> Self {
         use self::Scattering::*;
 
+        let diffuse = diffuse_texture(obj_mat);
+        let specular = specular_texture(obj_mat);
         match obj_mat.illumination_model.unwrap_or(0) {
             2 => {
-                let texture = diffuse_texture(obj_mat);
                 let shininess = obj_mat.shininess.unwrap().to_float();
-                GR(GlossyReflection::new(texture, shininess))
+                if diffuse.is_black() {
+                    GR(GlossyReflection::new(specular, shininess))
+                } else if specular.is_black() {
+                    DR(DiffuseReflection::new(diffuse))
+                } else {
+                    GB(GlossyBlend::new(diffuse, specular, shininess))
+                }
             }
             5 => {
                 let texture = specular_texture(obj_mat);
                 SR(SpecularReflection::new(texture))
             }
             4 | 6 | 7 => {
-                let specular = specular_texture(obj_mat);
                 let transmissive = transmissive_texture(obj_mat);
                 let shininess = obj_mat.shininess.unwrap().to_float();
                 let eta = obj_mat
@@ -101,8 +108,7 @@ impl Scattering {
                     println!("Illumination model {} is not defined in the mtl spec!", i);
                     println!("Defaulting to diffuse BSDF.");
                 }
-                let texture = diffuse_texture(obj_mat);
-                DR(DiffuseReflection::new(texture))
+                DR(DiffuseReflection::new(diffuse))
             }
         }
     }
@@ -115,6 +121,7 @@ impl Deref for Scattering {
         use self::Scattering::*;
         match self {
             DR(inner) => inner,
+            GB(inner) => inner,
             GR(inner) => inner,
             GT(inner) => inner,
             SR(inner) => inner,

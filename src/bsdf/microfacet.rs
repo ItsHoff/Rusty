@@ -127,6 +127,70 @@ impl BSDFT for MicrofacetBRDF {
     }
 }
 
+/// Combines microfacet reflection with diffuse reflection using fresnel schlick.
+#[derive(Debug)]
+pub struct FresnelBlendBRDF {
+    diffuse: Color,
+    specular: Color,
+    microfacets: GGX,
+}
+
+impl FresnelBlendBRDF {
+    pub fn new(diffuse: Color, specular: Color, shininess: Float) -> Self {
+        Self {
+            diffuse,
+            specular,
+            microfacets: GGX::from_shininess(shininess),
+        }
+    }
+
+    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        let wh = (wo + wi).normalize();
+        let d_pdf = util::cos_t(wi).abs() / consts::PI;
+        let mf_pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
+        (d_pdf + mf_pdf) / 2.0
+    }
+}
+
+impl BSDFT for FresnelBlendBRDF {
+    fn is_specular(&self) -> bool {
+        false
+    }
+
+    fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+        let wh = (wo + wi).normalize();
+        let d = self.microfacets.d_wh(wh);
+        let odn = util::cos_t(wo).abs();
+        let idn = util::cos_t(wi).abs();
+        let denom = 4.0 * wh.dot(wi).abs() * odn.max(idn);
+        let f_specular = d * fresnel::schlick(wo, self.specular) / denom;
+        let p5 = |xdn: Float| 1.0 - (1.0 - xdn / 2.0).powi(5);
+        let factor = 28.0 * self.diffuse / (23.0 * consts::PI);
+        let f_diffuse = factor * (Color::white() - self.specular) * p5(idn) * p5(odn);
+        f_specular + f_diffuse
+    }
+
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+        Color::black()
+    }
+
+    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+        let wi = if rand::random::<Float>() < 0.5 {
+            let wh = self.microfacets.sample_wh(wo);
+            let wi = util::reflect(wo, wh);
+            if !util::same_hemisphere(wo, wi) {
+                return None;
+            }
+            wi
+        } else {
+            util::cosine_sample_hemisphere(wo)
+        };
+        let pdf = self.pdf(wo, wi);
+        let val = self.brdf(wo, wi);
+        Some((val, wi, pdf))
+    }
+}
+
 #[derive(Debug)]
 pub struct MicrofacetBTDF {
     color: Color,
