@@ -95,13 +95,18 @@ impl Scattering {
                     .refraction_i
                     .expect("No index of refraction for translucent material")
                     .to_float();
-                GT(GlossyTransmission::new(
-                    specular,
-                    transmissive,
-                    shininess,
-                    eta,
-                ))
-                // ST(SpecularTransmission::new(specular, transmissive, eta))
+                if (eta - 1.0) < crate::consts::EPSILON {
+                    // Glossy does not handle eta = 1 properly
+                    // and the distribution would be the same anyways
+                    ST(SpecularTransmission::new(specular, transmissive, eta))
+                } else {
+                    GT(GlossyTransmission::new(
+                        specular,
+                        transmissive,
+                        shininess,
+                        eta,
+                    ))
+                }
             }
             i => {
                 if i > 10 {

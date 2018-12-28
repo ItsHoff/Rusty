@@ -68,9 +68,8 @@ pub struct GlossyTransmission {
 impl GlossyTransmission {
     pub fn new(reflective: Texture, transmissive: Texture, shininess: Float, eta: Float) -> Self {
         if (eta - 1.0).abs() < crate::consts::EPSILON {
-            // TODO: can it be made to work properly?
             println!(
-                "IOR ({:?}) is almost one. This will probably not work properly.",
+                "IOR is almost one ({:?}). Specular bsdf should be used instead of glossy.",
                 eta
             );
         }
