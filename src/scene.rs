@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use cgmath::Point3;
+use cgmath::prelude::*;
+use cgmath::{Point3, Vector3};
 
 use glium::backend::Facade;
 use glium::VertexBuffer;
@@ -64,6 +65,20 @@ pub struct GPUScene {
     pub meshes: Vec<GPUMesh>,
     pub materials: Vec<GPUMaterial>,
     pub vertex_buffer: VertexBuffer<RawVertex>,
+}
+
+/// Calculate planar normal for a triangle
+fn calculate_normal(triangle: &obj_load::Triangle, obj: &obj_load::Object) -> [f32; 3] {
+    let pos_i1 = triangle.index_vertices[0].pos_i;
+    let pos_i2 = triangle.index_vertices[1].pos_i;
+    let pos_i3 = triangle.index_vertices[2].pos_i;
+    let pos_1 = Vector3::from_array(obj.positions[pos_i1]);
+    let pos_2 = Vector3::from_array(obj.positions[pos_i2]);
+    let pos_3 = Vector3::from_array(obj.positions[pos_i3]);
+    let u = pos_2 - pos_1;
+    let v = pos_3 - pos_1;
+    let normal = u.cross(v).normalize();
+    normal.into_array()
 }
 
 impl Scene {
@@ -213,14 +228,17 @@ impl Scene {
         }
     }
 
+    /// Get an IndexPtr to ith material
     fn material_ptr(&self, i: usize) -> IndexPtr<Material> {
         IndexPtr::new(&self.materials, i)
     }
 
+    /// Get an IndexPtr to ith tri
     fn tri_ptr(&self, i: usize) -> IndexPtr<Triangle> {
         IndexPtr::new(&self.triangles, i)
     }
 
+    /// Get an IndexPtr to ith vertex
     fn vertex_ptr(&self, i: usize) -> IndexPtr<Vertex> {
         IndexPtr::new(&self.vertices, i)
     }
@@ -293,31 +311,4 @@ impl Scene {
         }
         closest_hit
     }
-}
-
-/// Calculate planar normal for a triangle
-fn calculate_normal(triangle: &obj_load::Triangle, obj: &obj_load::Object) -> [f32; 3] {
-    let pos_i1 = triangle.index_vertices[0].pos_i;
-    let pos_i2 = triangle.index_vertices[1].pos_i;
-    let pos_i3 = triangle.index_vertices[2].pos_i;
-    let pos_1 = obj.positions[pos_i1];
-    let pos_2 = obj.positions[pos_i2];
-    let pos_3 = obj.positions[pos_i3];
-    let u = [
-        pos_2[0] - pos_1[0],
-        pos_2[1] - pos_1[1],
-        pos_2[2] - pos_1[2],
-    ];
-    let v = [
-        pos_3[0] - pos_1[0],
-        pos_3[1] - pos_1[1],
-        pos_3[2] - pos_1[2],
-    ];
-    let normal = [
-        u[1] * v[2] - u[2] * v[1],
-        u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0],
-    ];
-    let length = (normal[0].powi(2) + normal[1].powi(2) + normal[2].powi(2)).sqrt();
-    [normal[0] / length, normal[1] / length, normal[2] / length]
 }
