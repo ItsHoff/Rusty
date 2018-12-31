@@ -20,7 +20,7 @@ pub struct Camera {
     /// Position of the camera in world coordinates
     pub pos: Point3<Float>,
     /// Rotation of the camera
-    pub rot: Quaternion<Float>,
+    rot: Quaternion<Float>,
     /// Aspect ratio of the viewport
     ratio: Float,
     /// Vertical field-of-view of the camera
@@ -30,7 +30,7 @@ pub struct Camera {
     /// Far plane of the camera
     far: Float,
     /// Size of the scene
-    pub scale: Float,
+    scale: Float,
     /// Intensity of the camera flash
     intensity: Color,
 }
