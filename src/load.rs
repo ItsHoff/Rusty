@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use cgmath::prelude::*;
@@ -138,8 +138,12 @@ fn cpu_scene(path: &Path, camera_pos: CameraPos, config: &RenderConfig) -> (Arc<
     (scene, camera)
 }
 
-fn gpu_scene<F: Facade>(facade: &F, path: &Path, camera_pos: CameraPos, config: &RenderConfig)
-                        -> (Arc<Scene>, GPUScene, Camera) {
+fn gpu_scene<F: Facade>(
+    facade: &F,
+    path: &Path,
+    camera_pos: CameraPos,
+    config: &RenderConfig,
+) -> (Arc<Scene>, GPUScene, Camera) {
     let (scene, camera) = cpu_scene(path, camera_pos, config);
     let gpu_scene = scene.upload_data(facade);
     (scene, gpu_scene, camera)
@@ -151,8 +155,11 @@ pub fn cpu_scene_from_name(name: &str, config: &RenderConfig) -> (Arc<Scene>, Ca
     cpu_scene(&info.path, info.camera_pos, config)
 }
 
-pub fn gpu_scene_from_path<F: Facade>(facade: &F, path: &Path, config: &RenderConfig)
-                            -> Option<(Arc<Scene>, GPUScene, Camera)> {
+pub fn gpu_scene_from_path<F: Facade>(
+    facade: &F,
+    path: &Path,
+    config: &RenderConfig,
+) -> Option<(Arc<Scene>, GPUScene, Camera)> {
     if let Some("obj") = path.extension().and_then(OsStr::to_str) {
         stats::new_scene(path.to_str().unwrap());
         let res = gpu_scene(facade, path, CameraPos::Offset, config);

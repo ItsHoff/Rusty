@@ -153,7 +153,8 @@ fn online_render() {
                         ..
                     } => {
                         if pt_renderer.is_none() {
-                            if let Some(res) = load::gpu_scene_from_key(&display, keycode, &config) {
+                            if let Some(res) = load::gpu_scene_from_key(&display, keycode, &config)
+                            {
                                 scene = res.0;
                                 gpu_scene = res.1;
                                 camera = res.2;
