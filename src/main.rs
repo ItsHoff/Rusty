@@ -28,6 +28,7 @@ mod material;
 mod mesh;
 mod obj_load;
 mod pt_renderer;
+mod sample;
 mod scattering;
 mod scene;
 mod stats;

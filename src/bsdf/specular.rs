@@ -80,6 +80,7 @@ impl BSDFT for SpecularBTDF {
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::refract_n(wo, self.eta)?;
+        // TODO: account for non-symmetry
         Some((self.color / util::cos_t(wi).abs(), wi, 1.0))
     }
 }

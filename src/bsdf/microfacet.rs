@@ -4,6 +4,7 @@ use cgmath::Vector3;
 use crate::color::Color;
 use crate::consts;
 use crate::float::*;
+use crate::sample;
 
 use super::fresnel::{self, FresnelBSDF};
 use super::util;
@@ -146,7 +147,7 @@ impl FresnelBlendBRDF {
 
     fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
         let wh = (wo + wi).normalize();
-        let d_pdf = util::cos_t(wi).abs() / consts::PI;
+        let d_pdf = sample::cosine_hemisphere_pdf(wi);
         let mf_pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
         (d_pdf + mf_pdf) / 2.0
     }
@@ -183,7 +184,7 @@ impl BSDFT for FresnelBlendBRDF {
             }
             wi
         } else {
-            util::cosine_sample_hemisphere(wo)
+            sample::cosine_sample_hemisphere(wo.z)
         };
         let pdf = self.pdf(wo, wi);
         let val = self.brdf(wo, wi);

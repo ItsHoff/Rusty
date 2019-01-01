@@ -4,19 +4,7 @@
 use cgmath::prelude::*;
 use cgmath::Vector3;
 
-use crate::consts;
 use crate::float::*;
-
-#[allow(clippy::many_single_char_names)]
-pub fn cosine_sample_hemisphere(w: Vector3<Float>) -> Vector3<Float> {
-    let phi = 2.0 * consts::PI * rand::random::<Float>();
-    let r = rand::random::<Float>().sqrt();
-    let x = r * phi.cos();
-    let y = r * phi.sin();
-    // Make sure sampled vector is in the correct hemisphere
-    let z = w.z.signum() * (1.0 - r.powi(2)).sqrt();
-    Vector3::new(x, y, z)
-}
 
 /// Check if the vectors are in the same hemisphere
 pub fn same_hemisphere(w1: Vector3<Float>, w2: Vector3<Float>) -> bool {

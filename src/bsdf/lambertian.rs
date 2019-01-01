@@ -3,8 +3,8 @@ use cgmath::Vector3;
 use crate::color::Color;
 use crate::consts;
 use crate::float::*;
+use crate::sample;
 
-use super::util;
 use super::BSDFT;
 
 #[derive(Debug)]
@@ -32,9 +32,9 @@ impl BSDFT for LambertianBRDF {
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
-        let wi = util::cosine_sample_hemisphere(wo);
+        let wi = sample::cosine_sample_hemisphere(wo.z);
         let val = self.brdf(wo, wi);
-        let pdf = util::cos_t(wi).abs() / consts::PI;
+        let pdf = sample::cosine_hemisphere_pdf(wi);
         Some((val, wi, pdf))
     }
 }

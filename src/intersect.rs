@@ -8,6 +8,7 @@ use crate::color::Color;
 use crate::config::RenderConfig;
 use crate::consts;
 use crate::float::*;
+use crate::sample;
 use crate::triangle::Triangle;
 
 static RAY_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
@@ -41,7 +42,7 @@ impl Ray {
     }
 
     /// Infinite ray with a given direction and origin
-    fn from_dir(orig: Point3<Float>, dir: Vector3<Float>) -> Ray {
+    pub fn from_dir(orig: Point3<Float>, dir: Vector3<Float>) -> Ray {
         Ray::new(orig, dir, consts::INFINITY)
     }
 
@@ -88,25 +89,13 @@ impl<'a> Hit<'a> {
         }
         Interaction {
             tri: self.tri,
-            to_local: world_to_normal(ns),
+            to_local: sample::local_to_world(ns).transpose(),
             p,
             ns,
             ng: self.tri.ng,
             bsdf: self.tri.material.bsdf(t),
         }
     }
-}
-
-/// Compute the orthonormal transformation to an arbitrary
-/// coordinate frame where n defines is the z-axis
-fn world_to_normal(n: Vector3<Float>) -> Matrix3<Float> {
-    let nx = if n.x.abs() > n.y.abs() {
-        Vector3::new(n.z, 0.0, -n.x).normalize()
-    } else {
-        Vector3::new(0.0, -n.z, n.y).normalize()
-    };
-    let ny = n.cross(nx).normalize();
-    Matrix3::from_cols(nx, ny, n).transpose()
 }
 
 #[derive(Debug)]
