@@ -16,6 +16,7 @@ use crate::stats;
 mod coordinator;
 mod render_worker;
 mod traced_image;
+mod tracers;
 
 use self::coordinator::RenderCoordinator;
 use self::render_worker::RenderWorker;

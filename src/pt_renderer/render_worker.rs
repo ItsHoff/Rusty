@@ -11,12 +11,13 @@ use glium::Rect;
 use crate::bvh::BVHNode;
 use crate::camera::Camera;
 use crate::color::Color;
-use crate::config::{ColorMode, LightMode, RenderConfig};
+use crate::config::*;
 use crate::float::*;
-use crate::intersect::{Interaction, Ray};
-use crate::light::Light;
+use crate::intersect::Ray;
 use crate::pt_renderer::RenderCoordinator;
 use crate::scene::Scene;
+
+use super::tracers;
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -79,16 +80,22 @@ impl RenderWorker {
                                 let clip_p = Vector4::new(clip_x, clip_y, 1.0, 1.0);
                                 let world_p = Point3::from_homogeneous(clip_to_world * clip_p);
                                 let ray = Ray::from_point(self.camera.pos, world_p);
-                                c += match self.config.color_mode {
-                                    ColorMode::DebugNormals => {
-                                        self.trace_normals(ray, &mut node_stack, false)
-                                    }
-                                    ColorMode::ForwardNormals => {
-                                        self.trace_normals(ray, &mut node_stack, true)
-                                    }
-                                    ColorMode::Radiance => {
-                                        self.trace_radiance(ray, &mut node_stack)
-                                    }
+                                c += match &self.config.render_mode {
+                                    RenderMode::Debug(mode) => tracers::debug_trace(
+                                        ray,
+                                        mode,
+                                        &self.scene,
+                                        &self.config,
+                                        &mut node_stack,
+                                    ),
+                                    RenderMode::PathTracing => tracers::path_trace(
+                                        ray,
+                                        &self.scene,
+                                        &self.camera,
+                                        &self.config,
+                                        &mut node_stack,
+                                    ),
+                                    RenderMode::BDPT => unimplemented!(), // TODO
                                 }
                             }
                         }
@@ -105,78 +112,5 @@ impl RenderWorker {
                 return;
             }
         }
-    }
-
-    fn trace_normals<'a>(
-        &'a self,
-        mut ray: Ray,
-        node_stack: &mut Vec<(&'a BVHNode, Float)>,
-        forward_only: bool,
-    ) -> Color {
-        let mut c = Color::black();
-        if let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
-            let isect = hit.interaction(&self.config);
-            if !forward_only || isect.ns.dot(ray.dir) > 0.0 {
-                c = Color::from_normal(isect.ns);
-            }
-        }
-        c
-    }
-
-    fn trace_radiance<'a>(
-        &'a self,
-        mut ray: Ray,
-        node_stack: &mut Vec<(&'a BVHNode, Float)>,
-    ) -> Color {
-        let mut c = Color::black();
-        let mut beta = Color::white();
-        let mut bounce = 0;
-        let mut specular_bounce = false;
-        while let Some(hit) = self.scene.intersect(&mut ray, node_stack) {
-            let isect = hit.interaction(&self.config);
-            if bounce == 0 || specular_bounce {
-                c += beta * isect.le(&ray);
-            }
-            let (le, mut shadow_ray, light_pdf) = self.sample_light(&isect);
-            if self.scene.intersect(&mut shadow_ray, node_stack).is_none() {
-                let cos_t = isect.ns.dot(shadow_ray.dir).abs();
-                c += beta * le * isect.bsdf(&ray, &shadow_ray) * cos_t / light_pdf;
-            }
-            let mut pdf = 1.0;
-            let terminate = if bounce < self.config.bounces {
-                false
-            } else if self.config.russian_roulette {
-                // Survival probability
-                let prob = beta.luma().min(0.95);
-                pdf *= prob;
-                rand::random::<Float>() > prob
-            } else {
-                true
-            };
-            if !terminate {
-                if let Some((brdf, new_ray, brdf_pdf)) = isect.sample_bsdf(&ray) {
-                    ray = new_ray;
-                    pdf *= brdf_pdf;
-                    beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
-                    bounce += 1;
-                    specular_bounce = isect.is_specular();
-                } else {
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-        c
-    }
-
-    pub fn sample_light(&self, isect: &Interaction) -> (Color, Ray, Float) {
-        let (light, pdf) = match self.config.light_mode {
-            LightMode::Scene => self.scene.sample_light().unwrap_or((&self.camera, 1.0)),
-            LightMode::Camera => (&self.camera as &dyn Light, 1.0),
-            LightMode::All => unimplemented!(),
-        };
-        let (li, ray, lpdf) = light.sample_li(isect);
-        (li, ray, pdf * lpdf)
     }
 }
