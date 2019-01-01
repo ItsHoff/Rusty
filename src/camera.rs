@@ -7,12 +7,13 @@ use cgmath::{Matrix4, Point3, Quaternion, Rad, Vector3};
 
 use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
 
-use crate::color::Color;
 use crate::consts;
 use crate::float::*;
 use crate::input::InputState;
-use crate::intersect::{Interaction, Ray};
-use crate::light::Light;
+
+mod pt_camera;
+
+pub use self::pt_camera::PTCamera;
 
 /// Representation of a camera
 #[derive(Clone)]
@@ -30,9 +31,7 @@ pub struct Camera {
     /// Far plane of the camera
     far: Float,
     /// Size of the scene
-    scale: Float,
-    /// Intensity of the camera flash
-    intensity: Color,
+    pub scale: Float,
 }
 
 impl Default for Camera {
@@ -45,7 +44,6 @@ impl Default for Camera {
             near: 0.001,
             far: 10.0,
             scale: 1.0,
-            intensity: 10.0 * Color::white(),
         }
     }
 }
@@ -160,29 +158,4 @@ impl Camera {
             }
         }
     }
-
-    fn scaled_intensity(&self) -> Color {
-        self.scale.powf(1.4) * self.intensity
-    }
-}
-
-// Enable the use of camera as a backup light
-impl Light for Camera {
-    fn power(&self) -> Color {
-        4.0 * consts::PI * self.scaled_intensity()
-    }
-
-    /// Sample radiance toward receiving interaction.
-    /// Return radiance, shadow ray and the pdf
-    fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float) {
-        let ray = recv.shadow_ray(self.pos);
-        let li = self.scaled_intensity() / ray.length.powi(2);
-        (li, ray, 1.0)
-    }
-
-    // fn pdf_li(&self) {}
-
-    // fn sample_le(&self) {}
-
-    // fn pdf_le(&self) {}
 }

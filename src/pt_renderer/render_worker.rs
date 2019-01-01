@@ -9,19 +9,19 @@ use cgmath::{Point3, Vector4};
 use glium::Rect;
 
 use crate::bvh::BVHNode;
-use crate::camera::Camera;
+use crate::camera::PTCamera;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
 use crate::intersect::Ray;
-use crate::pt_renderer::RenderCoordinator;
 use crate::scene::Scene;
 
 use super::tracers;
+use super::RenderCoordinator;
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
-    camera: Camera,
+    camera: PTCamera,
     config: RenderConfig,
     coordinator: Arc<RenderCoordinator>,
     message_rx: Receiver<()>,
@@ -31,7 +31,7 @@ pub struct RenderWorker {
 impl RenderWorker {
     pub fn new(
         scene: Arc<Scene>,
-        camera: Camera,
+        camera: PTCamera,
         config: RenderConfig,
         coordinator: Arc<RenderCoordinator>,
         message_rx: Receiver<()>,
@@ -91,7 +91,8 @@ impl RenderWorker {
                                     RenderMode::PathTracing => tracers::path_trace(
                                         ray,
                                         &self.scene,
-                                        &self.camera,
+                                        // TODO: What is the cleanest way to use the flash?
+                                        self.camera.flash(),
                                         &self.config,
                                         &mut node_stack,
                                     ),

@@ -8,7 +8,7 @@ use std::thread::{self, JoinHandle};
 use glium::backend::Facade;
 use glium::{Rect, Surface};
 
-use crate::camera::Camera;
+use crate::camera::{Camera, PTCamera};
 use crate::config::RenderConfig;
 use crate::scene::Scene;
 use crate::stats;
@@ -48,7 +48,7 @@ impl PTRenderer {
             let (message_tx, message_rx) = mpsc::channel();
             message_txs.push(message_tx);
             let coordinator = coordinator.clone();
-            let camera = camera.clone();
+            let camera = PTCamera::new(camera.clone());
             let config = config.clone();
             let scene = scene.clone();
             let handle = thread::spawn(move || {

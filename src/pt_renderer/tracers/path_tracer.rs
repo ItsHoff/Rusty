@@ -1,7 +1,6 @@
 use cgmath::prelude::*;
 
 use crate::bvh::BVHNode;
-use crate::camera::Camera;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
@@ -12,13 +11,13 @@ use crate::scene::Scene;
 fn sample_light(
     isect: &Interaction,
     scene: &Scene,
-    camera: &Camera,
+    flash: &dyn Light,
     config: &RenderConfig,
 ) -> (Color, Ray, Float) {
     let (light, pdf) = match config.light_mode {
-        LightMode::Scene => scene.sample_light().unwrap_or((camera, 1.0)),
-        LightMode::Camera => (camera as &dyn Light, 1.0),
-        LightMode::All => unimplemented!(),
+        LightMode::Scene => scene.sample_light().unwrap_or((flash, 1.0)),
+        LightMode::Camera => (flash, 1.0),
+        LightMode::All => unimplemented!(), // TODO
     };
     let (li, ray, lpdf) = light.sample_li(isect);
     (li, ray, pdf * lpdf)
@@ -27,7 +26,7 @@ fn sample_light(
 pub fn path_trace<'a>(
     mut ray: Ray,
     scene: &'a Scene,
-    camera: &Camera,
+    flash: &dyn Light,
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
 ) -> Color {
@@ -40,7 +39,7 @@ pub fn path_trace<'a>(
         if bounce == 0 || specular_bounce {
             c += beta * isect.le(&ray);
         }
-        let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, camera, config);
+        let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, flash, config);
         if scene.intersect(&mut shadow_ray, node_stack).is_none() {
             let cos_t = isect.ns.dot(shadow_ray.dir).abs();
             c += beta * le * isect.bsdf(&ray, &shadow_ray) * cos_t / light_pdf;
