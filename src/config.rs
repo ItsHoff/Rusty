@@ -78,16 +78,7 @@ impl Default for RenderConfig {
     }
 }
 
-#[allow(dead_code)]
 impl RenderConfig {
-    pub fn direct() -> Self {
-        Self {
-            russian_roulette: false,
-            bounces: 0,
-            ..Default::default()
-        }
-    }
-
     pub fn bdpt() -> Self {
         Self {
             render_mode: RenderMode::BDPT,
@@ -137,17 +128,38 @@ impl RenderConfig {
 
     pub fn handle_key(&mut self, key: VirtualKeyCode) {
         match key {
-            VirtualKeyCode::N => self.normal_mapping = !self.normal_mapping,
+            VirtualKeyCode::N => {
+                self.normal_mapping = !self.normal_mapping;
+                println!("Normal mapping: {}", self.normal_mapping);
+            }
             VirtualKeyCode::L => {
                 self.light_mode = match self.light_mode {
-                    LightMode::Scene => LightMode::Camera,
-                    LightMode::Camera => LightMode::Scene,
+                    LightMode::Scene => {
+                        println!("Lightmode: Camera");
+                        LightMode::Camera
+                    }
+                    LightMode::Camera => {
+                        println!("Lightmode: Scene");
+                        LightMode::Scene
+                    }
                 }
             }
-            VirtualKeyCode::F1 => *self = Self::default(),
-            VirtualKeyCode::F2 => *self = Self::bdpt(),
-            VirtualKeyCode::F3 => *self = Self::debug_normals(),
-            VirtualKeyCode::F4 => *self = Self::forward_normals(),
+            VirtualKeyCode::F1 => {
+                println!("Config: Default");
+                *self = Self::default();
+            }
+            VirtualKeyCode::F2 => {
+                println!("Config: BDPT");
+                *self = Self::bdpt();
+            }
+            VirtualKeyCode::F3 => {
+                println!("Config: Debug normals");
+                *self = Self::debug_normals();
+            }
+            VirtualKeyCode::F4 => {
+                println!("Config: Forward normals");
+                *self = Self::forward_normals();
+            }
             _ => (),
         }
     }
