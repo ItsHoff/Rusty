@@ -39,9 +39,10 @@ pub fn path_trace<'a>(
             c += beta * isect.le(&ray);
         }
         let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, flash, config);
-        if scene.intersect(&mut shadow_ray, node_stack).is_none() {
+        let bsdf = isect.bsdf(&ray, &shadow_ray);
+        if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
             let cos_t = isect.ns.dot(shadow_ray.dir).abs();
-            c += beta * le * isect.bsdf(&ray, &shadow_ray) * cos_t / light_pdf;
+            c += beta * le * bsdf * cos_t / light_pdf;
         }
         let mut pdf = 1.0;
         let terminate = if bounce < config.bounces {
