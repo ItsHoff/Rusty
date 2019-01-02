@@ -5,6 +5,7 @@ use crate::consts;
 use crate::float::*;
 use crate::sample;
 
+use super::util;
 use super::BSDFT;
 
 #[derive(Debug)]
@@ -29,6 +30,14 @@ impl BSDFT for LambertianBRDF {
 
     fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
+    }
+
+    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        if util::same_hemisphere(wo, wi) {
+            sample::cosine_hemisphere_pdf(wi)
+        } else {
+            0.0
+        }
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {

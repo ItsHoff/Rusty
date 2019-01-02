@@ -116,13 +116,21 @@ impl BSDFT for MicrofacetBRDF {
         Color::black()
     }
 
+    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        if !util::same_hemisphere(wo, wi) {
+            return 0.0;
+        }
+        let wh = (wo + wi).normalize();
+        self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs())
+    }
+
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
         let wh = self.microfacets.sample_wh(wo);
         let wi = util::reflect(wo, wh);
         if !util::same_hemisphere(wo, wi) {
             return None;
         }
-        let pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
+        let pdf = self.pdf(wo, wi);
         let val = self.brdf(wo, wi);
         Some((val, wi, pdf))
     }
@@ -143,13 +151,6 @@ impl FresnelBlendBRDF {
             specular,
             microfacets: GGX::from_shininess(shininess),
         }
-    }
-
-    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
-        let wh = (wo + wi).normalize();
-        let d_pdf = sample::cosine_hemisphere_pdf(wi);
-        let mf_pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
-        (d_pdf + mf_pdf) / 2.0
     }
 }
 
@@ -173,6 +174,16 @@ impl BSDFT for FresnelBlendBRDF {
 
     fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
+    }
+
+    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        if !util::same_hemisphere(wo, wi) {
+            return 0.0;
+        }
+        let wh = (wo + wi).normalize();
+        let d_pdf = sample::cosine_hemisphere_pdf(wi);
+        let mf_pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
+        (d_pdf + mf_pdf) / 2.0
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
@@ -218,20 +229,6 @@ impl MicrofacetBTDF {
         }
         (wh, eta_inv)
     }
-
-    // TODO: add pdf to bsdf interface
-    pub fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
-        let (wh, eta_inv) = self.refraction_values(wo, wi);
-        let idh = wi.dot(wh);
-        let odh = wo.dot(wh);
-        let denom = (odh + eta_inv * idh).powi(2);
-        let cov = if denom < consts::EPSILON {
-            1.0
-        } else {
-            ((eta_inv.powi(2) * idh) / denom).abs()
-        };
-        self.microfacets.pdf_wh(wo, wh) * cov
-    }
 }
 
 impl BSDFT for MicrofacetBTDF {
@@ -257,6 +254,22 @@ impl BSDFT for MicrofacetBTDF {
         } else {
             self.color * eta_inv.powi(2) * d * g * idh.abs() * odh.abs() / denom
         }
+    }
+
+    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        if util::same_hemisphere(wo, wi) {
+            return 0.0;
+        }
+        let (wh, eta_inv) = self.refraction_values(wo, wi);
+        let idh = wi.dot(wh);
+        let odh = wo.dot(wh);
+        let denom = (odh + eta_inv * idh).powi(2);
+        let cov = if denom < consts::EPSILON {
+            1.0
+        } else {
+            ((eta_inv.powi(2) * idh) / denom).abs()
+        };
+        self.microfacets.pdf_wh(wo, wh) * cov
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {

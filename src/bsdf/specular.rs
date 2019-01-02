@@ -42,6 +42,10 @@ impl BSDFT for SpecularBRDF {
         Color::black()
     }
 
+    fn pdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Float {
+        0.0
+    }
+
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::reflect_n(wo);
         let color = if self.use_schlick {
@@ -76,6 +80,10 @@ impl BSDFT for SpecularBTDF {
 
     fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
         Color::black()
+    }
+
+    fn pdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Float {
+        0.0
     }
 
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {

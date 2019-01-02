@@ -55,6 +55,15 @@ impl<R: BSDFT, T: BSDFT> BSDFT for FresnelBSDF<R, T> {
         ft * self.btdf.btdf(wo, wi)
     }
 
+    fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        let fr = dielectric(wo, self.eta);
+        if util::same_hemisphere(wo, wi) {
+            fr * self.brdf.pdf(wo, wi)
+        } else {
+            (1.0 - fr) * self.btdf.pdf(wo, wi)
+        }
+    }
+
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
         let fr = dielectric(wo, self.eta);
         if rand::random::<Float>() < fr {
