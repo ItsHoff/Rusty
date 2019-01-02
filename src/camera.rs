@@ -1,4 +1,5 @@
-/// Module containing the camera functionality
+//! Module containing the camera functionality
+use std::ops::Deref;
 use std::time::Duration;
 
 use cgmath;
@@ -7,13 +8,11 @@ use cgmath::{Matrix4, Point3, Quaternion, Rad, Vector3};
 
 use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
 
+use crate::color::Color;
 use crate::consts;
 use crate::float::*;
 use crate::input::InputState;
-
-mod pt_camera;
-
-pub use self::pt_camera::PTCamera;
+use crate::light::{Light, PointLight};
 
 /// Representation of a camera
 #[derive(Clone)]
@@ -32,6 +31,32 @@ pub struct Camera {
     far: Float,
     /// Size of the scene
     pub scale: Float,
+}
+
+/// Extended camera for path tracing
+pub struct PTCamera {
+    camera: Camera,
+    flash: PointLight,
+}
+
+impl PTCamera {
+    pub fn new(camera: Camera) -> Self {
+        let intensity = 10.0 * camera.scale.powf(1.4) * Color::white();
+        let flash = PointLight::new(camera.pos, intensity);
+        Self { camera, flash }
+    }
+
+    pub fn flash(&self) -> &dyn Light {
+        &self.flash
+    }
+}
+
+impl Deref for PTCamera {
+    type Target = Camera;
+
+    fn deref(&self) -> &Self::Target {
+        &self.camera
+    }
 }
 
 impl Default for Camera {
