@@ -7,7 +7,7 @@ use super::fresnel::{self, FresnelBSDF};
 use super::util;
 use super::BSDFT;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SpecularBRDF {
     color: Color,
     use_schlick: bool,
@@ -57,7 +57,7 @@ impl BSDFT for SpecularBRDF {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SpecularBTDF {
     color: Color,
     eta: Float,

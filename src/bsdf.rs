@@ -31,7 +31,7 @@ pub trait BSDFT {
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)>;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum BSDF {
     FBR(FresnelBlendBRDF),
     LR(LambertianBRDF),

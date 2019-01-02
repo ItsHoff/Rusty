@@ -8,7 +8,7 @@ use crate::sample;
 use super::util;
 use super::BSDFT;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LambertianBRDF {
     color: Color,
 }

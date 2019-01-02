@@ -11,7 +11,7 @@ use super::util;
 use super::BSDFT;
 
 /// GGX (Trowbridge-Reitz) microfacet distribution
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct GGX {
     alpha: Float,
 }
@@ -69,7 +69,7 @@ impl GGX {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MicrofacetBRDF {
     color: Color,
     microfacets: GGX,
@@ -137,7 +137,7 @@ impl BSDFT for MicrofacetBRDF {
 }
 
 /// Combines microfacet reflection with diffuse reflection using fresnel schlick.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FresnelBlendBRDF {
     diffuse: Color,
     specular: Color,
@@ -203,7 +203,7 @@ impl BSDFT for FresnelBlendBRDF {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MicrofacetBTDF {
     color: Color,
     microfacets: GGX,

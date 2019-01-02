@@ -32,7 +32,7 @@ pub fn schlick(w: Vector3<Float>, specular: Color) -> Color {
     specular + (1.0 - cos_t).powi(5) * (Color::white() - specular)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FresnelBSDF<R: BSDFT, T: BSDFT> {
     pub brdf: R,
     pub btdf: T,

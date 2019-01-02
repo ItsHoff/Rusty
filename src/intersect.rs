@@ -98,7 +98,7 @@ impl<'a> Hit<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Interaction<'a> {
     tri: &'a Triangle,
     to_local: Matrix3<Float>,
