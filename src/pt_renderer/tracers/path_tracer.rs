@@ -17,7 +17,6 @@ fn sample_light(
     let (light, pdf) = match config.light_mode {
         LightMode::Scene => scene.sample_light().unwrap_or((flash, 1.0)),
         LightMode::Camera => (flash, 1.0),
-        LightMode::All => unimplemented!(), // TODO
     };
     let (li, ray, lpdf) = light.sample_li(isect);
     (li, ray, pdf * lpdf)

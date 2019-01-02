@@ -29,8 +29,6 @@ pub enum LightMode {
     Scene,
     /// Use camera flash as the light source
     Camera,
-    /// Use all light sources
-    All,
 }
 
 #[derive(Clone, Debug)]
@@ -144,7 +142,6 @@ impl RenderConfig {
                 self.light_mode = match self.light_mode {
                     LightMode::Scene => LightMode::Camera,
                     LightMode::Camera => LightMode::Scene,
-                    LightMode::All => unimplemented!(),
                 }
             }
             VirtualKeyCode::F1 => *self = Self::default(),
