@@ -90,6 +90,13 @@ impl RenderConfig {
         }
     }
 
+    pub fn bdpt() -> Self {
+        Self {
+            render_mode: RenderMode::BDPT,
+            ..Default::default()
+        }
+    }
+
     pub fn benchmark() -> Self {
         Self {
             width: 600,
@@ -141,8 +148,9 @@ impl RenderConfig {
                 }
             }
             VirtualKeyCode::F1 => *self = Self::default(),
-            VirtualKeyCode::F2 => *self = Self::debug_normals(),
-            VirtualKeyCode::F3 => *self = Self::forward_normals(),
+            VirtualKeyCode::F2 => *self = Self::bdpt(),
+            VirtualKeyCode::F3 => *self = Self::debug_normals(),
+            VirtualKeyCode::F4 => *self = Self::forward_normals(),
             _ => (),
         }
     }

@@ -96,7 +96,13 @@ impl RenderWorker {
                                         &self.config,
                                         &mut node_stack,
                                     ),
-                                    RenderMode::BDPT => unimplemented!(), // TODO
+                                    RenderMode::BDPT => tracers::bdpt(
+                                        ray,
+                                        &self.scene,
+                                        &self.camera,
+                                        &self.config,
+                                        &mut node_stack,
+                                    ),
                                 }
                             }
                         }
