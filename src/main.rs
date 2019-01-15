@@ -43,9 +43,48 @@ use self::pt_renderer::PTRenderer;
 
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
+        Some("hq") => high_quality(),
         Some(_) => benchmark(),
         None => online_render(),
     }
+}
+
+fn high_quality() {
+    let scenes = [
+        "cornell-sphere",
+    ];
+    let config = RenderConfig::high_quality();
+    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let output_dir = root_dir.join("results");
+    std::fs::create_dir_all(output_dir.clone()).unwrap();
+    let time_stamp = Local::now().format("%F_%H%M%S").to_string();
+
+    // Initialize an OpenGL context that is needed for post-processing
+    let events_loop = glium::glutin::EventsLoop::new();
+    // Preferably this wouldn't need use a window at all but alas this is the closest I have gotten.
+    // There exists HeadlessContext but that still pops up a window (atleast on Windows).
+    // TODO: Maybe change this such that the window displays the current render?
+    let window = glium::glutin::WindowBuilder::new()
+        .with_dimensions(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
+        .with_visibility(false)
+        .with_decorations(false)
+        .with_title("Rusty render");
+    let context = glium::glutin::ContextBuilder::new();
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
+
+    for scene_name in &scenes {
+        stats::new_scene(scene_name);
+        let _t = stats::time("Total");
+        println!("{}...", scene_name);
+        let (scene, camera) = load::cpu_scene_from_name(scene_name, &config);
+        let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
+
+        stats::time("Post-process");
+        let image = output_dir.join(format!("hq_{}_{}.png", scene_name, time_stamp));
+        pt_renderer.save_image(&display, &image);
+    }
+    let stats_file = output_dir.join("hq_stats.txt");
+    stats::print_and_save(&stats_file);
 }
 
 fn benchmark() {

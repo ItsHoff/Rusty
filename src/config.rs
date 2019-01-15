@@ -103,6 +103,16 @@ impl RenderConfig {
         }
     }
 
+    pub fn high_quality() -> Self {
+        Self {
+            width: 800,
+            height: 600,
+            samples_per_dir: 50,
+            max_iterations: Some(1),
+            ..Default::default()
+        }
+    }
+
     pub fn debug_normals() -> Self {
         Self {
             normal_mapping: true,
