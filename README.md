@@ -1,5 +1,8 @@
 # Rusty the Rendering Engine
 
+![Example render](example_render.png)
+      
+
 WIP physically based renderer.
 
 ## Features
@@ -7,8 +10,8 @@ WIP physically based renderer.
 - OpenGl preview
 - Path tracing
 - Diffuse reflection
-- Specular reflection + refraction
-- Glossy reflection + refraction
+- Specular reflection + transmission
+- Glossy reflection + transmission
 
 ## Installation
 
