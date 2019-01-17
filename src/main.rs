@@ -136,7 +136,7 @@ fn benchmark() {
 }
 
 fn online_render() {
-    let mut config = RenderConfig::bdpt();
+    let mut config = RenderConfig::default();
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new()
         .with_dimensions(config.dimensions())
