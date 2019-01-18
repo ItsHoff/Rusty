@@ -1,6 +1,5 @@
 #![feature(duration_float)]
 #![feature(euclidean_division)]
-#![feature(self_struct_ctor)]
 #![feature(try_trait)]
 
 use std::path::PathBuf;

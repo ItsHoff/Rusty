@@ -102,8 +102,8 @@ where
     I: GetColor<T> + GenericImage,
 {
     let (width, height) = image.dimensions();
-    let x = tex_coords.x.mod_euc(1.0) * (width - 1).to_float();
-    let y = (1.0 - tex_coords.y.mod_euc(1.0)) * (height - 1).to_float();
+    let x = tex_coords.x.rem_euclid(1.0) * (width - 1).to_float();
+    let y = (1.0 - tex_coords.y.rem_euclid(1.0)) * (height - 1).to_float();
     let x_fract = x.fract();
     let y_fract = y.fract();
     // Make sure that pixel coordinates don't overflow

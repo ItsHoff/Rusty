@@ -78,8 +78,8 @@ pub fn bump_to_normal(bump: &GrayImage) -> RgbImage {
         for x in 0..w {
             // Wrapping access to the offset pixels
             let offset = |dx: i32, dy: i32| {
-                let i = ((x as i32) + dx).mod_euc(w as i32) as u32;
-                let j = ((y as i32) + dy).mod_euc(h as i32) as u32;
+                let i = ((x as i32) + dx).rem_euclid(w as i32) as u32;
+                let j = ((y as i32) + dy).rem_euclid(h as i32) as u32;
                 bump.get_color(i, j)
             };
             // Use sobel filters to compute the gradient
