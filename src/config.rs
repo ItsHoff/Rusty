@@ -103,6 +103,13 @@ impl RenderConfig {
         }
     }
 
+    pub fn bdpt_benchmark() -> Self {
+        Self {
+            render_mode: RenderMode::BDPT,
+            ..Self::benchmark()
+        }
+    }
+
     pub fn high_quality() -> Self {
         Self {
             width: 800,

@@ -1,4 +1,5 @@
 use cgmath::prelude::*;
+use cgmath::Vector3;
 
 use crate::bvh::BVHNode;
 use crate::camera::PTCamera;
@@ -9,20 +10,54 @@ use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
 use crate::scene::Scene;
 
-fn sample_light(
-    isect: &Interaction,
-    scene: &Scene,
-    flash: &dyn Light,
-    config: &RenderConfig,
-) -> (Color, Ray, Float) {
-    let (light, pdf) = match config.light_mode {
-        LightMode::Scene => scene.sample_light().unwrap_or((flash, 1.0)),
-        LightMode::Camera => (flash, 1.0),
-    };
-    let (li, ray, lpdf) = light.sample_li(isect);
-    (li, ray, pdf * lpdf)
+struct Vertex<'a> {
+    /// Ray that generated this vertex
+    ray: Ray,
+    /// Attenuation for radiance scattered from this vertex
+    beta: Color,
+    isect: Interaction<'a>,
 }
 
+impl<'a> Vertex<'a> {
+    fn new(ray: Ray, beta: Color, isect: Interaction<'a>) -> Self {
+        Self {
+            ray, beta, isect
+        }
+    }
+
+    /// Shading normal at the vertex
+    fn ns(&self) -> Vector3<Float> {
+        self.isect.ns
+    }
+
+    /// Compute the connection ray to other
+    fn connection_ray(&self, other: &Self) -> Ray {
+        self.isect.shadow_ray(other.isect.p)
+    }
+
+    /// Emitted radiance towards previous vertex
+    fn le(&self) -> Color {
+        self.beta * self.isect.le(&self.ray)
+    }
+
+    /// Evaluate bsdf for continuation ray
+    fn bsdf(&self, ray: &Ray) -> Color {
+        self.isect.bsdf(&self.ray, ray)
+    }
+}
+
+fn sample_light<'a>(
+    scene: &'a Scene,
+    flash: &'a dyn Light,
+    config: &RenderConfig,
+) -> (&'a dyn Light, Float) {
+    match config.light_mode {
+        LightMode::Scene => scene.sample_light().unwrap_or((flash, 1.0)),
+        LightMode::Camera => (flash, 1.0),
+    }
+}
+
+#[allow(clippy::if_same_then_else)]
 pub fn bdpt<'a>(
     camera_ray: Ray,
     scene: &'a Scene,
@@ -30,24 +65,65 @@ pub fn bdpt<'a>(
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
 ) -> Color {
-    let path = generate_path(camera_ray, scene, config, node_stack);
+    let camera_path = generate_path(camera_ray, Color::white(), scene, config, node_stack);
+    let (light, light_pdf) = sample_light(scene, camera.flash(), config);
+    let (le, light_ray, light_n, area_pdf, dir_pdf) = light.sample_le();
+    let light_beta = le * light_n.dot(light_ray.dir).abs() / (light_pdf * area_pdf * dir_pdf);
+    let light_path = generate_path(light_ray, light_beta, scene, config, node_stack);
     let mut c = Color::black();
-    for (i, (ray, beta, isect)) in path.iter().enumerate() {
-        if i == 0 {
-            c += *beta * isect.le(&ray);
-        }
-        if isect.is_specular() {
-            if let Some((ray_n, beta_n, next)) = path.get(i + 1) {
-                c += *beta_n * next.le(&ray_n);
-            }
-        } else {
-            let (le, mut shadow_ray, light_pdf) =
-                sample_light(&isect, scene, camera.flash(), config);
-            let bsdf = isect.bsdf(&ray, &shadow_ray);
-            if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
-                let cos_t = isect.ns.dot(shadow_ray.dir).abs();
-                c += *beta * le * bsdf * cos_t / light_pdf;
-            }
+    // Paths contain vertices after the light / camera
+    // 0 corresponds to no vertices from that subpath,
+    // 1 is the implicit starting vertex
+    // 2+ are regular path vertices
+    for s in 0..light_path.len() + 2 {
+        // Light path cant hit camera so start t from 1
+        for t in 1..camera_path.len() + 2 {
+            // No light vertices
+            let radiance = if s == 0 {
+                if let Some(c_vertex) = camera_path.get(t - 2) {
+                    c_vertex.le()
+                } else {
+                    continue;
+                }
+            // Connect camera and light
+            } else if s == 1 && t == 1 {
+                // TODO
+                continue;
+            // Connect light vertex to camera
+            } else if t == 1 {
+                // TODO
+                continue;
+            // Connect camera vertex to light
+            } else if s == 1 {
+                let c_vertex = &camera_path[t - 2];
+                let (li, mut shadow_ray, li_pdf) = light.sample_li(&c_vertex.isect);
+                let bsdf = c_vertex.bsdf(&shadow_ray);
+                if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
+                    let cos_t = c_vertex.ns().dot(shadow_ray.dir).abs();
+                    c_vertex.beta * li * bsdf * cos_t / (li_pdf * light_pdf)
+                } else {
+                    continue;
+                }
+            // Everything else
+            } else {
+                let l_vertex = &light_path[s - 2];
+                let c_vertex = &camera_path[t - 2];
+                let mut connection = c_vertex.connection_ray(l_vertex);
+                let radiance = c_vertex.beta * c_vertex.bsdf(&connection)
+                    * l_vertex.beta * l_vertex.bsdf(&connection.inverse());
+                if !radiance.is_black() && scene.intersect(&mut connection, node_stack).is_none() {
+                    let length = connection.length;
+                    let dir = connection.dir;
+                    let g = c_vertex.ns().dot(dir).abs() * l_vertex.ns().dot(-dir).abs() / length.powi(2);
+                    g * radiance
+                } else {
+                    continue;
+                }
+            };
+            let n_scatter = s + t - 2;
+            // There are currently n + 1 ways to construct path with n scattering events
+            // TODO: implement MIS
+            c += radiance / (n_scatter + 1).to_float();
         }
     }
     c
@@ -55,16 +131,16 @@ pub fn bdpt<'a>(
 
 fn generate_path<'a>(
     mut ray: Ray,
+    mut beta: Color,
     scene: &'a Scene,
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
-) -> Vec<(Ray, Color, Interaction<'a>)> {
+) -> Vec<Vertex<'a>> {
     let mut bounce = 0;
-    let mut beta = Color::white();
     let mut path = Vec::new();
     while let Some(hit) = scene.intersect(&mut ray, node_stack) {
-        path.push((ray.clone(), beta, hit.interaction(&config)));
-        let (_, _, isect) = path.last().unwrap();
+        path.push(Vertex::new(ray.clone(), beta, hit.interaction(&config)));
+        let isect = &path.last().unwrap().isect;
         let mut pdf = 1.0;
         let terminate = if bounce < config.bounces {
             false

@@ -1,5 +1,5 @@
 use cgmath::prelude::*;
-use cgmath::Point3;
+use cgmath::{Point3, Vector3};
 
 use crate::color::Color;
 use crate::consts;
@@ -19,8 +19,8 @@ pub trait Light {
     // fn pdf_li(&self) {}
 
     /// Sample emitted radiance of the light.
-    /// Return radiance, shadow ray, area pdf and directional pdf
-    fn sample_le(&self) -> (Color, Ray, Float, Float);
+    /// Return radiance, shadow ray, normal, area pdf and directional pdf
+    fn sample_le(&self) -> (Color, Ray, Vector3<Float>, Float, Float);
 
     // fn pdf_le(&self) {}
 }
@@ -55,14 +55,14 @@ impl Light for AreaLight {
 
     // fn pdf_li(&self) {}
 
-    fn sample_le(&self) -> (Color, Ray, Float, Float) {
+    fn sample_le(&self) -> (Color, Ray, Vector3<Float>, Float, Float) {
         let (u, v) = Triangle::sample();
         let (p, n, _) = self.tri.bary_pnt(u, v);
         let area_pdf = self.tri.pdf_a();
         let local_dir = sample::cosine_sample_hemisphere(1.0);
         let dir_pdf = sample::cosine_hemisphere_pdf(local_dir);
         let dir = sample::local_to_world(n) * local_dir;
-        (self.tri.le(dir), Ray::from_dir(p, dir), area_pdf, dir_pdf)
+        (self.tri.le(dir), Ray::from_dir(p, dir), n, area_pdf, dir_pdf)
     }
 
     // fn pdf_le(&self) {}
@@ -95,11 +95,12 @@ impl Light for PointLight {
 
     // fn pdf_li(&self) {}
 
-    fn sample_le(&self) -> (Color, Ray, Float, Float) {
+    fn sample_le(&self) -> (Color, Ray, Vector3<Float>, Float, Float) {
         let dir = sample::uniform_sample_sphere();
         let dir_pdf = sample::uniform_sphere_pdf(dir);
         let ray = Ray::from_dir(self.pos, dir);
-        (self.intensity, ray, 1.0, dir_pdf)
+        let n = ray.dir;
+        (self.intensity, ray, n, 1.0, dir_pdf)
     }
 
     // fn pdf_le(&self) {}

@@ -52,6 +52,12 @@ impl Ray {
         Ray::new(orig, dir, consts::INFINITY)
     }
 
+    /// Inverse of the ray
+    pub fn inverse(&self) -> Ray {
+        let orig = self.orig + self.length * self.dir;
+        Ray::new(orig, -self.dir, self.length)
+    }
+
     /// Shadow ray between two points
     fn shadow(orig: Point3<Float>, to: Point3<Float>) -> Ray {
         let dp = to - orig;
@@ -102,7 +108,7 @@ impl<'a> Hit<'a> {
 pub struct Interaction<'a> {
     tri: &'a Triangle,
     to_local: Matrix3<Float>,
-    p: Point3<Float>,
+    pub p: Point3<Float>,
     pub ns: Vector3<Float>,
     ng: Vector3<Float>,
     bsdf: BSDF,
