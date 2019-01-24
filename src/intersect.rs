@@ -52,12 +52,6 @@ impl Ray {
         Ray::new(orig, dir, consts::INFINITY)
     }
 
-    /// Inverse of the ray
-    pub fn inverse(&self) -> Ray {
-        let orig = self.orig + self.length * self.dir;
-        Ray::new(orig, -self.dir, self.length)
-    }
-
     /// Shadow ray between two points
     fn shadow(orig: Point3<Float>, to: Point3<Float>) -> Ray {
         let dp = to - orig;
@@ -115,8 +109,8 @@ pub struct Interaction<'a> {
 }
 
 impl Interaction<'_> {
-    pub fn le(&self, in_ray: &Ray) -> Color {
-        self.tri.le(-in_ray.dir)
+    pub fn le(&self, wo: Vector3<Float>) -> Color {
+        self.tri.le(wo)
     }
 
     pub fn ray(&self, dir: Vector3<Float>) -> Ray {
@@ -139,13 +133,18 @@ impl Interaction<'_> {
         self.bsdf.is_specular()
     }
 
-    pub fn bsdf(&self, in_ray: &Ray, out_ray: &Ray) -> Color {
-        let in_dir = -in_ray.dir;
-        let out_dir = out_ray.dir;
-        self.eval_bsdf(in_dir, out_dir)
+    /// Absolute value of cosine theta
+    pub fn cos_t(&self, dir: Vector3<Float>) -> Float {
+        self.ns.dot(dir).abs()
     }
 
-    fn eval_bsdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+    pub fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+        let wo_local = self.to_local * wo;
+        let wi_local = self.to_local * wi;
+        self.bsdf.pdf(wo_local, wi_local)
+    }
+
+    pub fn bsdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
         let wo_local = self.to_local * wo;
         let wi_local = self.to_local * wi;
         // Check if the interaction is geometrically transmitted or reflected
@@ -156,14 +155,13 @@ impl Interaction<'_> {
         }
     }
 
-    pub fn sample_bsdf(&self, in_ray: &Ray) -> Option<(Color, Ray, Float)> {
-        let wo = -in_ray.dir;
+    pub fn sample_bsdf(&self, wo: Vector3<Float>) -> Option<(Color, Ray, Float)> {
         let wo_local = self.to_local * wo;
         let (mut bsdf, wi_local, pdf) = self.bsdf.sample(wo_local)?;
         let wi = self.to_local.transpose() * wi_local;
         // Avoid light leaks caused by shading normals
         if !self.bsdf.is_specular() {
-            bsdf = self.eval_bsdf(wo, wi);
+            bsdf = self.bsdf(wo, wi);
         }
         Some((bsdf, self.ray(wi), pdf))
     }

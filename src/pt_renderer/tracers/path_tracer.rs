@@ -1,5 +1,3 @@
-use cgmath::prelude::*;
-
 use crate::bvh::BVHNode;
 use crate::color::Color;
 use crate::config::*;
@@ -36,12 +34,12 @@ pub fn path_trace<'a>(
     while let Some(hit) = scene.intersect(&mut ray, node_stack) {
         let isect = hit.interaction(&config);
         if bounce == 0 || specular_bounce {
-            c += beta * isect.le(&ray);
+            c += beta * isect.le(-ray.dir);
         }
         let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, flash, config);
-        let bsdf = isect.bsdf(&ray, &shadow_ray);
+        let bsdf = isect.bsdf(-ray.dir, shadow_ray.dir);
         if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
-            let cos_t = isect.ns.dot(shadow_ray.dir).abs();
+            let cos_t = isect.cos_t(shadow_ray.dir);
             c += beta * le * bsdf * cos_t / light_pdf;
         }
         let mut pdf = 1.0;
@@ -56,10 +54,10 @@ pub fn path_trace<'a>(
             true
         };
         if !terminate {
-            if let Some((brdf, new_ray, brdf_pdf)) = isect.sample_bsdf(&ray) {
+            if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir) {
                 ray = new_ray;
-                pdf *= brdf_pdf;
-                beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
+                pdf *= bsdf_pdf;
+                beta *= isect.cos_t(ray.dir) * bsdf / pdf;
                 bounce += 1;
                 specular_bounce = isect.is_specular();
             } else {

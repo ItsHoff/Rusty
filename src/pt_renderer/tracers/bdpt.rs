@@ -7,7 +7,6 @@ use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
 use crate::intersect::{Interaction, Ray};
-use crate::light::Light;
 use crate::scene::Scene;
 
 struct Vertex<'a> {
@@ -25,9 +24,8 @@ impl<'a> Vertex<'a> {
         }
     }
 
-    /// Shading normal at the vertex
-    fn ns(&self) -> Vector3<Float> {
-        self.isect.ns
+    fn cos_t(&self, dir: Vector3<Float>) -> Float {
+        self.isect.cos_t(dir)
     }
 
     /// Compute the connection ray to other
@@ -37,23 +35,12 @@ impl<'a> Vertex<'a> {
 
     /// Emitted radiance towards previous vertex
     fn le(&self) -> Color {
-        self.beta * self.isect.le(&self.ray)
+        self.beta * self.isect.le(-self.ray.dir)
     }
 
     /// Evaluate bsdf for continuation ray
-    fn bsdf(&self, ray: &Ray) -> Color {
-        self.isect.bsdf(&self.ray, ray)
-    }
-}
-
-fn sample_light<'a>(
-    scene: &'a Scene,
-    flash: &'a dyn Light,
-    config: &RenderConfig,
-) -> (&'a dyn Light, Float) {
-    match config.light_mode {
-        LightMode::Scene => scene.sample_light().unwrap_or((flash, 1.0)),
-        LightMode::Camera => (flash, 1.0),
+    fn bsdf(&self, wi: Vector3<Float>) -> Color {
+        self.isect.bsdf(-self.ray.dir, wi)
     }
 }
 
@@ -66,7 +53,10 @@ pub fn bdpt<'a>(
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
 ) -> Color {
     let camera_path = generate_path(camera_ray, Color::white(), scene, config, node_stack);
-    let (light, light_pdf) = sample_light(scene, camera.flash(), config);
+    let (light, light_pdf) = match config.light_mode {
+        LightMode::Scene => scene.sample_light().unwrap_or((camera.flash(), 1.0)),
+        LightMode::Camera => (camera.flash(), 1.0),
+    };
     let (le, light_ray, light_n, area_pdf, dir_pdf) = light.sample_le();
     let light_beta = le * light_n.dot(light_ray.dir).abs() / (light_pdf * area_pdf * dir_pdf);
     let light_path = generate_path(light_ray, light_beta, scene, config, node_stack);
@@ -76,7 +66,7 @@ pub fn bdpt<'a>(
     // 1 is the implicit starting vertex
     // 2+ are regular path vertices
     for s in 0..light_path.len() + 2 {
-        // Light path cant hit camera so start t from 1
+        // Light path can't hit camera so start t from 1
         for t in 1..camera_path.len() + 2 {
             // No light vertices
             let radiance = if s == 0 {
@@ -97,9 +87,9 @@ pub fn bdpt<'a>(
             } else if s == 1 {
                 let c_vertex = &camera_path[t - 2];
                 let (li, mut shadow_ray, li_pdf) = light.sample_li(&c_vertex.isect);
-                let bsdf = c_vertex.bsdf(&shadow_ray);
+                let bsdf = c_vertex.bsdf(shadow_ray.dir);
                 if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
-                    let cos_t = c_vertex.ns().dot(shadow_ray.dir).abs();
+                    let cos_t = c_vertex.cos_t(shadow_ray.dir);
                     c_vertex.beta * li * bsdf * cos_t / (li_pdf * light_pdf)
                 } else {
                     continue;
@@ -109,12 +99,12 @@ pub fn bdpt<'a>(
                 let l_vertex = &light_path[s - 2];
                 let c_vertex = &camera_path[t - 2];
                 let mut connection = c_vertex.connection_ray(l_vertex);
-                let radiance = c_vertex.beta * c_vertex.bsdf(&connection)
-                    * l_vertex.beta * l_vertex.bsdf(&connection.inverse());
+                let radiance = c_vertex.beta * c_vertex.bsdf(connection.dir)
+                    * l_vertex.beta * l_vertex.bsdf(-connection.dir);
                 if !radiance.is_black() && scene.intersect(&mut connection, node_stack).is_none() {
                     let length = connection.length;
                     let dir = connection.dir;
-                    let g = c_vertex.ns().dot(dir).abs() * l_vertex.ns().dot(-dir).abs() / length.powi(2);
+                    let g = c_vertex.cos_t(dir) * l_vertex.cos_t(dir) / length.powi(2);
                     g * radiance
                 } else {
                     continue;
@@ -153,10 +143,11 @@ fn generate_path<'a>(
             true
         };
         if !terminate {
-            if let Some((brdf, new_ray, brdf_pdf)) = isect.sample_bsdf(&ray) {
+            // TODO: account for non-symmetry
+            if let Some((brdf, new_ray, brdf_pdf)) = isect.sample_bsdf(-ray.dir) {
                 ray = new_ray;
                 pdf *= brdf_pdf;
-                beta *= isect.ns.dot(ray.dir).abs() * brdf / pdf;
+                beta *= isect.cos_t(ray.dir) * brdf / pdf;
                 bounce += 1;
             } else {
                 break;
