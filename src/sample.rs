@@ -3,6 +3,7 @@ use cgmath::{Matrix3, Vector3};
 
 use crate::consts;
 use crate::float::*;
+use crate::intersect::Ray;
 
 /// Compute an orthonormal coordinate frame where n defines is the z-axis
 pub fn local_to_world(n: Vector3<Float>) -> Matrix3<Float> {
@@ -13,6 +14,13 @@ pub fn local_to_world(n: Vector3<Float>) -> Matrix3<Float> {
     };
     let ny = n.cross(nx).normalize();
     Matrix3::from_cols(nx, ny, n)
+}
+
+/// Convert area pdf to directional pdf
+/// Ray connects the source and the receiving surface
+/// ng is the geometric normal of the receiving surface
+pub fn to_dir_pdf(pdf_a: Float, ray: &Ray, ng: Vector3<Float>) -> Float {
+    pdf_a * ray.length.powi(2) / ng.dot(ray.dir).abs()
 }
 
 #[allow(clippy::many_single_char_names)]
@@ -39,6 +47,6 @@ pub fn uniform_sample_sphere() -> Vector3<Float> {
     Vector3::new(r * phi.cos(), r * phi.sin(), z)
 }
 
-pub fn uniform_sphere_pdf(_w: Vector3<Float>) -> Float {
+pub fn uniform_sphere_pdf() -> Float {
     1.0 / (4.0 * consts::PI)
 }

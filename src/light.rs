@@ -5,7 +5,7 @@ use crate::color::Color;
 use crate::consts;
 use crate::float::*;
 use crate::index_ptr::IndexPtr;
-use crate::intersect::{Interaction, Ray};
+use crate::intersect::{Interaction, Intersect, Ray};
 use crate::sample;
 use crate::triangle::Triangle;
 
@@ -16,13 +16,16 @@ pub trait Light {
     /// Return radiance, shadow ray and the pdf
     fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float);
 
-    // fn pdf_li(&self) {}
+    /// Evaluate pdf of sampling radiance towards receiving interaction.
+    fn pdf_li(&self, recv: &Interaction, w: Vector3<Float>) -> Float;
 
     /// Sample emitted radiance of the light.
     /// Return radiance, shadow ray, normal, area pdf and directional pdf
     fn sample_le(&self) -> (Color, Ray, Vector3<Float>, Float, Float);
 
-    // fn pdf_le(&self) {}
+    /// Evaluate pdf of sampling emitted radiance.
+    /// Return area pdf and directional pdf separately.
+    fn pdf_le(&self, wi: Vector3<Float>) -> (Float, Float);
 }
 
 pub struct AreaLight {
@@ -40,20 +43,23 @@ impl Light for AreaLight {
         consts::PI * self.tri.material.emissive.unwrap() * self.tri.area()
     }
 
-    /// Sample radiance toward receiving interaction.
-    /// Return radiance, shadow ray and the pdf
     fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float) {
         let (u, v) = Triangle::sample();
-        let (p, n, _) = self.tri.bary_pnt(u, v);
-        let mut pdf = self.tri.pdf_a();
+        let (p, _, _) = self.tri.bary_pnt(u, v);
         let ray = recv.shadow_ray(p);
-        // Convert pdf to solid angle
-        pdf *= ray.length.powi(2) / n.dot(ray.dir).abs();
+        let pdf = sample::to_dir_pdf(self.tri.pdf_a(), &ray, self.tri.ng);
         let li = self.tri.le(-ray.dir);
         (li, ray, pdf)
     }
 
-    // fn pdf_li(&self) {}
+    fn pdf_li(&self, recv: &Interaction, w: Vector3<Float>) -> Float {
+        let ray = recv.ray(w);
+        if let Some(hit) = self.tri.intersect(&ray) {
+            sample::to_dir_pdf(self.tri.pdf_a(), &ray, self.tri.ng)
+        } else {
+            0.0
+        }
+    }
 
     fn sample_le(&self) -> (Color, Ray, Vector3<Float>, Float, Float) {
         let (u, v) = Triangle::sample();
@@ -65,7 +71,14 @@ impl Light for AreaLight {
         (self.tri.le(dir), Ray::from_dir(p, dir), n, area_pdf, dir_pdf)
     }
 
-    // fn pdf_le(&self) {}
+    fn pdf_le(&self, w: Vector3<Float>) -> (Float, Float) {
+        let cos_t = self.tri.ng.dot(w);
+        if cos_t < 0.0 {
+            (0.0, 0.0)
+        } else {
+            (self.tri.pdf_a(), cos_t.abs() / consts::PI)
+        }
+    }
 }
 
 pub struct PointLight {
@@ -85,23 +98,25 @@ impl Light for PointLight {
         4.0 * consts::PI * self.intensity
     }
 
-    /// Sample radiance toward receiving interaction.
-    /// Return radiance, shadow ray and the pdf
     fn sample_li(&self, recv: &Interaction) -> (Color, Ray, Float) {
         let ray = recv.shadow_ray(self.pos);
         let li = self.intensity / ray.length.powi(2);
         (li, ray, 1.0)
     }
 
-    // fn pdf_li(&self) {}
+    fn pdf_li(&self, _recv: &Interaction, _w: Vector3<Float>) -> Float {
+        0.0
+    }
 
     fn sample_le(&self) -> (Color, Ray, Vector3<Float>, Float, Float) {
         let dir = sample::uniform_sample_sphere();
-        let dir_pdf = sample::uniform_sphere_pdf(dir);
+        let dir_pdf = sample::uniform_sphere_pdf();
         let ray = Ray::from_dir(self.pos, dir);
         let n = ray.dir;
         (self.intensity, ray, n, 1.0, dir_pdf)
     }
 
-    // fn pdf_le(&self) {}
+    fn pdf_le(&self, wi: Vector3<Float>) -> (Float, Float) {
+        (0.0, sample::uniform_sphere_pdf())
+    }
 }
