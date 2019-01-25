@@ -29,7 +29,6 @@ pub struct Ray {
 
 impl Ray {
     fn new(orig: Point3<Float>, dir: Vector3<Float>, length: Float) -> Ray {
-        RAY_COUNT.fetch_add(1, Ordering::Relaxed);
         let reciprocal_dir = 1.0 / dir;
         let neg_dir = [dir.x < 0.0, dir.y < 0.0, dir.z < 0.0];
         Ray {
@@ -62,6 +61,10 @@ impl Ray {
 
     pub fn count() -> usize {
         RAY_COUNT.load(Ordering::Relaxed)
+    }
+
+    pub fn increment_count() {
+        RAY_COUNT.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn reset_count() {

@@ -271,6 +271,7 @@ impl Scene {
         ray: &mut Ray,
         node_stack: &mut Vec<(&'a BVHNode, Float)>,
     ) -> Option<Hit> {
+        Ray::increment_count();
         let bvh = self.bvh.as_ref().unwrap();
         node_stack.push((bvh.root(), 0.0));
         let mut closest_hit = None;
