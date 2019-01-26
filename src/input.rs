@@ -9,8 +9,8 @@ use glium::glutin::{
 pub struct InputState {
     /// Position of the mouse
     pub mouse_pos: (f64, f64),
-    /// Movement of the mouse
-    pub d_mouse: (f64, f64),
+    /// Previous position of the mouse
+    prev_mouse_pos: (f64, f64),
     /// Currently pressed mouse buttons with the time of the press
     pub mouse_presses: HashMap<MouseButton, Instant>,
     /// Currently pressed keys with the time of the press
@@ -24,11 +24,17 @@ impl InputState {
     pub fn new() -> InputState {
         InputState {
             mouse_pos: (0.0, 0.0),
-            d_mouse: (0.0, 0.0),
+            prev_mouse_pos: (0.0, 0.0),
             mouse_presses: HashMap::new(),
             key_presses: HashMap::new(),
             last_reset: Instant::now(),
         }
+    }
+
+    pub fn d_mouse(&self) -> (f64, f64) {
+        let (px, py) = self.prev_mouse_pos;
+        let (x, y) = self.mouse_pos;
+        (x - px, y - py)
     }
 
     /// Update the state with an event
@@ -39,7 +45,6 @@ impl InputState {
                     position: LogicalPosition { x, y },
                     ..
                 } => {
-                    self.d_mouse = (x - self.mouse_pos.0, y - self.mouse_pos.1);
                     self.mouse_pos = (x, y);
                 }
                 WindowEvent::MouseInput {
@@ -86,7 +91,7 @@ impl InputState {
 
     /// Reset the delta values after a loop
     pub fn reset_deltas(&mut self) {
-        self.d_mouse = (0.0, 0.0);
+        self.prev_mouse_pos = self.mouse_pos;
         self.last_reset = Instant::now();
     }
 }

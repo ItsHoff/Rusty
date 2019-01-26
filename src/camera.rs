@@ -177,9 +177,10 @@ impl Camera {
         for button in input.mouse_presses.keys() {
             // Rotate camera while holding left mouse button
             if let MouseButton::Left = *button {
-                let (dx, dy) = input.d_mouse;
-                self.rotate_y(-Rad(dx.to_float() / 250.0));
-                self.rotate_x(-Rad(dy.to_float() / 250.0));
+                let (dx, dy) = input.d_mouse();
+                let scale = 1.0 / 250.0;
+                self.rotate_y(-Rad(scale * dx.to_float()));
+                self.rotate_x(-Rad(scale * dy.to_float()));
             }
         }
     }
