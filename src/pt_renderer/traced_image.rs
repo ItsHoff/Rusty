@@ -45,7 +45,7 @@ impl TracedImage {
                 self.n_samples[i_image] = n;
                 for c in 0..3 {
                     let old_val = self.pixels[3 * i_image + c];
-                    let new_val = old_val + 1.0 / (n as f32) * (sample[3 * i_block + c] - old_val);
+                    let new_val = old_val + (sample[3 * i_block + c] - old_val) / (n as f32);
                     updated_pixels[3 * i_block + c] = new_val;
                     self.pixels[3 * i_image + c] = new_val;
                 }

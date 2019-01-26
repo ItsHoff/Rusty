@@ -81,10 +81,19 @@ impl PTRenderer {
         renderer
     }
 
-    pub fn update_and_render<S: Surface>(&mut self, target: &mut S) {
-        for (rect, sample) in self.result_rx.try_iter().take(10) {
+    pub fn update_image(&mut self) {
+        let mut n = 0;
+        let n_max = 1000;
+        for (rect, sample) in self.result_rx.try_iter().take(n_max) {
             self.image.add_sample(rect, &sample);
+            n += 1;
         }
+        if n == n_max {
+            println!("Hit maximum iterations in update!");
+        }
+    }
+
+    pub fn render_image<S: Surface>(&mut self, target: &mut S) {
         self.image.render(target);
     }
 
