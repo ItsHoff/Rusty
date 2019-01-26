@@ -3,6 +3,7 @@
 #![feature(try_trait)]
 
 use std::path::PathBuf;
+use std::time::{Instant, Duration};
 
 use chrono::Local;
 
@@ -151,6 +152,7 @@ fn online_render() {
 
     let mut input = InputState::new();
     let mut quit = false;
+    let mut last_frame = Instant::now();
 
     loop {
         let mut target = display.draw();
@@ -230,5 +232,11 @@ fn online_render() {
         if quit {
             return;
         }
+        // Limit frame rate
+        let frame_time = Duration::from_millis(16);
+        if last_frame.elapsed() < frame_time {
+            std::thread::park_timeout(frame_time - last_frame.elapsed());
+        }
+        last_frame = Instant::now();
     }
 }
