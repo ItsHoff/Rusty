@@ -44,7 +44,8 @@ use self::pt_renderer::PTRenderer;
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
         Some("hq") => high_quality(),
-        Some(_) => benchmark(),
+        Some("b") => benchmark("_bdpt", RenderConfig::bdpt_benchmark()),
+        Some(_) => benchmark("", RenderConfig::benchmark()),
         None => online_render(),
     }
 }
@@ -87,7 +88,7 @@ fn high_quality() {
     stats::print_and_save(&stats_file);
 }
 
-fn benchmark() {
+fn benchmark(tag: &str, config: RenderConfig) {
     let scenes = [
         "plane",
         "cornell-glossy",
@@ -96,7 +97,6 @@ fn benchmark() {
         "conference",
         "sponza",
     ];
-    let config = RenderConfig::benchmark();
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = root_dir.join("results");
     std::fs::create_dir_all(output_dir.clone()).unwrap();
@@ -123,15 +123,16 @@ fn benchmark() {
         let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
 
         stats::time("Post-process");
-        let scene_dir = output_dir.join(scene_name);
+        let scene_prefix = format!("{}{}", scene_name, tag);
+        let scene_dir = output_dir.join(&scene_prefix);
         std::fs::create_dir_all(scene_dir.clone()).unwrap();
-        let timestamped_image = scene_dir.join(format!("{}_{}.png", scene_name, time_stamp));
+        let timestamped_image = scene_dir.join(format!("{}_{}.png", scene_prefix, time_stamp));
         pt_renderer.save_image(&display, &timestamped_image);
         // Make a copy to the main output directory
-        let default_image = output_dir.join(scene_name).with_extension("png");
+        let default_image = output_dir.join(scene_prefix).with_extension("png");
         std::fs::copy(timestamped_image, default_image).unwrap();
     }
-    let stats_file = output_dir.join(format!("benchmark_{}.txt", time_stamp));
+    let stats_file = output_dir.join(format!("benchmark{}_{}.txt", tag, time_stamp));
     stats::print_and_save(&stats_file);
 }
 
