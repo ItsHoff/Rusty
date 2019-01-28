@@ -56,7 +56,7 @@ fn high_quality() {
     ];
     let config = RenderConfig::high_quality();
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let output_dir = root_dir.join("results");
+    let output_dir = root_dir.join("results").join("hq");
     std::fs::create_dir_all(output_dir.clone()).unwrap();
     let time_stamp = Local::now().format("%F_%H%M%S").to_string();
 
@@ -81,10 +81,10 @@ fn high_quality() {
         let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
 
         stats::time("Post-process");
-        let image = output_dir.join(format!("hq_{}_{}.png", scene_name, time_stamp));
+        let image = output_dir.join(format!("{}_{}.png", scene_name, time_stamp));
         pt_renderer.save_image(&display, &image);
     }
-    let stats_file = output_dir.join("hq_stats.txt");
+    let stats_file = output_dir.join(format!("hq_stats_{}.txt", time_stamp));
     stats::print_and_save(&stats_file);
 }
 
