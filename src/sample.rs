@@ -3,7 +3,6 @@ use cgmath::{Matrix3, Vector3};
 
 use crate::consts;
 use crate::float::*;
-use crate::intersect::Ray;
 
 /// Compute an orthonormal coordinate frame where n defines is the z-axis
 pub fn local_to_world(n: Vector3<Float>) -> Matrix3<Float> {
@@ -16,11 +15,14 @@ pub fn local_to_world(n: Vector3<Float>) -> Matrix3<Float> {
     Matrix3::from_cols(nx, ny, n)
 }
 
-/// Convert area pdf to directional pdf
-/// Ray connects the source and the receiving surface
-/// ng is the geometric normal of the receiving surface
-pub fn to_dir_pdf(pdf_a: Float, ray: &Ray, ng: Vector3<Float>) -> Float {
-    pdf_a * ray.length.powi(2) / ng.dot(ray.dir).abs()
+/// Convert area pdf to solid angle pdf
+pub fn to_dir_pdf(pdf_a: Float, dist2: Float, abs_cos_t: Float) -> Float {
+    pdf_a * dist2 / abs_cos_t
+}
+
+/// Convert solid angle pdf to area pdf
+pub fn to_area_pdf(pdf_dir: Float, dist2: Float, abs_cos_t: Float) -> Float {
+    pdf_dir * abs_cos_t / dist2
 }
 
 #[allow(clippy::many_single_char_names)]
@@ -36,8 +38,8 @@ pub fn cosine_sample_hemisphere(sign: Float) -> Vector3<Float> {
     Vector3::new(x, y, z)
 }
 
-pub fn cosine_hemisphere_pdf(w: Vector3<Float>) -> Float {
-    w.z.abs() / consts::PI
+pub fn cosine_hemisphere_pdf(abs_cos_t: Float) -> Float {
+    abs_cos_t / consts::PI
 }
 
 pub fn uniform_sample_sphere() -> Vector3<Float> {

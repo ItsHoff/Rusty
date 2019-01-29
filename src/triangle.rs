@@ -1,10 +1,11 @@
+use std::cmp::PartialEq;
+
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Matrix4, Point2, Point3, Vector3};
 
 use rand;
 
 use crate::aabb::{self, AABB};
-use crate::color::Color;
 use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
@@ -153,15 +154,6 @@ impl Triangle {
         AABB { min, max }
     }
 
-    pub fn le(&self, dir: Vector3<Float>) -> Color {
-        if let Some(le) = self.material.emissive {
-            if self.ng.dot(dir) > 0.0 {
-                return le;
-            }
-        }
-        Color::black()
-    }
-
     pub fn center(&self) -> Point3<Float> {
         Point3::centroid(&[self.v1.p, self.v2.p, self.v3.p])
     }
@@ -170,8 +162,8 @@ impl Triangle {
         0.5 / self.to_barycentric.determinant().abs()
     }
 
-    pub fn pdf_a(&self) -> Float {
-        1.0 / self.area()
+    pub fn is_emissive(&self) -> bool {
+        self.material.emissive.is_some()
     }
 
     pub fn sample() -> (Float, Float) {
@@ -196,5 +188,11 @@ impl<'a> Intersect<'a, Hit<'a>> for Triangle {
         } else {
             None
         }
+    }
+}
+
+impl PartialEq for Triangle {
+    fn eq(&self, other: &Self) -> bool {
+        self.v1 == other.v1 && self.v2 == other.v2 && self.v3 == other.v3
     }
 }

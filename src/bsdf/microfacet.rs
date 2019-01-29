@@ -181,7 +181,7 @@ impl BSDFT for FresnelBlendBRDF {
             return 0.0;
         }
         let wh = (wo + wi).normalize();
-        let d_pdf = sample::cosine_hemisphere_pdf(wi);
+        let d_pdf = sample::cosine_hemisphere_pdf(util::cos_t(wi).abs());
         let mf_pdf = self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs());
         (d_pdf + mf_pdf) / 2.0
     }

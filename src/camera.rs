@@ -15,7 +15,7 @@ use crate::input::InputState;
 use crate::light::{Light, PointLight};
 
 /// Representation of a camera
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Camera {
     /// Position of the camera in world coordinates
     pub pos: Point3<Float>,
@@ -34,6 +34,7 @@ pub struct Camera {
 }
 
 /// Extended camera for path tracing
+#[derive(Debug)]
 pub struct PTCamera {
     camera: Camera,
     flash: PointLight,
@@ -48,6 +49,47 @@ impl PTCamera {
 
     pub fn flash(&self) -> &dyn Light {
         &self.flash
+    }
+
+    /// Evaluate the cosine with dir
+    pub fn cos_t(&self, dir: Vector3<Float>) -> Float {
+        dir.dot(self.rot * -Vector3::unit_z())
+    }
+
+    pub fn we(&self, dir: Vector3<Float>) -> Color {
+        let cos_t = self.cos_t(dir);
+        let clip_dir = self.world_to_clip() * dir.extend(0.0);
+        if cos_t < consts::EPSILON {
+            Color::black()
+        } else {
+            // Find the intersection with the image plane
+            let clip_p = clip_dir.truncate() / clip_dir.z;
+            if clip_p.x < -1.0 || clip_p.x > 1.0 || clip_p.y < -1.0 || clip_p.y > 1.0 {
+                Color::black()
+            } else {
+                let area = 2.0;
+                Color::white() / (area * cos_t.powi(4))
+            }
+        }
+    }
+
+    /// Evaluate pdf of sampling dir
+    pub fn pdf(&self, dir: Vector3<Float>) -> Float {
+        let cos_t = self.cos_t(dir);
+        let clip_dir = self.world_to_clip() * dir.extend(0.0);
+        if cos_t < consts::EPSILON {
+            0.0
+        } else {
+            // Find the intersection with the image plane
+            let clip_p = clip_dir.truncate() / clip_dir.z;
+            if clip_p.x < -1.0 || clip_p.x > 1.0 || clip_p.y < -1.0 || clip_p.y > 1.0 {
+                0.0
+            } else {
+                let area = 2.0;
+                // Directional pdf
+                1.0 / (area * cos_t.powi(3))
+            }
+        }
     }
 }
 

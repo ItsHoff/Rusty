@@ -1,3 +1,4 @@
+use std::cmp::PartialEq;
 use std::ops::Deref;
 
 /// Pointer to specific element of a vector.
@@ -33,6 +34,12 @@ impl<T> Clone for IndexPtr<T> {
             vec: self.vec,
             i: self.i,
         }
+    }
+}
+
+impl<T> PartialEq for IndexPtr<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.vec == other.vec && self.i == other.i
     }
 }
 

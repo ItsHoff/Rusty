@@ -16,7 +16,7 @@ use crate::config::RenderConfig;
 use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
-use crate::light::{AreaLight, Light};
+use crate::light::Light;
 use crate::material::{GPUMaterial, Material};
 use crate::mesh::{GPUMesh, Mesh};
 use crate::obj_load;
@@ -53,7 +53,8 @@ pub struct Scene {
     meshes: Vec<Mesh>,
     materials: Vec<Material>,
     triangles: Vec<Triangle>,
-    lights: Vec<AreaLight>,
+    /// Indices of emissive triangles
+    lights: Vec<usize>,
     light_distribution: Vec<Float>,
     aabb: AABB,
     bvh: Option<BVH>,
@@ -185,26 +186,59 @@ impl Scene {
     fn construct_lights(&mut self) {
         let _t = stats::time("Lights");
         if self.bvh.is_none() {
-            println!("Constructing lights when there is no bvh!");
+            panic!("Constructing lights when there is no bvh!");
         }
         for (i, tri) in self.triangles.iter().enumerate() {
-            let material = &tri.material;
-            if material.emissive.is_some() {
-                self.lights.push(AreaLight::new(self.tri_ptr(i)));
+            if tri.material.emissive.is_some() {
+                self.lights.push(i);
             }
         }
         // Sort light by decreasing power
-        self.lights.sort_unstable_by(|l1, l2| {
+        let tris = &self.triangles;
+        self.lights.sort_unstable_by(|&i1, &i2| {
+            let l1 = &tris[i1];
+            let l2 = &tris[i2];
             let b1 = l1.power().luma();
             let b2 = l2.power().luma();
             b2.partial_cmp(&b1).unwrap()
         });
-        let mut power_distr: Vec<Float> = self.lights.iter().map(|l| l.power().luma()).collect();
+        let mut power_distr: Vec<Float> = self
+            .lights
+            .iter()
+            .map(|&i| self.triangles[i].power().luma())
+            .collect();
         let total_power: Float = power_distr.iter().sum();
         for power in &mut power_distr {
             *power /= total_power;
         }
         self.light_distribution = power_distr;
+    }
+
+    pub fn sample_light(&self) -> Option<(&dyn Light, Float)> {
+        let r = rand::random::<Float>();
+        let mut sum = 0.0;
+        for (i, &val) in self.light_distribution.iter().enumerate() {
+            sum += val;
+            if r < sum {
+                let i_tri = self.lights[i];
+                return Some((&self.triangles[i_tri], val));
+            }
+        }
+        None
+    }
+
+    /// Pdf of sampling light tri
+    pub fn pdf_light(&self, tri: &Triangle) -> Float {
+        if tri.material.emissive.is_none() {
+            0.0
+        } else {
+            for (i, &i_tri) in self.lights.iter().enumerate() {
+                if &self.triangles[i_tri] == tri {
+                    return self.light_distribution[i];
+                }
+            }
+            panic!("Could not find tri {:?} in lights", tri);
+        }
     }
 
     /// Load the textures + vertex and index buffers to the GPU
@@ -233,11 +267,6 @@ impl Scene {
         IndexPtr::new(&self.materials, i)
     }
 
-    /// Get an IndexPtr to ith tri
-    fn tri_ptr(&self, i: usize) -> IndexPtr<Triangle> {
-        IndexPtr::new(&self.triangles, i)
-    }
-
     /// Get an IndexPtr to ith vertex
     fn vertex_ptr(&self, i: usize) -> IndexPtr<Vertex> {
         IndexPtr::new(&self.vertices, i)
@@ -251,19 +280,6 @@ impl Scene {
     /// Get the approximate size of the scene
     pub fn size(&self) -> Float {
         self.aabb.longest_edge()
-    }
-
-    pub fn sample_light(&self) -> Option<(&dyn Light, Float)> {
-        let r = rand::random::<Float>();
-        let mut sum = 0.0;
-        for (i, &val) in self.light_distribution.iter().enumerate() {
-            sum += val;
-            if r < sum {
-                let light = &self.lights[i];
-                return Some((light, val));
-            }
-        }
-        None
     }
 
     pub fn intersect<'a>(

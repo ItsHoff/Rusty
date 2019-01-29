@@ -16,7 +16,7 @@ fn sample_light(
         LightMode::Scene => scene.sample_light().unwrap_or((flash, 1.0)),
         LightMode::Camera => (flash, 1.0),
     };
-    let (li, ray, lpdf) = light.sample_li(isect);
+    let (li, ray, lpdf) = light.sample_towards(isect);
     (li, ray, pdf * lpdf)
 }
 
@@ -39,7 +39,7 @@ pub fn path_trace<'a>(
         let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, flash, config);
         let bsdf = isect.bsdf(-ray.dir, shadow_ray.dir);
         if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
-            let cos_t = isect.cos_t(shadow_ray.dir);
+            let cos_t = isect.cos_t(shadow_ray.dir).abs();
             c += beta * le * bsdf * cos_t / light_pdf;
         }
         let mut pdf = 1.0;
@@ -57,7 +57,7 @@ pub fn path_trace<'a>(
             if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir) {
                 ray = new_ray;
                 pdf *= bsdf_pdf;
-                beta *= isect.cos_t(ray.dir) * bsdf / pdf;
+                beta *= isect.cos_t(ray.dir).abs() * bsdf / pdf;
                 bounce += 1;
                 specular_bounce = isect.is_specular();
             } else {

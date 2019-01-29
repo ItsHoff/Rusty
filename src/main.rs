@@ -3,7 +3,7 @@
 #![feature(try_trait)]
 
 use std::path::PathBuf;
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 
 use chrono::Local;
 
@@ -51,9 +51,7 @@ fn main() {
 }
 
 fn high_quality() {
-    let scenes = [
-        "cornell-sphere",
-    ];
+    let scenes = ["cornell-sphere"];
     let config = RenderConfig::high_quality();
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = root_dir.join("results").join("hq");
@@ -137,7 +135,7 @@ fn benchmark(tag: &str, config: RenderConfig) {
 }
 
 fn online_render() {
-    let mut config = RenderConfig::default();
+    let mut config = RenderConfig::bdpt();
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new()
         .with_dimensions(config.dimensions())

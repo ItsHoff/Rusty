@@ -82,6 +82,7 @@ impl RenderConfig {
     pub fn bdpt() -> Self {
         Self {
             render_mode: RenderMode::BDPT,
+            russian_roulette: false,
             ..Default::default()
         }
     }

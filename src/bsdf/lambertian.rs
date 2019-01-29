@@ -34,7 +34,7 @@ impl BSDFT for LambertianBRDF {
 
     fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
         if util::same_hemisphere(wo, wi) {
-            sample::cosine_hemisphere_pdf(wi)
+            sample::cosine_hemisphere_pdf(util::cos_t(wi).abs())
         } else {
             0.0
         }
@@ -43,7 +43,7 @@ impl BSDFT for LambertianBRDF {
     fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = sample::cosine_sample_hemisphere(wo.z);
         let val = self.brdf(wo, wi);
-        let pdf = sample::cosine_hemisphere_pdf(wi);
+        let pdf = sample::cosine_hemisphere_pdf(util::cos_t(wi).abs());
         Some((val, wi, pdf))
     }
 }

@@ -8,6 +8,7 @@ use crate::color::Color;
 use crate::config::RenderConfig;
 use crate::consts;
 use crate::float::*;
+use crate::light::Light;
 use crate::sample;
 use crate::triangle::Triangle;
 
@@ -103,7 +104,7 @@ impl<'a> Hit<'a> {
 
 #[derive(Clone, Debug)]
 pub struct Interaction<'a> {
-    tri: &'a Triangle,
+    pub tri: &'a Triangle,
     to_local: Matrix3<Float>,
     pub p: Point3<Float>,
     pub ns: Vector3<Float>,
@@ -136,9 +137,9 @@ impl Interaction<'_> {
         self.bsdf.is_specular()
     }
 
-    /// Absolute value of cosine theta
+    /// Evaluate cosine theta of dir
     pub fn cos_t(&self, dir: Vector3<Float>) -> Float {
-        self.ns.dot(dir).abs()
+        self.ns.dot(dir)
     }
 
     pub fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
