@@ -88,7 +88,7 @@ fn high_quality() {
 
 fn benchmark(tag: &str, config: RenderConfig) {
     let scenes = [
-        "plane",
+        "cornell-sphere",
         "cornell-glossy",
         "cornell-water",
         "indirect",
