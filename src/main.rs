@@ -158,7 +158,7 @@ fn online_render() {
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
         if let Some(renderer) = &mut pt_renderer {
             renderer.update_image();
-            renderer.render_image(&mut target);
+            renderer.render_image(&display, &mut target);
         } else {
             gl_renderer.render(&mut target, &gpu_scene, &camera);
         }

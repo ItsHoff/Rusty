@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use cgmath;
 use cgmath::prelude::*;
-use cgmath::{Matrix4, Point3, Quaternion, Rad, Vector3};
+use cgmath::{Matrix4, Point2, Point3, Quaternion, Rad, Vector3};
 
 use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
 
@@ -75,6 +75,7 @@ impl PTCamera {
 
     /// Evaluate pdf of sampling dir
     pub fn pdf_dir(&self, dir: Vector3<Float>) -> Float {
+        // TODO: use clip_pos
         let cos_t = self.cos_t(dir);
         let clip_dir = self.world_to_clip() * dir.extend(0.0);
         if cos_t < consts::EPSILON {
@@ -88,6 +89,22 @@ impl PTCamera {
                 let area = 2.0;
                 // Directional pdf
                 1.0 / (area * cos_t.powi(3))
+            }
+        }
+    }
+
+    /// Try to convert dir to clip plane position
+    pub fn clip_pos(&self, dir: Vector3<Float>) -> Option<Point2<Float>> {
+        let clip_dir = self.world_to_clip() * dir.extend(0.0);
+        // Only accept direction coming from the front
+        if clip_dir.z < consts::EPSILON {
+            None
+        } else {
+            let clip_p = clip_dir.truncate() / clip_dir.z;
+            if clip_p.x < -1.0 || clip_p.x > 1.0 || clip_p.y < -1.0 || clip_p.y > 1.0 {
+                None
+            } else {
+                Some(Point2::new(clip_p.x, clip_p.y))
             }
         }
     }

@@ -5,6 +5,8 @@ use std::sync::{
 };
 use std::thread::{self, JoinHandle};
 
+use cgmath::Point2;
+
 use glium::backend::Facade;
 use glium::{Rect, Surface};
 
@@ -22,9 +24,14 @@ use self::coordinator::RenderCoordinator;
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
 
+enum PTResult {
+    Block(Rect, Vec<f32>),
+    Splat(Point2<u32>, [f32; 3]),
+}
+
 pub struct PTRenderer {
     image: TracedImage,
-    result_rx: Receiver<(Rect, Vec<f32>)>,
+    result_rx: Receiver<PTResult>,
     message_txs: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
 }
@@ -75,26 +82,34 @@ impl PTRenderer {
         let mut renderer = Self::start_render(facade, scene, camera, config);
         // This loops until all senders have disconnected
         // ie. all workers have finished
-        for (rect, block) in renderer.result_rx.iter() {
-            renderer.image.add_sample(rect, &block);
+        for res in renderer.result_rx.iter() {
+            match res {
+                PTResult::Block(rect, sample) => renderer.image.add_sample(rect, &sample),
+                PTResult::Splat(pixel, sample) => renderer.image.add_splat(pixel, sample),
+            }
         }
         renderer
     }
 
     pub fn update_image(&mut self) {
         let mut n = 0;
-        let n_max = 1000;
-        for (rect, sample) in self.result_rx.try_iter().take(n_max) {
-            self.image.add_sample(rect, &sample);
+        // Limit the number of updates to avoid infinite loops
+        // when samples are produced faster that they are processed.
+        let n_max = 100_000;
+        for res in self.result_rx.try_iter().take(n_max) {
             n += 1;
+            match res {
+                PTResult::Block(rect, sample) => self.image.add_sample(rect, &sample),
+                PTResult::Splat(pixel, sample) => self.image.add_splat(pixel, sample),
+            }
         }
         if n == n_max {
             println!("Hit maximum iterations in update!");
         }
     }
 
-    pub fn render_image<S: Surface>(&mut self, target: &mut S) {
-        self.image.render(target);
+    pub fn render_image<F: Facade, S: Surface>(&mut self, facade: &F, target: &mut S) {
+        self.image.render(facade, target);
     }
 
     pub fn save_image<F: Facade>(&self, facade: &F, path: &Path) {

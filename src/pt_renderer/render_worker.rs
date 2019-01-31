@@ -4,11 +4,8 @@ use std::sync::{
 };
 
 use cgmath::prelude::*;
-use cgmath::{Point3, Vector4};
+use cgmath::{Point2, Point3, Vector4};
 
-use glium::Rect;
-
-use crate::bvh::BVHNode;
 use crate::camera::PTCamera;
 use crate::color::Color;
 use crate::config::*;
@@ -17,7 +14,7 @@ use crate::intersect::Ray;
 use crate::scene::Scene;
 
 use super::tracers;
-use super::RenderCoordinator;
+use super::{PTResult, RenderCoordinator};
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -25,17 +22,17 @@ pub struct RenderWorker {
     config: RenderConfig,
     coordinator: Arc<RenderCoordinator>,
     message_rx: Receiver<()>,
-    result_tx: Sender<(Rect, Vec<f32>)>,
+    result_tx: Sender<PTResult>,
 }
 
 impl RenderWorker {
-    pub fn new(
+    pub(super) fn new(
         scene: Arc<Scene>,
         camera: PTCamera,
         config: RenderConfig,
         coordinator: Arc<RenderCoordinator>,
         message_rx: Receiver<()>,
-        result_tx: Sender<(Rect, Vec<f32>)>,
+        result_tx: Sender<PTResult>,
     ) -> RenderWorker {
         RenderWorker {
             scene,
@@ -50,7 +47,8 @@ impl RenderWorker {
     pub fn run(&self) {
         let (width, height) = (self.coordinator.width, self.coordinator.height);
         let clip_to_world = self.camera.world_to_clip().invert().unwrap();
-        let mut node_stack: Vec<(&BVHNode, Float)> = Vec::new();
+        let mut node_stack = Vec::new();
+        let mut splats = Vec::new();
         loop {
             match self.message_rx.try_recv() {
                 Err(TryRecvError::Empty) => (),
@@ -62,6 +60,7 @@ impl RenderWorker {
             }
             if let Some(rect) = self.coordinator.next_block() {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
+                let n_samples = self.config.samples_per_dir.pow(2).to_float();
                 for h in 0..rect.height {
                     for w in 0..rect.width {
                         let mut c = Color::black();
@@ -96,24 +95,38 @@ impl RenderWorker {
                                         &self.config,
                                         &mut node_stack,
                                     ),
-                                    RenderMode::BDPT => tracers::bdpt(
-                                        ray,
-                                        &self.scene,
-                                        &self.camera,
-                                        &self.config,
-                                        &mut node_stack,
-                                    ),
+                                    RenderMode::BDPT => {
+                                        let c = tracers::bdpt(
+                                            ray,
+                                            &self.scene,
+                                            &self.camera,
+                                            &self.config,
+                                            &mut node_stack,
+                                            &mut splats,
+                                        );
+                                        // Consume splats
+                                        for (pos, rad) in splats.drain(..) {
+                                            let x = (0.5 * (pos.x + 1.0) * width.to_float()).floor() as u32;
+                                            let y = (0.5 * (pos.y + 1.0) * height.to_float()).floor() as u32;
+                                            let rad = rad / n_samples;
+                                            let arr: [f32; 3] = rad.into();
+                                            self.result_tx
+                                                .send(PTResult::Splat(Point2::new(x, y), arr))
+                                                .expect("Receiver closed!");
+                                        }
+                                        c
+                                    }
                                 }
                             }
                         }
-                        c /= self.config.samples_per_dir.pow(2).to_float();
+                        c /= n_samples;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
                         let data: [f32; 3] = c.into();
                         block[pixel_i..pixel_i + 3].copy_from_slice(&data);
                     }
                 }
                 self.result_tx
-                    .send((rect, block))
+                    .send(PTResult::Block(rect, block))
                     .expect("Receiver closed!");
             } else {
                 return;

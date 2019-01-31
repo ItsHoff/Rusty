@@ -5,6 +5,7 @@ in vec2 v_tex_coords;
 out vec4 color;
 
 uniform sampler2D image;
+uniform usampler2D n;
 uniform bool tone_map;
 
 float hable(float x) {
@@ -19,7 +20,7 @@ float hable(float x) {
 }
 
 void main() {
-    color = texture(image, v_tex_coords);
+    color = texture(image, v_tex_coords) / max(texture(n, v_tex_coords).r, 1u);
     float luma = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
     if (tone_map) {
         float hable_scale = hable(luma) / luma;

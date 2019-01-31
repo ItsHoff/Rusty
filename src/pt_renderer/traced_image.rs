@@ -1,9 +1,12 @@
 use std::path::Path;
 
+use cgmath::Point2;
+
 use glium::backend::Facade;
 use glium::framebuffer::SimpleFrameBuffer;
 use glium::texture::{
-    MipmapsOption, RawImage2d, SrgbTexture2d, Texture2d, UncompressedFloatFormat,
+    ClientFormat, MipmapsOption, RawImage2d, SrgbTexture2d, Texture2d, UnsignedTexture2d,
+    UncompressedFloatFormat, UncompressedUintFormat,
 };
 use glium::{uniform, DrawParameters, IndexBuffer, Rect, Surface, VertexBuffer};
 
@@ -24,8 +27,7 @@ impl TracedImage {
         let height = config.height;
         let pixels = vec![0.0; (3 * width * height) as usize];
         let n_samples = vec![0; (width * height) as usize];
-        let raw_image = RawImage2d::from_raw_rgb(pixels.clone(), (width, height));
-        let visualizer = Visualizer::new(facade, raw_image, config);
+        let visualizer = Visualizer::new(facade, config);
         Self {
             pixels,
             n_samples,
@@ -36,35 +38,35 @@ impl TracedImage {
     }
 
     pub fn add_sample(&mut self, rect: Rect, sample: &[f32]) {
-        let mut updated_pixels = vec![0.0f32; (3 * rect.width * rect.height) as usize];
         for h in 0..rect.height {
             for w in 0..rect.width {
                 let i_image = ((h + rect.bottom) * self.width + w + rect.left) as usize;
                 let i_block = (h * rect.width + w) as usize;
-                let n = self.n_samples[i_image] + 1;
-                self.n_samples[i_image] = n;
+                self.n_samples[i_image] += 1;
                 for c in 0..3 {
-                    let old_val = self.pixels[3 * i_image + c];
-                    let new_val = old_val + (sample[3 * i_block + c] - old_val) / (n as f32);
-                    updated_pixels[3 * i_block + c] = new_val;
-                    self.pixels[3 * i_image + c] = new_val;
+                    self.pixels[3 * i_image + c] += sample[3 * i_block + c];
                 }
             }
         }
-        // Update the visualizer texture as well
-        let data = RawImage2d::from_raw_rgb(updated_pixels, (rect.width, rect.height));
-        self.visualizer.update_texture(rect, data);
     }
 
-    pub fn render<S: Surface>(&self, target: &mut S) {
-        self.visualizer.render(target);
+    #[allow(clippy::needless_range_loop)]
+    pub fn add_splat(&mut self, pixel: Point2<u32>, sample: [f32; 3]) {
+        let i_image = (pixel.y * self.width + pixel.x) as usize;
+        for c in 0..3 {
+            self.pixels[3 * i_image + c] += sample[c];
+        }
+    }
+
+    pub fn render<F: Facade, S: Surface>(&self, facade: &F, target: &mut S) {
+        self.visualizer.render(facade, target, &self.pixels, &self.n_samples, self.width, self.height);
     }
 
     pub fn save<F: Facade>(&self, facade: &F, path: &Path) {
         let texture = SrgbTexture2d::empty(facade, self.width, self.height).unwrap();
         let mut target = SimpleFrameBuffer::new(facade, &texture).unwrap();
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-        self.visualizer.render(&mut target);
+        self.render(facade, &mut target);
         let pb = texture.read_to_pixel_buffer();
         let raw_image: RawImage2d<u8> = pb.read_as_texture_2d().unwrap();
         let image =
@@ -78,12 +80,11 @@ struct Visualizer {
     shader: glium::Program,
     vertex_buffer: VertexBuffer<RawVertex>,
     index_buffer: IndexBuffer<u32>,
-    texture: Texture2d,
     tone_map: bool,
 }
 
 impl Visualizer {
-    fn new<F: Facade>(facade: &F, raw_image: RawImage2d<f32>, config: &RenderConfig) -> Self {
+    fn new<F: Facade>(facade: &F, config: &RenderConfig) -> Self {
         let vertices = vec![
             RawVertex {
                 pos: [-1.0, -1.0, 0.0],
@@ -120,26 +121,47 @@ impl Visualizer {
             glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
                 .expect("Failed to create program!");
 
-        let texture = Texture2d::with_format(
+        Self {
+            shader,
+            vertex_buffer,
+            index_buffer,
+            tone_map: config.tone_map,
+        }
+    }
+
+    fn render<F: Facade, S: Surface>(&self, facade: &F, target: &mut S, data: &[f32], n_samples: &[u32],
+                                     width: u32, height: u32) {
+        let data_raw = RawImage2d {
+            data: std::borrow::Cow::from(data),
+            width,
+            height,
+            format: ClientFormat::F32F32F32,
+        };
+        let data_texture = Texture2d::with_format(
             facade,
-            raw_image,
+            data_raw,
             UncompressedFloatFormat::F32F32F32,
             MipmapsOption::NoMipmap,
         )
         .unwrap();
 
-        Self {
-            shader,
-            vertex_buffer,
-            index_buffer,
-            texture,
-            tone_map: config.tone_map,
-        }
-    }
+        let n_raw = RawImage2d {
+            data: std::borrow::Cow::from(n_samples),
+            width,
+            height,
+            format: ClientFormat::U32,
+        };
+        let n_texture = UnsignedTexture2d::with_format(
+            facade,
+            n_raw,
+            UncompressedUintFormat::U32,
+            MipmapsOption::NoMipmap,
+        )
+        .unwrap();
 
-    fn render<S: Surface>(&self, target: &mut S) {
         let uniforms = uniform! {
-            image: &self.texture,
+            image: &data_texture,
+            n: &n_texture,
             tone_map: self.tone_map,
         };
         let draw_parameters = DrawParameters {
@@ -154,9 +176,5 @@ impl Visualizer {
                 &draw_parameters,
             )
             .unwrap();
-    }
-
-    fn update_texture(&mut self, rect: Rect, data: RawImage2d<f32>) {
-        self.texture.write(rect, data);
     }
 }

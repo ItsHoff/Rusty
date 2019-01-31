@@ -74,8 +74,7 @@ impl<'a> BDPath<'a> {
         })
         &&
         // Is camera side vertex valid connection
-        // TODO: enable splats
-        (if t < 2 {
+        (if t == 0 {
             false
         } else {
             !self.get_t(t).delta_dir()
@@ -91,7 +90,7 @@ impl<'a> BDPath<'a> {
         let mut pdf_light = 1.0;
         for i in 1..=s {
             if i == 1 {
-                pdf_light *= self.light_vertex.pdf;
+                pdf_light *= self.light_vertex.pdf_pos;
             } else if i == 2 {
                 pdf_light *= self.light_vertex.pdf_next(self.get_surface_s(i));
             } else {
@@ -102,6 +101,7 @@ impl<'a> BDPath<'a> {
             }
         }
         let mut pdf_camera = 1.0;
+        // Point light so no reason to evaluate t == 1
         for i in 2..=t {
             if i == 2 {
                 pdf_camera *= self.camera_vertex.pdf_next(self.get_surface_t(i));
@@ -154,7 +154,7 @@ pub fn pdf_scatter(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &dyn Vertex) -> Floa
 
 #[derive(Debug)]
 pub struct CameraVertex<'a> {
-    camera: &'a PTCamera,
+    pub camera: &'a PTCamera,
     ray: Ray,
 }
 
@@ -200,18 +200,18 @@ impl Vertex for CameraVertex<'_> {
 pub struct LightVertex<'a> {
     light: &'a dyn Light,
     pos: Point3<Float>,
-    pdf: Float,
+    pdf_pos: Float,
 }
 
 impl<'a> LightVertex<'a> {
-    pub fn new(light: &'a dyn Light, pos: Point3<Float>, pdf: Float) -> Self {
-        Self { light, pos, pdf }
+    pub fn new(light: &'a dyn Light, pos: Point3<Float>, pdf_pos: Float) -> Self {
+        Self { light, pos, pdf_pos }
     }
 
     pub fn sample_next(&self) -> (Color, Ray) {
         let (le, dir, dir_pdf) = self.light.sample_dir();
         let ray = Ray::from_dir(self.pos + consts::EPSILON * dir, dir);
-        let beta = le * self.light.cos_t(ray.dir).abs() / (self.pdf * dir_pdf);
+        let beta = le * self.light.cos_t(ray.dir).abs() / (self.pdf_pos * dir_pdf);
         (beta, ray)
     }
 
@@ -236,7 +236,7 @@ impl Vertex for LightVertex<'_> {
     }
 
     fn path_throughput(&self, dir: Vector3<Float>) -> Color {
-        self.light.le(dir) / self.pdf
+        self.light.le(dir) / self.pdf_pos
     }
 }
 

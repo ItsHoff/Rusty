@@ -1,14 +1,14 @@
 # Rusty the Rendering Engine
 
 ![Example render](example_render.png)
-      
+
 
 WIP physically based renderer.
 
 ## Features
 
 - OpenGl preview
-- Path tracing
+- Bidirectional path tracing
 - Diffuse reflection
 - Specular reflection + transmission
 - Glossy reflection + transmission

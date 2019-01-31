@@ -1,3 +1,5 @@
+use cgmath::Point2;
+
 use crate::bvh::BVHNode;
 use crate::camera::PTCamera;
 use crate::color::Color;
@@ -17,6 +19,7 @@ pub fn bdpt<'a>(
     camera: &'a PTCamera,
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    splats: &mut Vec<(Point2<Float>, Color)>,
 ) -> Color {
     let camera_vertex = CameraVertex::new(camera, camera_ray);
     let (beta, ray) = camera_vertex.sample_next();
@@ -41,6 +44,7 @@ pub fn bdpt<'a>(
             if s + t < 2 || s + t - 2 > config.bounces {
                 continue;
             }
+            let mut splat = None;
             // No light vertices
             let (radiance, path) = if s == 0 {
                 if let Some(vertex) = camera_path.get(t - 2) {
@@ -60,8 +64,17 @@ pub fn bdpt<'a>(
                 continue;
             // Connect light vertex to camera
             } else if t == 1 {
-                // TODO
-                continue;
+                let l_vertex = &light_path[s - 2];
+                let (mut connection_ray, radiance) = camera_vertex.connect_to(l_vertex);
+                if !radiance.is_black() && scene.intersect(&mut connection_ray, node_stack).is_none() {
+                    // Splat is always valid if radiance is not black
+                    splat = camera_vertex.camera.clip_pos(-connection_ray.dir);
+                    let path = BDPath::new(light_vertex.clone(), &light_path[0..=s - 2],
+                                           &camera_vertex, &[]);
+                    (radiance, path)
+                } else {
+                    continue;
+                }
             // Connect camera vertex to light
             } else if s == 1 {
                 let c_vertex = &camera_path[t - 2];
@@ -86,7 +99,7 @@ pub fn bdpt<'a>(
                     continue;
                 }
             };
-            if true {
+            let radiance = if config.mis {
                 // MIS
                 let weight = if s + t == 2 {
                     1.0
@@ -94,17 +107,23 @@ pub fn bdpt<'a>(
                     let power = 2;
                     let pdf_strat = path.pdf(s, t).unwrap().powi(power);
                     let mut sum_pdf = 0.0;
-                    for i in 2..=s + t {
-                        if let Some(pdf) = path.pdf(s + t - i, i) {
+                    for ti in 1..=s + t {
+                        if let Some(pdf) = path.pdf(s + t - ti, ti) {
                             sum_pdf += pdf.powi(power);
                         }
                     }
                     pdf_strat / sum_pdf
                 };
-                c += weight * radiance;
+                weight * radiance
             } else {
                 // uniform scale
-                c += radiance / (s + t - 1).to_float();
+                let n_scatter = s + t - 2;
+                radiance / (n_scatter + 2).to_float()
+            };
+            if let Some(clip_p) = splat.take() {
+                splats.push((clip_p, radiance));
+            } else {
+                c += radiance;
             }
         }
     }

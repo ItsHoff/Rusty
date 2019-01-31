@@ -47,8 +47,10 @@ pub struct RenderConfig {
     pub light_mode: LightMode,
     /// Maximum number of iterations. None corresponds to manual stop.
     pub max_iterations: Option<usize>,
-    /// The russian roulette termination probability. None skips russian roulette.
+    /// Russian roulette on or off
     pub russian_roulette: bool,
+    /// Multiple importance sampling on or off
+    pub mis: bool,
     /// Number of bounces before starting russian roulette or terminating the path.
     pub bounces: usize,
     /// Samples per pixel per direction. Squared to get the total samples per pixel.
@@ -70,6 +72,7 @@ impl Default for RenderConfig {
             light_mode: LightMode::Scene,
             max_iterations: None,
             russian_roulette: true,
+            mis: true,
             bounces: 5,
             samples_per_dir: 2,
             tone_map: true,
@@ -97,6 +100,7 @@ impl RenderConfig {
             light_mode: LightMode::Scene,
             max_iterations: Some(1),
             russian_roulette: false,
+            mis: true,
             bounces: 5,
             samples_per_dir: 3,
             tone_map: true,
@@ -149,6 +153,10 @@ impl RenderConfig {
             VirtualKeyCode::N => {
                 self.normal_mapping = !self.normal_mapping;
                 println!("Normal mapping: {}", self.normal_mapping);
+            }
+            VirtualKeyCode::M => {
+                self.mis = !self.mis;
+                println!("MIS: {}", self.mis);
             }
             VirtualKeyCode::L => {
                 self.light_mode = match self.light_mode {
