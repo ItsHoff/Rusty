@@ -233,7 +233,7 @@ fn online_render() {
             return;
         }
         // Limit frame rate
-        let frame_time = Duration::from_millis(16);
+        let frame_time = Duration::from_millis(5);
         if last_frame.elapsed() < frame_time {
             std::thread::park_timeout(frame_time - last_frame.elapsed());
         }
