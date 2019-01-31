@@ -106,8 +106,11 @@ impl RenderWorker {
                                         );
                                         // Consume splats
                                         for (pos, rad) in splats.drain(..) {
-                                            let x = (0.5 * (pos.x + 1.0) * width.to_float()).floor() as u32;
-                                            let y = (0.5 * (pos.y + 1.0) * height.to_float()).floor() as u32;
+                                            let x = (0.5 * (pos.x + 1.0) * width.to_float()).floor()
+                                                as u32;
+                                            let y = (0.5 * (pos.y + 1.0) * height.to_float())
+                                                .floor()
+                                                as u32;
                                             let rad = rad / n_samples;
                                             let arr: [f32; 3] = rad.into();
                                             self.result_tx

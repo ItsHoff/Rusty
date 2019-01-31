@@ -49,8 +49,8 @@ pub fn bdpt<'a>(
             let (radiance, path) = if s == 0 {
                 if let Some(vertex) = camera_path.get(t - 2) {
                     if let Some(light_vertex) = vertex.to_light_vertex(&scene) {
-                        let path = BDPath::new(light_vertex, &[],
-                                               &camera_vertex, &camera_path[0..t - 2]);
+                        let path =
+                            BDPath::new(light_vertex, &[], &camera_vertex, &camera_path[0..t - 2]);
                         (vertex.path_radiance(), path)
                     } else {
                         continue;
@@ -66,11 +66,17 @@ pub fn bdpt<'a>(
             } else if t == 1 {
                 let l_vertex = &light_path[s - 2];
                 let (mut connection_ray, radiance) = camera_vertex.connect_to(l_vertex);
-                if !radiance.is_black() && scene.intersect(&mut connection_ray, node_stack).is_none() {
+                if !radiance.is_black()
+                    && scene.intersect(&mut connection_ray, node_stack).is_none()
+                {
                     // Splat is always valid if radiance is not black
                     splat = camera_vertex.camera.clip_pos(-connection_ray.dir);
-                    let path = BDPath::new(light_vertex.clone(), &light_path[0..=s - 2],
-                                           &camera_vertex, &[]);
+                    let path = BDPath::new(
+                        light_vertex.clone(),
+                        &light_path[0..=s - 2],
+                        &camera_vertex,
+                        &[],
+                    );
                     (radiance, path)
                 } else {
                     continue;
@@ -79,9 +85,15 @@ pub fn bdpt<'a>(
             } else if s == 1 {
                 let c_vertex = &camera_path[t - 2];
                 let (mut connection_ray, radiance) = light_vertex.connect_to(c_vertex);
-                if !radiance.is_black() && scene.intersect(&mut connection_ray, node_stack).is_none() {
-                    let path = BDPath::new(light_vertex.clone(), &[],
-                                           &camera_vertex, &camera_path[0..=t - 2]);
+                if !radiance.is_black()
+                    && scene.intersect(&mut connection_ray, node_stack).is_none()
+                {
+                    let path = BDPath::new(
+                        light_vertex.clone(),
+                        &[],
+                        &camera_vertex,
+                        &camera_path[0..=t - 2],
+                    );
                     (radiance, path)
                 } else {
                     continue;
@@ -91,9 +103,15 @@ pub fn bdpt<'a>(
                 let l_vertex = &light_path[s - 2];
                 let c_vertex = &camera_path[t - 2];
                 let (mut connection_ray, radiance) = l_vertex.connect_to(c_vertex);
-                if !radiance.is_black() && scene.intersect(&mut connection_ray, node_stack).is_none() {
-                    let path = BDPath::new(light_vertex.clone(), &light_path[0..=s - 2],
-                                           &camera_vertex, &camera_path[0..=t - 2]);
+                if !radiance.is_black()
+                    && scene.intersect(&mut connection_ray, node_stack).is_none()
+                {
+                    let path = BDPath::new(
+                        light_vertex.clone(),
+                        &light_path[0..=s - 2],
+                        &camera_vertex,
+                        &camera_path[0..=t - 2],
+                    );
                     (radiance, path)
                 } else {
                     continue;

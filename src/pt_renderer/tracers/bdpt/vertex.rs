@@ -18,8 +18,11 @@ pub struct BDPath<'a> {
 }
 
 impl<'a> BDPath<'a> {
-    pub fn new(light_vertex: LightVertex<'a>, light_path: &[SurfaceVertex<'a>],
-               camera_vertex: &'a CameraVertex, camera_path: &[SurfaceVertex<'a>],
+    pub fn new(
+        light_vertex: LightVertex<'a>,
+        light_path: &[SurfaceVertex<'a>],
+        camera_vertex: &'a CameraVertex,
+        camera_path: &[SurfaceVertex<'a>],
     ) -> Self {
         let mut path = light_path.to_vec();
         for v in camera_path.iter().rev() {
@@ -65,7 +68,11 @@ impl<'a> BDPath<'a> {
     }
 
     fn is_valid(&self, s: usize, t: usize) -> bool {
-        assert_eq!(s + t - 2, self.path.len(), "Trying to validate path with wrong length!");
+        assert_eq!(
+            s + t - 2,
+            self.path.len(),
+            "Trying to validate path with wrong length!"
+        );
         // Is light side vertex valid connection
         (if s == 0 {
             !self.light_vertex.light.delta_pos()
@@ -205,7 +212,11 @@ pub struct LightVertex<'a> {
 
 impl<'a> LightVertex<'a> {
     pub fn new(light: &'a dyn Light, pos: Point3<Float>, pdf_pos: Float) -> Self {
-        Self { light, pos, pdf_pos }
+        Self {
+            light,
+            pos,
+            pdf_pos,
+        }
     }
 
     pub fn sample_next(&self) -> (Color, Ray) {
@@ -251,11 +262,7 @@ pub struct SurfaceVertex<'a> {
 
 impl<'a> SurfaceVertex<'a> {
     pub fn new(ray: Ray, beta: Color, isect: Interaction<'a>) -> Self {
-        Self {
-            ray,
-            beta,
-            isect,
-        }
+        Self { ray, beta, isect }
     }
 
     /// Radiance along the path ending at this vertex

@@ -5,8 +5,8 @@ use cgmath::Point2;
 use glium::backend::Facade;
 use glium::framebuffer::SimpleFrameBuffer;
 use glium::texture::{
-    ClientFormat, MipmapsOption, RawImage2d, SrgbTexture2d, Texture2d, UnsignedTexture2d,
-    UncompressedFloatFormat, UncompressedUintFormat,
+    ClientFormat, MipmapsOption, RawImage2d, SrgbTexture2d, Texture2d, UncompressedFloatFormat,
+    UncompressedUintFormat, UnsignedTexture2d,
 };
 use glium::{uniform, DrawParameters, IndexBuffer, Rect, Surface, VertexBuffer};
 
@@ -59,7 +59,14 @@ impl TracedImage {
     }
 
     pub fn render<F: Facade, S: Surface>(&self, facade: &F, target: &mut S) {
-        self.visualizer.render(facade, target, &self.pixels, &self.n_samples, self.width, self.height);
+        self.visualizer.render(
+            facade,
+            target,
+            &self.pixels,
+            &self.n_samples,
+            self.width,
+            self.height,
+        );
     }
 
     pub fn save<F: Facade>(&self, facade: &F, path: &Path) {
@@ -129,8 +136,15 @@ impl Visualizer {
         }
     }
 
-    fn render<F: Facade, S: Surface>(&self, facade: &F, target: &mut S, data: &[f32], n_samples: &[u32],
-                                     width: u32, height: u32) {
+    fn render<F: Facade, S: Surface>(
+        &self,
+        facade: &F,
+        target: &mut S,
+        data: &[f32],
+        n_samples: &[u32],
+        width: u32,
+        height: u32,
+    ) {
         let data_raw = RawImage2d {
             data: std::borrow::Cow::from(data),
             width,
