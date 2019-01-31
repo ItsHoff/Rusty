@@ -144,6 +144,14 @@ impl RenderConfig {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn single_threaded(self) -> Self {
+        Self {
+            max_threads: 1,
+            ..self
+        }
+    }
+
     pub fn dimensions(&self) -> LogicalSize {
         LogicalSize::from((self.width, self.height))
     }
