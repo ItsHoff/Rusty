@@ -20,8 +20,8 @@ pub trait Light: Debug {
     /// Evaluate the cosine with dir
     fn cos_t(&self, dir: Vector3<Float>) -> Float;
 
-    /// Check if light contains a delta distribution
-    fn is_delta(&self) -> bool;
+    /// Check if light position contains a delta distribution
+    fn delta_pos(&self) -> bool;
 
     /// Sample a position on the lights surface
     /// Return point and area pdf
@@ -66,7 +66,7 @@ impl Light for Triangle {
         self.ng.dot(dir)
     }
 
-    fn is_delta(&self) -> bool {
+    fn delta_pos(&self) -> bool {
         false
     }
 
@@ -123,7 +123,7 @@ impl Light for PointLight {
         1.0
     }
 
-    fn is_delta(&self) -> bool {
+    fn delta_pos(&self) -> bool {
         true
     }
 

@@ -74,7 +74,7 @@ impl PTCamera {
     }
 
     /// Evaluate pdf of sampling dir
-    pub fn pdf(&self, dir: Vector3<Float>) -> Float {
+    pub fn pdf_dir(&self, dir: Vector3<Float>) -> Float {
         let cos_t = self.cos_t(dir);
         let clip_dir = self.world_to_clip() * dir.extend(0.0);
         if cos_t < consts::EPSILON {
