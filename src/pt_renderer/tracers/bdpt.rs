@@ -91,11 +91,12 @@ pub fn bdpt<'a>(
                 let weight = if s + t == 2 {
                     1.0
                 } else {
-                    let pdf_strat = path.pdf(s, t).unwrap();
+                    let power = 2;
+                    let pdf_strat = path.pdf(s, t).unwrap().powi(power);
                     let mut sum_pdf = 0.0;
                     for i in 2..=s + t {
                         if let Some(pdf) = path.pdf(s + t - i, i) {
-                            sum_pdf += pdf;
+                            sum_pdf += pdf.powi(power);
                         }
                     }
                     pdf_strat / sum_pdf
