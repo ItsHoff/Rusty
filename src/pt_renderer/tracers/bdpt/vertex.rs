@@ -126,7 +126,11 @@ impl<'a> BDPath<'a> {
 pub trait Vertex {
     fn pos(&self) -> Point3<Float>;
 
-    fn cos_t(&self, dir: Vector3<Float>) -> Float;
+    /// Geometric cosine
+    fn cos_g(&self, dir: Vector3<Float>) -> Float;
+
+    /// Shading cosine
+    fn cos_s(&self, dir: Vector3<Float>) -> Float;
 
     fn delta_dir(&self) -> bool;
 
@@ -139,7 +143,7 @@ pub trait Vertex {
     fn connect_to(&self, surface: &SurfaceVertex) -> (Ray, Color) {
         let ray = surface.isect.shadow_ray(self.pos());
         let beta = self.path_throughput(-ray.dir) * surface.path_throughput(ray.dir);
-        let g = (self.cos_t(ray.dir) * surface.cos_t(ray.dir) / ray.length.powi(2)).abs();
+        let g = (self.cos_s(ray.dir) * surface.cos_s(ray.dir) / ray.length.powi(2)).abs();
         (ray, g * beta)
     }
 }
@@ -156,7 +160,7 @@ pub fn pdf_scatter(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &dyn Vertex) -> Floa
     let (dir_prev, _) = dir_and_dist(v2, v1);
     let (dir_next, dist) = dir_and_dist(v2, v3);
     let pdf_dir = v2.isect.pdf(dir_prev, dir_next);
-    sample::to_area_pdf(pdf_dir, dist.powi(2), v3.cos_t(dir_next).abs())
+    sample::to_area_pdf(pdf_dir, dist.powi(2), v3.cos_g(dir_next).abs())
 }
 
 #[derive(Debug)]
@@ -173,7 +177,7 @@ impl<'a> CameraVertex<'a> {
     pub fn sample_next(&self) -> (Color, Ray) {
         // This is the real value but it always equals to 1.0
         // let dir = self.ray.dir;
-        // let beta = self.camera.we(dir) * self.camera.cos_t(dir).abs() / self.camera.pdf(dir);
+        // let beta = self.camera.we(dir) * self.camera.cos_s(dir).abs() / self.camera.pdf(dir);
         let beta = Color::white();
         (beta, self.ray.clone())
     }
@@ -181,7 +185,7 @@ impl<'a> CameraVertex<'a> {
     pub fn pdf_next(&self, next: &SurfaceVertex) -> Float {
         let (dir, dist) = dir_and_dist(self, next);
         let pdf_dir = self.camera.pdf_dir(dir);
-        sample::to_area_pdf(pdf_dir, dist.powi(2), next.cos_t(dir).abs())
+        sample::to_area_pdf(pdf_dir, dist.powi(2), next.cos_g(dir).abs())
     }
 }
 
@@ -190,8 +194,12 @@ impl Vertex for CameraVertex<'_> {
         self.camera.pos
     }
 
-    fn cos_t(&self, dir: Vector3<Float>) -> Float {
-        self.camera.cos_t(dir)
+    fn cos_g(&self, dir: Vector3<Float>) -> Float {
+        self.camera.cos_g(dir)
+    }
+
+    fn cos_s(&self, dir: Vector3<Float>) -> Float {
+        self.cos_g(dir)
     }
 
     fn delta_dir(&self) -> bool {
@@ -222,14 +230,14 @@ impl<'a> LightVertex<'a> {
     pub fn sample_next(&self) -> (Color, Ray) {
         let (le, dir, dir_pdf) = self.light.sample_dir();
         let ray = Ray::from_dir(self.pos + consts::EPSILON * dir, dir);
-        let beta = le * self.light.cos_t(ray.dir).abs() / (self.pdf_pos * dir_pdf);
+        let beta = le * self.cos_s(ray.dir).abs() / (self.pdf_pos * dir_pdf);
         (beta, ray)
     }
 
     pub fn pdf_next(&self, next: &SurfaceVertex) -> Float {
         let (dir, dist) = dir_and_dist(self, next);
         let pdf_dir = self.light.pdf_dir(dir);
-        sample::to_area_pdf(pdf_dir, dist.powi(2), next.cos_t(dir).abs())
+        sample::to_area_pdf(pdf_dir, dist.powi(2), next.cos_g(dir).abs())
     }
 }
 
@@ -238,8 +246,12 @@ impl Vertex for LightVertex<'_> {
         self.pos
     }
 
-    fn cos_t(&self, dir: Vector3<Float>) -> Float {
-        self.light.cos_t(dir)
+    fn cos_g(&self, dir: Vector3<Float>) -> Float {
+        self.light.cos_g(dir)
+    }
+
+    fn cos_s(&self, dir: Vector3<Float>) -> Float {
+        self.cos_g(dir)
     }
 
     fn delta_dir(&self) -> bool {
@@ -288,8 +300,12 @@ impl Vertex for SurfaceVertex<'_> {
         self.isect.p
     }
 
-    fn cos_t(&self, dir: Vector3<Float>) -> Float {
-        self.isect.cos_t(dir)
+    fn cos_g(&self, dir: Vector3<Float>) -> Float {
+        self.isect.cos_g(dir)
+    }
+
+    fn cos_s(&self, dir: Vector3<Float>) -> Float {
+        self.isect.cos_s(dir)
     }
 
     fn delta_dir(&self) -> bool {

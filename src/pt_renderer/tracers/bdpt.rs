@@ -1,11 +1,11 @@
-use cgmath::Point2;
+use cgmath::{Point2, Vector3};
 
 use crate::bvh::BVHNode;
 use crate::camera::PTCamera;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
-use crate::intersect::Ray;
+use crate::intersect::{Interaction, Ray};
 use crate::scene::Scene;
 
 mod vertex;
@@ -23,7 +23,7 @@ pub fn bdpt<'a>(
 ) -> Color {
     let camera_vertex = CameraVertex::new(camera, camera_ray);
     let (beta, ray) = camera_vertex.sample_next();
-    let camera_path = generate_path(beta, ray, scene, config, node_stack);
+    let camera_path = generate_path(beta, ray, false, scene, config, node_stack);
     let (light, light_pdf) = match config.light_mode {
         LightMode::Scene => scene.sample_light().unwrap_or((camera.flash(), 1.0)),
         LightMode::Camera => (camera.flash(), 1.0),
@@ -31,7 +31,7 @@ pub fn bdpt<'a>(
     let (light_pos, pos_pdf) = light.sample_pos();
     let light_vertex = LightVertex::new(light, light_pos, light_pdf * pos_pdf);
     let (beta, ray) = light_vertex.sample_next();
-    let light_path = generate_path(beta, ray, scene, config, node_stack);
+    let light_path = generate_path(beta, ray, true, scene, config, node_stack);
     let mut c = Color::black();
     // Paths contain vertices after the light / camera
     // 0 corresponds to no vertices from that subpath,
@@ -65,10 +65,13 @@ pub fn bdpt<'a>(
             // Connect light vertex to camera
             } else if t == 1 {
                 let l_vertex = &light_path[s - 2];
-                let (mut connection_ray, radiance) = camera_vertex.connect_to(l_vertex);
+                let (mut connection_ray, mut radiance) = camera_vertex.connect_to(l_vertex);
                 if !radiance.is_black()
                     && scene.intersect(&mut connection_ray, node_stack).is_none()
                 {
+                    let wo = -l_vertex.ray.dir;
+                    let wi = -connection_ray.dir;
+                    radiance *= correct_shading_normal(&l_vertex.isect, wo, wi);
                     // Splat is always valid if radiance is not black
                     splat = camera_vertex.camera.clip_pos(-connection_ray.dir);
                     let path = BDPath::new(
@@ -102,10 +105,13 @@ pub fn bdpt<'a>(
             } else {
                 let l_vertex = &light_path[s - 2];
                 let c_vertex = &camera_path[t - 2];
-                let (mut connection_ray, radiance) = l_vertex.connect_to(c_vertex);
+                let (mut connection_ray, mut radiance) = l_vertex.connect_to(c_vertex);
                 if !radiance.is_black()
                     && scene.intersect(&mut connection_ray, node_stack).is_none()
                 {
+                    let wo = -l_vertex.ray.dir;
+                    let wi = -connection_ray.dir;
+                    radiance *= correct_shading_normal(&l_vertex.isect, wo, wi);
                     let path = BDPath::new(
                         light_vertex.clone(),
                         &light_path[0..=s - 2],
@@ -151,6 +157,7 @@ pub fn bdpt<'a>(
 fn generate_path<'a>(
     mut beta: Color,
     mut ray: Ray,
+    from_light: bool,
     scene: &'a Scene,
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
@@ -176,11 +183,14 @@ fn generate_path<'a>(
             true
         };
         if !terminate {
-            // TODO: account for non-symmetry
             if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir) {
-                ray = new_ray;
                 pdf *= bsdf_pdf;
-                beta *= isect.cos_t(ray.dir).abs() * bsdf / pdf;
+                beta *= isect.cos_s(new_ray.dir).abs() * bsdf / pdf;
+                // Account for non-symmetry
+                if from_light {
+                    beta *= correct_shading_normal(isect, -ray.dir, new_ray.dir);
+                }
+                ray = new_ray;
                 bounce += 1;
             } else {
                 break;
@@ -190,4 +200,10 @@ fn generate_path<'a>(
         }
     }
     path
+}
+
+/// Compute the correction factor resulting from use of shading normals
+/// for paths starting from a light.
+fn correct_shading_normal(isect: &Interaction, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
+    (isect.cos_s(wo) * isect.cos_g(wi) / (isect.cos_g(wo) * isect.cos_s(wi))).abs()
 }

@@ -17,8 +17,8 @@ pub trait Light: Debug {
     /// Emitted radiance to dir
     fn le(&self, dir: Vector3<Float>) -> Color;
 
-    /// Evaluate the cosine with dir
-    fn cos_t(&self, dir: Vector3<Float>) -> Float;
+    /// Evaluate the geometric cosine with dir
+    fn cos_g(&self, dir: Vector3<Float>) -> Float;
 
     /// Check if light position contains a delta distribution
     fn delta_pos(&self) -> bool;
@@ -42,7 +42,7 @@ pub trait Light: Debug {
     fn sample_towards(&self, recv: &Interaction) -> (Color, Ray, Float) {
         let (p, pdf_a) = self.sample_pos();
         let ray = recv.shadow_ray(p);
-        let pdf = sample::to_dir_pdf(pdf_a, ray.length.powi(2), self.cos_t(ray.dir).abs());
+        let pdf = sample::to_dir_pdf(pdf_a, ray.length.powi(2), self.cos_g(ray.dir).abs());
         let le = self.le(-ray.dir);
         (le, ray, pdf)
     }
@@ -62,7 +62,7 @@ impl Light for Triangle {
         Color::black()
     }
 
-    fn cos_t(&self, dir: Vector3<Float>) -> Float {
+    fn cos_g(&self, dir: Vector3<Float>) -> Float {
         self.ng.dot(dir)
     }
 
@@ -88,7 +88,7 @@ impl Light for Triangle {
     }
 
     fn pdf_dir(&self, dir: Vector3<Float>) -> Float {
-        let cos_t = self.cos_t(dir);
+        let cos_t = self.cos_g(dir);
         if cos_t < 0.0 {
             0.0
         } else {
@@ -119,7 +119,7 @@ impl Light for PointLight {
         self.intensity
     }
 
-    fn cos_t(&self, _dir: Vector3<Float>) -> Float {
+    fn cos_g(&self, _dir: Vector3<Float>) -> Float {
         1.0
     }
 

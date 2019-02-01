@@ -137,8 +137,13 @@ impl Interaction<'_> {
         self.bsdf.is_specular()
     }
 
-    /// Evaluate cosine theta of dir
-    pub fn cos_t(&self, dir: Vector3<Float>) -> Float {
+    /// Evaluate geometric cosine of dir
+    pub fn cos_g(&self, dir: Vector3<Float>) -> Float {
+        self.ng.dot(dir)
+    }
+
+    /// Evaluate shading cosine of dir
+    pub fn cos_s(&self, dir: Vector3<Float>) -> Float {
         self.ns.dot(dir)
     }
 

@@ -51,13 +51,13 @@ impl PTCamera {
         &self.flash
     }
 
-    /// Evaluate the cosine with dir
-    pub fn cos_t(&self, dir: Vector3<Float>) -> Float {
+    /// Evaluate the geometric cosine with dir
+    pub fn cos_g(&self, dir: Vector3<Float>) -> Float {
         dir.dot(self.rot * -Vector3::unit_z())
     }
 
     pub fn we(&self, dir: Vector3<Float>) -> Color {
-        let cos_t = self.cos_t(dir);
+        let cos_t = self.cos_g(dir);
         let clip_dir = self.world_to_clip() * dir.extend(0.0);
         if cos_t < consts::EPSILON {
             Color::black()
@@ -76,7 +76,7 @@ impl PTCamera {
     /// Evaluate pdf of sampling dir
     pub fn pdf_dir(&self, dir: Vector3<Float>) -> Float {
         // TODO: use clip_pos
-        let cos_t = self.cos_t(dir);
+        let cos_t = self.cos_g(dir);
         let clip_dir = self.world_to_clip() * dir.extend(0.0);
         if cos_t < consts::EPSILON {
             0.0
