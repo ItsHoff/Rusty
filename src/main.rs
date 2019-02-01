@@ -51,7 +51,7 @@ fn main() {
 }
 
 fn high_quality() {
-    let scenes = ["cornell-sphere"];
+    let scenes = ["cornell-glossy"];
     let config = RenderConfig::high_quality();
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = root_dir.join("results").join("hq");

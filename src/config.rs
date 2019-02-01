@@ -61,8 +61,8 @@ pub struct RenderConfig {
     pub bvh_split: SplitMode,
 }
 
-impl Default for RenderConfig {
-    fn default() -> Self {
+impl RenderConfig {
+    fn path_trace() -> Self {
         Self {
             width: 1000,
             height: 800,
@@ -79,14 +79,12 @@ impl Default for RenderConfig {
             bvh_split: SplitMode::SAH,
         }
     }
-}
 
-impl RenderConfig {
     pub fn bdpt() -> Self {
         Self {
             render_mode: RenderMode::BDPT,
             russian_roulette: false,
-            ..Default::default()
+            ..Self::path_trace()
         }
     }
 
@@ -117,11 +115,11 @@ impl RenderConfig {
 
     pub fn high_quality() -> Self {
         Self {
-            width: 800,
-            height: 600,
-            samples_per_dir: 50,
+            width: 600,
+            height: 400,
+            samples_per_dir: 10,
             max_iterations: Some(1),
-            ..Default::default()
+            ..Self::bdpt()
         }
     }
 
@@ -133,7 +131,7 @@ impl RenderConfig {
             bounces: 0,
             samples_per_dir: 1,
             tone_map: false,
-            ..Default::default()
+            ..Self::path_trace()
         }
     }
 
@@ -179,8 +177,8 @@ impl RenderConfig {
                 }
             }
             VirtualKeyCode::F1 => {
-                println!("Config: Default");
-                *self = Self::default();
+                println!("Config: Path trace");
+                *self = Self::path_trace();
             }
             VirtualKeyCode::F2 => {
                 println!("Config: BDPT");
