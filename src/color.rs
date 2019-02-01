@@ -358,6 +358,12 @@ impl MulAssign for Color {
     }
 }
 
+impl MulAssign<Float> for Color {
+    fn mul_assign(&mut self, rhs: Float) {
+        self.0 *= rhs;
+    }
+}
+
 impl Mul<Float> for Color {
     type Output = Self;
 

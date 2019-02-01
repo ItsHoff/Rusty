@@ -60,7 +60,7 @@ pub fn bdpt<'a>(
                 }
             // Connect camera and light
             } else if s == 1 && t == 1 {
-                // TODO
+                // This should be sampled well enough by strategy (0, 2)
                 continue;
             // Connect light vertex to camera
             } else if t == 1 {

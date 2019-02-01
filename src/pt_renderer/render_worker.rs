@@ -60,7 +60,7 @@ impl RenderWorker {
             }
             if let Some(rect) = self.coordinator.next_block() {
                 let mut block = vec![0.0f32; (3 * rect.width * rect.height) as usize];
-                let n_samples = self.config.samples_per_dir.pow(2).to_float();
+                let sample_weight = 1.0 / self.config.samples_per_dir.pow(2).to_float();
                 for h in 0..rect.height {
                     for w in 0..rect.width {
                         let mut c = Color::black();
@@ -105,13 +105,13 @@ impl RenderWorker {
                                             &mut splats,
                                         );
                                         // Consume splats
-                                        for (pos, rad) in splats.drain(..) {
+                                        for (pos, mut rad) in splats.drain(..) {
                                             let x = (0.5 * (pos.x + 1.0) * width.to_float()).floor()
                                                 as u32;
                                             let y = (0.5 * (pos.y + 1.0) * height.to_float())
                                                 .floor()
                                                 as u32;
-                                            let rad = rad / n_samples;
+                                            rad *= sample_weight;
                                             let arr: [f32; 3] = rad.into();
                                             self.result_tx
                                                 .send(PTResult::Splat(Point2::new(x, y), arr))
@@ -122,7 +122,7 @@ impl RenderWorker {
                                 }
                             }
                         }
-                        c /= n_samples;
+                        c *= sample_weight;
                         let pixel_i = 3 * (h * rect.width + w) as usize;
                         let data: [f32; 3] = c.into();
                         block[pixel_i..pixel_i + 3].copy_from_slice(&data);
