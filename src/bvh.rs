@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index, Range};
 
 use cgmath::Point3;
 
@@ -19,33 +19,36 @@ pub enum SplitMode {
     SAH,
 }
 
+enum Indices {
+    Inner(u32, u32),
+    Leaf(u32, u32),
+}
+
+#[repr(align(64))]
 pub struct BVHNode {
     aabb: AABB,
-    pub start_i: usize,
-    pub end_i: usize,
-    left_child_i: Option<usize>,
-    right_child_i: Option<usize>,
+    indices: Indices,
 }
 
 impl BVHNode {
     fn new(triangles: &Triangles) -> BVHNode {
-        let start_i = triangles.start_i;
-        let end_i = start_i + triangles.len();
+        let start_i = triangles.start_i as u32;
+        let end_i = start_i + triangles.len() as u32;
         BVHNode {
             aabb: triangles.aabb.clone(),
-            start_i,
-            end_i,
-            left_child_i: None,
-            right_child_i: None,
+            indices: Indices::Leaf(start_i, end_i),
         }
     }
 
-    fn n_tris(&self) -> usize {
-        self.end_i - self.start_i
+    fn convert_to_inner(&mut self, left_child: usize, right_child: usize) {
+        self.indices = Indices::Inner(left_child as u32, right_child as u32);
     }
 
-    pub fn is_leaf(&self) -> bool {
-        self.left_child_i.is_none()
+    pub fn range(&self) -> Option<Range<usize>> {
+        match self.indices {
+            Indices::Leaf(start_i, end_i) => Some(start_i as usize..end_i as usize),
+            Indices::Inner(_, _) => None,
+        }
     }
 }
 
@@ -142,6 +145,11 @@ pub struct BVH {
 
 impl BVH {
     pub fn build(triangles: &[Triangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
+        assert!(
+            triangles.len() <= 2usize.pow(32),
+            "Scene can contain maximum of 2^32 triangles! This scene has {} triangles.",
+            triangles.len()
+        );
         stats::start_bvh();
         let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();
@@ -163,33 +171,32 @@ impl BVH {
             };
 
             let left_child = BVHNode::new(&t1);
-            nodes[node_i].left_child_i = Some(nodes.len());
-            if left_child.n_tris() > MAX_LEAF_SIZE {
+            let left_child_i = nodes.len();
+            if t1.len() > MAX_LEAF_SIZE {
                 split_stack.push((nodes.len(), t1));
             }
             nodes.push(left_child);
 
             let right_child = BVHNode::new(&t2);
-            nodes[node_i].right_child_i = Some(nodes.len());
-            if right_child.n_tris() > MAX_LEAF_SIZE {
+            let right_child_i = nodes.len();
+            if t2.len() > MAX_LEAF_SIZE {
                 split_stack.push((nodes.len(), t2));
             }
             nodes.push(right_child);
+            nodes[node_i].convert_to_inner(left_child_i, right_child_i);
         }
         nodes.shrink_to_fit();
         let bvh = BVH { nodes };
-        stats::stop_bvh(&bvh);
+        stats::stop_bvh(&bvh, triangles.len());
         (bvh, permutation)
     }
 
     pub fn get_children(&self, node: &BVHNode) -> Option<(&BVHNode, &BVHNode)> {
-        if let Some(left_i) = node.left_child_i {
-            Some((
-                &self.nodes[left_i],
-                &self.nodes[node.right_child_i.unwrap()],
-            ))
-        } else {
-            None
+        match node.indices {
+            Indices::Leaf(_, _) => None,
+            Indices::Inner(left_i, right_i) => {
+                Some((&self.nodes[left_i as usize], &self.nodes[right_i as usize]))
+            }
         }
     }
 
@@ -199,10 +206,6 @@ impl BVH {
 
     pub fn size(&self) -> usize {
         self.nodes.len()
-    }
-
-    pub fn n_tris(&self) -> usize {
-        self.root().n_tris()
     }
 }
 

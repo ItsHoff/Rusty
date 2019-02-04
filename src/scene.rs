@@ -296,8 +296,8 @@ impl Scene {
             if ray.length <= t {
                 continue;
             }
-            if node.is_leaf() {
-                for tri in &self.triangles[node.start_i..node.end_i] {
+            if let Some(range) = node.range() {
+                for tri in &self.triangles[range] {
                     if let Some(hit) = tri.intersect(&ray) {
                         ray.length = hit.t;
                         closest_hit = Some(hit);

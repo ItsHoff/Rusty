@@ -66,9 +66,9 @@ pub fn start_bvh() {
     handle.deactivate();
 }
 
-pub fn stop_bvh(bvh: &BVH) {
+pub fn stop_bvh(bvh: &BVH, n_tris: usize) {
     stop_timer("BVH");
-    current_scene!().analyze_bvh(bvh);
+    current_scene!().analyze_bvh(bvh, n_tris);
 }
 
 pub fn start_render() {
@@ -183,8 +183,8 @@ impl SceneStatistics {
         }
     }
 
-    fn analyze_bvh(&mut self, bvh: &BVH) {
-        self.n_tris = bvh.n_tris();
+    fn analyze_bvh(&mut self, bvh: &BVH, n_tris: usize) {
+        self.n_tris = n_tris;
         self.bvh_size = bvh.size();
     }
 
