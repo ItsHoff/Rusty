@@ -95,7 +95,7 @@ impl Scattering {
                     .refraction_i
                     .expect("No index of refraction for translucent material")
                     .to_float();
-                if (eta - 1.0) < crate::consts::EPSILON {
+                if (eta - 1.0).abs() < crate::consts::EPSILON {
                     // Glossy does not handle eta = 1 properly
                     // and the distribution would be the same anyways
                     ST(SpecularTransmission::new(specular, transmissive, eta))
