@@ -24,6 +24,26 @@ use self::coordinator::RenderCoordinator;
 use self::render_worker::RenderWorker;
 use self::traced_image::TracedImage;
 
+/// Distinguished the start point of the traced path where necessary
+#[derive(Clone, Copy, Debug)]
+pub enum PathType {
+    Camera,
+    Light,
+}
+
+impl PathType {
+    pub fn is_camera(self) -> bool {
+        match self {
+            PathType::Camera => true,
+            PathType::Light => false,
+        }
+    }
+
+    pub fn is_light(self) -> bool {
+        !self.is_camera()
+    }
+}
+
 enum PTResult {
     Block(Rect, Vec<f32>),
     Splat(Point2<u32>, [f32; 3]),

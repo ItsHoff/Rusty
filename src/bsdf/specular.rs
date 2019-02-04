@@ -2,6 +2,7 @@ use cgmath::Vector3;
 
 use crate::color::Color;
 use crate::float::*;
+use crate::pt_renderer::PathType;
 
 use super::fresnel::{self, FresnelBSDF};
 use super::util;
@@ -38,7 +39,7 @@ impl BSDFT for SpecularBRDF {
         Color::black()
     }
 
-    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>, _path_type: PathType) -> Color {
         Color::black()
     }
 
@@ -46,7 +47,7 @@ impl BSDFT for SpecularBRDF {
         0.0
     }
 
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(&self, wo: Vector3<Float>, _path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::reflect_n(wo);
         let color = if self.use_schlick {
             fresnel::schlick(wo, self.color)
@@ -78,7 +79,7 @@ impl BSDFT for SpecularBTDF {
         Color::black()
     }
 
-    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>, _path_type: PathType) -> Color {
         Color::black()
     }
 
@@ -86,10 +87,15 @@ impl BSDFT for SpecularBTDF {
         0.0
     }
 
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::refract_n(wo, self.eta)?;
-        // TODO: account for non-symmetry
-        Some((self.color / util::cos_t(wi).abs(), wi, 1.0))
+        let mut color = self.color / util::cos_t(wi).abs();
+        // Account for non-symmetry
+        if path_type.is_camera() {
+            let eta = util::eta(wo, self.eta);
+            color *= eta.powi(2);
+        }
+        Some((color, wi, 1.0))
     }
 }
 

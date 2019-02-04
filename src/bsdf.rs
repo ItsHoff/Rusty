@@ -4,6 +4,7 @@ use cgmath::Vector3;
 
 use crate::color::Color;
 use crate::float::*;
+use crate::pt_renderer::PathType;
 
 mod fresnel;
 mod lambertian;
@@ -24,11 +25,11 @@ pub trait BSDFT {
     /// Evaluate reflected irradiance
     fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
     /// Evaluate transmitted irradiance
-    fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
+    fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>, path_type: PathType) -> Color;
     /// Evaluate the pdf
     fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float;
     /// Sample the distribution
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)>;
+    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)>;
 }
 
 #[derive(Clone, Debug)]

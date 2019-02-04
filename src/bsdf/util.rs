@@ -25,7 +25,7 @@ pub fn reflect_n(w: Vector3<Float>) -> Vector3<Float> {
 /// eta_mat defines the index of refraction inside the material (outside is assumed to be air).
 pub fn refract(w: Vector3<Float>, wh: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
     // Determine if w is entering or exiting the material
-    let eta = if w.z > 0.0 { 1.0 / eta_mat } else { eta_mat };
+    let eta = eta(w, eta_mat);
     let cos_ti = w.dot(wh).abs();
     let sin2_ti = (1.0 - cos_ti.powi(2)).max(0.0);
     let sin2_tt = eta.powi(2) * sin2_ti;
@@ -42,6 +42,11 @@ pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
     // Make sure normal is in the same hemisphere as w
     let n = w.z.signum() * Vector3::unit_z();
     refract(w, n, eta_mat)
+}
+
+/// Compute the total index of refraction for incident direction w.
+pub fn eta(w: Vector3<Float>, eta_mat: Float) -> Float {
+    if w.z > 0.0 { 1.0 / eta_mat } else { eta_mat }
 }
 
 // Trigonometric functions

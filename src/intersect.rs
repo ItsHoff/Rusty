@@ -9,6 +9,7 @@ use crate::config::RenderConfig;
 use crate::consts;
 use crate::float::*;
 use crate::light::Light;
+use crate::pt_renderer::PathType;
 use crate::sample;
 use crate::triangle::Triangle;
 
@@ -153,24 +154,24 @@ impl Interaction<'_> {
         self.bsdf.pdf(wo_local, wi_local)
     }
 
-    pub fn bsdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+    pub fn bsdf(&self, wo: Vector3<Float>, wi: Vector3<Float>, path_type: PathType) -> Color {
         let wo_local = self.to_local * wo;
         let wi_local = self.to_local * wi;
         // Check if the interaction is geometrically transmitted or reflected
         if self.ng.dot(wo) * self.ng.dot(wi) < 0.0 {
-            self.bsdf.btdf(wo_local, wi_local)
+            self.bsdf.btdf(wo_local, wi_local, path_type)
         } else {
             self.bsdf.brdf(wo_local, wi_local)
         }
     }
 
-    pub fn sample_bsdf(&self, wo: Vector3<Float>) -> Option<(Color, Ray, Float)> {
+    pub fn sample_bsdf(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Ray, Float)> {
         let wo_local = self.to_local * wo;
-        let (mut bsdf, wi_local, pdf) = self.bsdf.sample(wo_local)?;
+        let (mut bsdf, wi_local, pdf) = self.bsdf.sample(wo_local, path_type)?;
         let wi = self.to_local.transpose() * wi_local;
         // Avoid light leaks caused by shading normals
         if !self.bsdf.is_specular() {
-            bsdf = self.bsdf(wo, wi);
+            bsdf = self.bsdf(wo, wi, path_type);
         }
         Some((bsdf, self.ray(wi), pdf))
     }

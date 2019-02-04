@@ -4,6 +4,7 @@ use crate::config::*;
 use crate::float::*;
 use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
+use crate::pt_renderer::PathType;
 use crate::scene::Scene;
 
 fn sample_light(
@@ -37,7 +38,7 @@ pub fn path_trace<'a>(
             c += beta * isect.le(-ray.dir);
         }
         let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, flash, config);
-        let bsdf = isect.bsdf(-ray.dir, shadow_ray.dir);
+        let bsdf = isect.bsdf(-ray.dir, shadow_ray.dir, PathType::Camera);
         if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
             let cos_t = isect.cos_s(shadow_ray.dir).abs();
             c += beta * le * bsdf * cos_t / light_pdf;
@@ -54,7 +55,7 @@ pub fn path_trace<'a>(
             true
         };
         if !terminate {
-            if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir) {
+            if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir, PathType::Camera) {
                 ray = new_ray;
                 pdf *= bsdf_pdf;
                 beta *= isect.cos_s(ray.dir).abs() * bsdf / pdf;

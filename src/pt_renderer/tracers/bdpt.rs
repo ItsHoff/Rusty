@@ -6,6 +6,7 @@ use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
 use crate::intersect::{Interaction, Ray};
+use crate::pt_renderer::PathType;
 use crate::scene::Scene;
 
 mod vertex;
@@ -23,7 +24,7 @@ pub fn bdpt<'a>(
 ) -> Color {
     let camera_vertex = CameraVertex::new(camera, camera_ray);
     let (beta, ray) = camera_vertex.sample_next();
-    let camera_path = generate_path(beta, ray, false, scene, config, node_stack);
+    let camera_path = generate_path(beta, ray, PathType::Camera, scene, config, node_stack);
     let (light, light_pdf) = match config.light_mode {
         LightMode::Scene => scene.sample_light().unwrap_or((camera.flash(), 1.0)),
         LightMode::Camera => (camera.flash(), 1.0),
@@ -31,7 +32,7 @@ pub fn bdpt<'a>(
     let (light_pos, pos_pdf) = light.sample_pos();
     let light_vertex = LightVertex::new(light, light_pos, light_pdf * pos_pdf);
     let (beta, ray) = light_vertex.sample_next();
-    let light_path = generate_path(beta, ray, true, scene, config, node_stack);
+    let light_path = generate_path(beta, ray, PathType::Light, scene, config, node_stack);
     let mut c = Color::black();
     // Paths contain vertices after the light / camera
     // 0 corresponds to no vertices from that subpath,
@@ -157,7 +158,7 @@ pub fn bdpt<'a>(
 fn generate_path<'a>(
     mut beta: Color,
     mut ray: Ray,
-    from_light: bool,
+    path_type: PathType,
     scene: &'a Scene,
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BVHNode, Float)>,
@@ -168,6 +169,7 @@ fn generate_path<'a>(
         path.push(SurfaceVertex::new(
             ray.clone(),
             beta,
+            path_type,
             hit.interaction(&config),
         ));
         let isect = &path.last().unwrap().isect;
@@ -183,11 +185,11 @@ fn generate_path<'a>(
             true
         };
         if !terminate {
-            if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir) {
+            if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir, path_type) {
                 pdf *= bsdf_pdf;
                 beta *= isect.cos_s(new_ray.dir).abs() * bsdf / pdf;
                 // Account for non-symmetry
-                if from_light {
+                if path_type.is_light() {
                     beta *= correct_shading_normal(isect, -ray.dir, new_ray.dir);
                 }
                 ray = new_ray;

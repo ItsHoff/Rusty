@@ -7,6 +7,7 @@ use crate::consts;
 use crate::float::*;
 use crate::intersect::{Interaction, Ray};
 use crate::light::Light;
+use crate::pt_renderer::PathType;
 use crate::sample;
 use crate::scene::Scene;
 
@@ -269,12 +270,13 @@ pub struct SurfaceVertex<'a> {
     pub ray: Ray,
     /// Attenuation for radiance scattered from this vertex
     beta: Color,
+    path_type: PathType,
     pub isect: Interaction<'a>,
 }
 
 impl<'a> SurfaceVertex<'a> {
-    pub fn new(ray: Ray, beta: Color, isect: Interaction<'a>) -> Self {
-        Self { ray, beta, isect }
+    pub fn new(ray: Ray, beta: Color, path_type: PathType, isect: Interaction<'a>) -> Self {
+        Self { ray, beta, isect, path_type }
     }
 
     /// Radiance along the path ending at this vertex
@@ -313,6 +315,6 @@ impl Vertex for SurfaceVertex<'_> {
     }
 
     fn path_throughput(&self, dir: Vector3<Float>) -> Color {
-        self.beta * self.isect.bsdf(-self.ray.dir, dir)
+        self.beta * self.isect.bsdf(-self.ray.dir, dir, self.path_type)
     }
 }

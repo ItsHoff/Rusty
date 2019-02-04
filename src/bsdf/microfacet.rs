@@ -5,6 +5,7 @@ use crate::color::Color;
 use crate::consts;
 use crate::float::*;
 use crate::sample;
+use crate::pt_renderer::PathType;
 
 use super::fresnel::{self, FresnelBSDF};
 use super::util;
@@ -112,7 +113,7 @@ impl BSDFT for MicrofacetBRDF {
         color * d * g / denom
     }
 
-    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>, _path_type: PathType) -> Color {
         Color::black()
     }
 
@@ -124,7 +125,7 @@ impl BSDFT for MicrofacetBRDF {
         self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs())
     }
 
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(&self, wo: Vector3<Float>, _path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
         let wh = self.microfacets.sample_wh(wo);
         let wi = util::reflect(wo, wh);
         if !util::same_hemisphere(wo, wi) {
@@ -172,7 +173,7 @@ impl BSDFT for FresnelBlendBRDF {
         f_specular + f_diffuse
     }
 
-    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>) -> Color {
+    fn btdf(&self, _wo: Vector3<Float>, _wi: Vector3<Float>, _path_type: PathType) -> Color {
         Color::black()
     }
 
@@ -186,7 +187,7 @@ impl BSDFT for FresnelBlendBRDF {
         (d_pdf + mf_pdf) / 2.0
     }
 
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(&self, wo: Vector3<Float>, _path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = if rand::random::<Float>() < 0.5 {
             let wh = self.microfacets.sample_wh(wo);
             let wi = util::reflect(wo, wh);
@@ -240,7 +241,7 @@ impl BSDFT for MicrofacetBTDF {
         Color::black()
     }
 
-    fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color {
+    fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>, path_type: PathType) -> Color {
         let (wh, eta_inv) = self.refraction_values(wo, wi);
         let g = self.microfacets.g(wo, wi);
         let d = self.microfacets.d_wh(wh);
@@ -252,7 +253,11 @@ impl BSDFT for MicrofacetBTDF {
         if denom < consts::EPSILON {
             Color::black()
         } else {
-            self.color * eta_inv.powi(2) * d * g * idh.abs() * odh.abs() / denom
+            let mut color = self.color * eta_inv.powi(2) * d * g * idh.abs() * odh.abs() / denom;
+            if path_type.is_camera() {
+                color *= (1.0 / eta_inv).powi(2);
+            }
+            color
         }
     }
 
@@ -272,10 +277,10 @@ impl BSDFT for MicrofacetBTDF {
         self.microfacets.pdf_wh(wo, wh) * cov
     }
 
-    fn sample(&self, wo: Vector3<Float>) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
         let wh = self.microfacets.sample_wh(wo);
         let wi = util::refract(wo, wh, self.eta)?;
-        let val = self.btdf(wo, wi);
+        let val = self.btdf(wo, wi, path_type);
         let pdf = self.pdf(wo, wi);
         Some((val, wi, pdf))
     }
