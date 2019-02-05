@@ -109,6 +109,7 @@ impl RenderConfig {
     pub fn bdpt_benchmark() -> Self {
         Self {
             render_mode: RenderMode::BDPT,
+            samples_per_dir: 2,
             ..Self::benchmark()
         }
     }
