@@ -2,7 +2,7 @@
 #![feature(euclidean_division)]
 #![feature(try_trait)]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use chrono::Local;
@@ -44,46 +44,19 @@ use self::pt_renderer::PTRenderer;
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
         Some("hq") => high_quality(),
-        Some("b") => benchmark("_bdpt", RenderConfig::bdpt_benchmark()),
+        Some("b") => benchmark("bdpt", RenderConfig::bdpt_benchmark()),
         Some(_) => benchmark("", RenderConfig::benchmark()),
         None => online_render(),
     }
 }
 
 fn high_quality() {
-    let scenes = ["cornell-glossy"];
+    // TODO: Add command line switches to select scenes and config settings
+    let scenes = ["cornell-sphere"];
+    let tag = "hq";
     let config = RenderConfig::high_quality();
-    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let output_dir = root_dir.join("results").join("hq");
-    std::fs::create_dir_all(output_dir.clone()).unwrap();
-    let time_stamp = Local::now().format("%F_%H%M%S").to_string();
-
-    // Initialize an OpenGL context that is needed for post-processing
-    let events_loop = glium::glutin::EventsLoop::new();
-    // Preferably this wouldn't need use a window at all but alas this is the closest I have gotten.
-    // There exists HeadlessContext but that still pops up a window (atleast on Windows).
-    // TODO: Maybe change this such that the window displays the current render?
-    let window = glium::glutin::WindowBuilder::new()
-        .with_dimensions(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
-        .with_visibility(false)
-        .with_decorations(false)
-        .with_title("Rusty render");
-    let context = glium::glutin::ContextBuilder::new();
-    let display = glium::Display::new(window, context, &events_loop).unwrap();
-
-    for scene_name in &scenes {
-        stats::new_scene(scene_name);
-        let _t = stats::time("Total");
-        println!("{}...", scene_name);
-        let (scene, camera) = load::cpu_scene_from_name(scene_name, &config);
-        let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
-
-        stats::time("Post-process");
-        let image = output_dir.join(format!("{}_{}.png", scene_name, time_stamp));
-        pt_renderer.save_image(&display, &image);
-    }
-    let stats_file = output_dir.join(format!("hq_stats_{}.txt", time_stamp));
-    stats::print_and_save(&stats_file);
+    let output_dir = PathBuf::from("results").join("hq");
+    offline_render(&scenes, tag, &output_dir, config);
 }
 
 fn benchmark(tag: &str, config: RenderConfig) {
@@ -95,8 +68,18 @@ fn benchmark(tag: &str, config: RenderConfig) {
         "conference",
         "sponza",
     ];
+    let output_dir = PathBuf::from("results");
+    offline_render(&scenes, tag, &output_dir, config);
+}
+
+fn offline_render(scenes: &[&str], tag: &str, output_dir: &Path, config: RenderConfig) {
+    let tag = if tag.is_empty() {
+        tag.to_string()
+    } else {
+        format!("_{}", tag)
+    };
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let output_dir = root_dir.join("results");
+    let output_dir = root_dir.join(output_dir);
     std::fs::create_dir_all(output_dir.clone()).unwrap();
     let time_stamp = Local::now().format("%F_%H%M%S").to_string();
 
@@ -109,11 +92,11 @@ fn benchmark(tag: &str, config: RenderConfig) {
         .with_dimensions(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
         .with_visibility(false)
         .with_decorations(false)
-        .with_title("Benchmark");
+        .with_title("Rusty");
     let context = glium::glutin::ContextBuilder::new();
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
-    for scene_name in &scenes {
+    for scene_name in scenes {
         stats::new_scene(scene_name);
         let _t = stats::time("Total");
         println!("{}...", scene_name);
@@ -130,7 +113,9 @@ fn benchmark(tag: &str, config: RenderConfig) {
         let default_image = output_dir.join(scene_prefix).with_extension("png");
         std::fs::copy(timestamped_image, default_image).unwrap();
     }
-    let stats_file = output_dir.join(format!("benchmark{}_{}.txt", tag, time_stamp));
+    let stats_dir = output_dir.join(format!("stats{}", tag));
+    std::fs::create_dir_all(stats_dir.clone()).unwrap();
+    let stats_file = stats_dir.join(format!("stats{}_{}.txt", tag, time_stamp));
     stats::print_and_save(&stats_file);
 }
 

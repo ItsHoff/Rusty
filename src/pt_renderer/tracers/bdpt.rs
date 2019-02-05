@@ -13,6 +13,7 @@ mod vertex;
 
 use self::vertex::*;
 
+// TODO: avoid allocations and unnecessary pdf computations
 #[allow(clippy::if_same_then_else)]
 pub fn bdpt<'a>(
     camera_ray: Ray,
