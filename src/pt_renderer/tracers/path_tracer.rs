@@ -39,7 +39,7 @@ pub fn path_trace<'a>(
         }
         let (le, mut shadow_ray, light_pdf) = sample_light(&isect, scene, flash, config);
         let bsdf = isect.bsdf(-ray.dir, shadow_ray.dir, PathType::Camera);
-        if !bsdf.is_black() && scene.intersect(&mut shadow_ray, node_stack).is_none() {
+        if !bsdf.is_black() && !scene.intersect_shadow(&mut shadow_ray, node_stack) {
             let cos_t = isect.cos_s(shadow_ray.dir).abs();
             c += beta * le * bsdf * cos_t / light_pdf;
         }

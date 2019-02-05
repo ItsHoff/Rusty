@@ -282,10 +282,33 @@ impl Scene {
         self.aabb.longest_edge()
     }
 
+    /// Determine if ray intersects with the scene.
+    /// Return true if intersection is found, false otherwise.
+    pub fn intersect_shadow<'a>(
+        &'a self,
+        ray: &mut Ray,
+        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    ) -> bool {
+        self.intersect_impl(ray, node_stack, true).is_some()
+    }
+
+    /// Find the closest hit of the ray
     pub fn intersect<'a>(
         &'a self,
         ray: &mut Ray,
         node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    ) -> Option<Hit> {
+        self.intersect_impl(ray, node_stack, false)
+    }
+
+    /// Private intersect implementation.
+    /// early_exit determines if the first found hit
+    /// or the closest hit is returned.
+    fn intersect_impl<'a>(
+        &'a self,
+        ray: &mut Ray,
+        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+        early_exit: bool,
     ) -> Option<Hit> {
         Ray::increment_count();
         let bvh = self.bvh.as_ref().unwrap();
@@ -301,6 +324,9 @@ impl Scene {
                     if let Some(hit) = tri.intersect(&ray) {
                         ray.length = hit.t;
                         closest_hit = Some(hit);
+                        if early_exit {
+                            return closest_hit;
+                        }
                     }
                 }
             } else {

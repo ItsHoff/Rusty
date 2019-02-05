@@ -68,7 +68,7 @@ pub fn bdpt<'a>(
                 let l_vertex = &light_path[s - 2];
                 let (mut connection_ray, mut radiance) = camera_vertex.connect_to(l_vertex);
                 if !radiance.is_black()
-                    && scene.intersect(&mut connection_ray, node_stack).is_none()
+                    && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
                     let wo = -l_vertex.ray.dir;
                     let wi = -connection_ray.dir;
@@ -90,7 +90,7 @@ pub fn bdpt<'a>(
                 let c_vertex = &camera_path[t - 2];
                 let (mut connection_ray, radiance) = light_vertex.connect_to(c_vertex);
                 if !radiance.is_black()
-                    && scene.intersect(&mut connection_ray, node_stack).is_none()
+                    && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
                     let path = BDPath::new(
                         light_vertex.clone(),
@@ -108,7 +108,7 @@ pub fn bdpt<'a>(
                 let c_vertex = &camera_path[t - 2];
                 let (mut connection_ray, mut radiance) = l_vertex.connect_to(c_vertex);
                 if !radiance.is_black()
-                    && scene.intersect(&mut connection_ray, node_stack).is_none()
+                    && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
                     let wo = -l_vertex.ray.dir;
                     let wi = -connection_ray.dir;

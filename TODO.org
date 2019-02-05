@@ -26,8 +26,6 @@
 *** UI
 ** Performance
 *** Parallel building of BVH
-*** Pure hit tests without extra info
-   * Can stop when any hit is found instead of finding the closests
 *** Spatial curves for 2d vector ordering
    * e.g. textures
    * Hilbert / Morton
