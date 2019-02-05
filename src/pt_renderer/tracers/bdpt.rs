@@ -63,55 +63,33 @@ pub fn bdpt<'a>(
             } else if s == 1 && t == 1 {
                 // This should be sampled well enough by strategy (0, 2)
                 continue;
-            // Connect light vertex to camera
-            } else if t == 1 {
-                let l_vertex = &light_path[s - 2];
-                let (mut connection_ray, radiance) = camera_vertex.connect_to(l_vertex);
-                if !radiance.is_black()
-                    && !scene.intersect_shadow(&mut connection_ray, node_stack)
-                {
-                    // Splat is always valid if radiance is not black
-                    splat = camera_vertex.camera.clip_pos(-connection_ray.dir);
-                    let path = BDPath::new(
-                        light_vertex.clone(),
-                        &light_path[0..=s - 2],
-                        &camera_vertex,
-                        &[],
-                    );
-                    (radiance, path)
-                } else {
-                    continue;
-                }
-            // Connect camera vertex to light
-            } else if s == 1 {
-                let c_vertex = &camera_path[t - 2];
-                let (mut connection_ray, radiance) = light_vertex.connect_to(c_vertex);
-                if !radiance.is_black()
-                    && !scene.intersect_shadow(&mut connection_ray, node_stack)
-                {
-                    let path = BDPath::new(
-                        light_vertex.clone(),
-                        &[],
-                        &camera_vertex,
-                        &camera_path[0..=t - 2],
-                    );
-                    (radiance, path)
-                } else {
-                    continue;
-                }
             // Everything else
             } else {
-                let l_vertex = &light_path[s - 2];
-                let c_vertex = &camera_path[t - 2];
-                let (mut connection_ray, radiance) = l_vertex.connect_to(c_vertex);
+                let (l_vertex, li): (&dyn Vertex, usize) = if s == 1 {
+                    (&light_vertex, 0)
+                } else {
+                    (&light_path[s - 2], s - 1)
+                };
+                let (c_vertex, ci): (&dyn Vertex, usize) = if t == 1 {
+                    (&camera_vertex, 0)
+                } else {
+                    (&camera_path[t - 2], t - 1)
+                };
+                // Connect camera vertex to light vertex since shadow rays
+                // from the camera are simpler than those from the light
+                let (mut connection_ray, radiance) = c_vertex.connect_to(l_vertex);
                 if !radiance.is_black()
                     && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
+                    if t == 1 {
+                        // Splat is always valid if radiance is not black
+                        splat = camera_vertex.camera.clip_pos(connection_ray.dir);
+                    }
                     let path = BDPath::new(
                         light_vertex.clone(),
-                        &light_path[0..=s - 2],
+                        &light_path[0..li],
                         &camera_vertex,
-                        &camera_path[0..=t - 2],
+                        &camera_path[0..ci],
                     );
                     (radiance, path)
                 } else {

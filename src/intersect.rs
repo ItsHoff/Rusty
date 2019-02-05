@@ -54,7 +54,7 @@ impl Ray {
     }
 
     /// Shadow ray between two points
-    fn shadow(orig: Point3<Float>, to: Point3<Float>) -> Ray {
+    pub fn shadow(orig: Point3<Float>, to: Point3<Float>) -> Ray {
         let dp = to - orig;
         let length = dp.magnitude() - consts::EPSILON;
         let dir = dp.normalize();
@@ -126,7 +126,7 @@ impl Interaction<'_> {
         Ray::shadow(self.ray_origin(to - self.p), to)
     }
 
-    fn ray_origin(&self, dir: Vector3<Float>) -> Point3<Float> {
+    pub fn ray_origin(&self, dir: Vector3<Float>) -> Point3<Float> {
         if dir.dot(self.ng) > 0.0 {
             self.p + consts::EPSILON * self.ng
         } else {

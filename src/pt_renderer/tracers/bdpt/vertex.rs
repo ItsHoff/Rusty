@@ -125,7 +125,11 @@ impl<'a> BDPath<'a> {
 }
 
 pub trait Vertex {
+    /// Get the position of the vertex
     fn pos(&self) -> Point3<Float>;
+
+    /// Get the shadow ray origin for dir
+    fn shadow_origin(&self, dir: Vector3<Float>) -> Point3<Float>;
 
     /// Geometric cosine
     fn cos_g(&self, dir: Vector3<Float>) -> Float;
@@ -141,10 +145,10 @@ pub trait Vertex {
     /// Connect vertex to a surface vertex.
     /// Return the shadow ray and total path throughput.
     /// Will panic if other is not a surface vertex.
-    fn connect_to(&self, surface: &SurfaceVertex) -> (Ray, Color) {
-        let ray = surface.isect.shadow_ray(self.pos());
-        let beta = self.path_throughput(-ray.dir) * surface.path_throughput(ray.dir);
-        let g = (self.cos_s(ray.dir) * surface.cos_s(ray.dir) / ray.length.powi(2)).abs();
+    fn connect_to(&self, other: &dyn Vertex) -> (Ray, Color) {
+        let ray = Ray::shadow(self.shadow_origin(other.pos() - self.pos()), other.pos());
+        let beta = self.path_throughput(ray.dir) * other.path_throughput(-ray.dir);
+        let g = (self.cos_s(ray.dir) * other.cos_s(ray.dir) / ray.length.powi(2)).abs();
         (ray, g * beta)
     }
 }
@@ -192,6 +196,11 @@ impl<'a> CameraVertex<'a> {
 
 impl Vertex for CameraVertex<'_> {
     fn pos(&self) -> Point3<Float> {
+        self.camera.pos
+    }
+
+    fn shadow_origin(&self, _dir: Vector3<Float>) -> Point3<Float> {
+        // There is no physical camera so no need to care for self shadowing
         self.camera.pos
     }
 
@@ -247,6 +256,10 @@ impl Vertex for LightVertex<'_> {
         self.pos
     }
 
+    fn shadow_origin(&self, _dir: Vector3<Float>) -> Point3<Float> {
+        panic!("Shadow rays starting from lights not implemented!");
+    }
+
     fn cos_g(&self, dir: Vector3<Float>) -> Float {
         self.light.cos_g(dir)
     }
@@ -300,6 +313,10 @@ impl<'a> SurfaceVertex<'a> {
 impl Vertex for SurfaceVertex<'_> {
     fn pos(&self) -> Point3<Float> {
         self.isect.p
+    }
+
+    fn shadow_origin(&self, dir: Vector3<Float>) -> Point3<Float> {
+        self.isect.ray_origin(dir)
     }
 
     fn cos_g(&self, dir: Vector3<Float>) -> Float {
