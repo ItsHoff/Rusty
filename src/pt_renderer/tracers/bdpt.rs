@@ -1,11 +1,11 @@
-use cgmath::{Point2, Vector3};
+use cgmath::Point2;
 
 use crate::bvh::BVHNode;
 use crate::camera::PTCamera;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
-use crate::intersect::{Interaction, Ray};
+use crate::intersect::Ray;
 use crate::pt_renderer::PathType;
 use crate::scene::Scene;
 
@@ -66,13 +66,10 @@ pub fn bdpt<'a>(
             // Connect light vertex to camera
             } else if t == 1 {
                 let l_vertex = &light_path[s - 2];
-                let (mut connection_ray, mut radiance) = camera_vertex.connect_to(l_vertex);
+                let (mut connection_ray, radiance) = camera_vertex.connect_to(l_vertex);
                 if !radiance.is_black()
                     && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
-                    let wo = -l_vertex.ray.dir;
-                    let wi = -connection_ray.dir;
-                    radiance *= correct_shading_normal(&l_vertex.isect, wo, wi);
                     // Splat is always valid if radiance is not black
                     splat = camera_vertex.camera.clip_pos(-connection_ray.dir);
                     let path = BDPath::new(
@@ -106,13 +103,10 @@ pub fn bdpt<'a>(
             } else {
                 let l_vertex = &light_path[s - 2];
                 let c_vertex = &camera_path[t - 2];
-                let (mut connection_ray, mut radiance) = l_vertex.connect_to(c_vertex);
+                let (mut connection_ray, radiance) = l_vertex.connect_to(c_vertex);
                 if !radiance.is_black()
                     && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
-                    let wo = -l_vertex.ray.dir;
-                    let wi = -connection_ray.dir;
-                    radiance *= correct_shading_normal(&l_vertex.isect, wo, wi);
                     let path = BDPath::new(
                         light_vertex.clone(),
                         &light_path[0..=s - 2],
@@ -188,10 +182,6 @@ fn generate_path<'a>(
             if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir, path_type) {
                 pdf *= bsdf_pdf;
                 beta *= isect.cos_s(new_ray.dir).abs() * bsdf / pdf;
-                // Account for non-symmetry
-                if path_type.is_light() {
-                    beta *= correct_shading_normal(isect, -ray.dir, new_ray.dir);
-                }
                 ray = new_ray;
                 bounce += 1;
             } else {
@@ -202,10 +192,4 @@ fn generate_path<'a>(
         }
     }
     path
-}
-
-/// Compute the correction factor resulting from use of shading normals
-/// for paths starting from a light.
-fn correct_shading_normal(isect: &Interaction, wo: Vector3<Float>, wi: Vector3<Float>) -> Float {
-    (isect.cos_s(wo) * isect.cos_g(wi) / (isect.cos_g(wo) * isect.cos_s(wi))).abs()
 }
