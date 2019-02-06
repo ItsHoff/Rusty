@@ -3,6 +3,7 @@ use cgmath::{Point3, Vector3};
 
 use crate::camera::PTCamera;
 use crate::color::Color;
+use crate::config::*;
 use crate::consts;
 use crate::float::*;
 use crate::intersect::{Interaction, Ray};
@@ -16,6 +17,7 @@ pub struct BDPath<'a> {
     light_vertex: LightVertex<'a>,
     /// Intermediate path from the light to camera
     path: Vec<SurfaceVertex<'a>>,
+    config: &'a RenderConfig,
 }
 
 impl<'a> BDPath<'a> {
@@ -24,15 +26,22 @@ impl<'a> BDPath<'a> {
         light_path: &[SurfaceVertex<'a>],
         camera_vertex: &'a CameraVertex,
         camera_path: &[SurfaceVertex<'a>],
+        config: &'a RenderConfig,
     ) -> Self {
         let mut path = light_path.to_vec();
         for v in camera_path.iter().rev() {
             path.push(v.clone());
         }
+        assert!(path.len() <= config.max_bounces,
+                "Path contains {} bounces but it can't contain more than {} bounces!",
+                path.len(),
+                config.max_bounces,
+        );
         Self {
             camera_vertex,
             light_vertex,
             path,
+            config,
         }
     }
 
@@ -119,6 +128,17 @@ impl<'a> BDPath<'a> {
                     pdf_camera *= pdf_scatter(self.get_t(i - 2), sv, self.get_t(i));
                 }
             }
+        }
+        // Adjust for russian roulette
+        match self.config.russian_roulette {
+            RussianRoulette::Dynamic => unimplemented!(),
+            RussianRoulette::Static(prob) => {
+                let extra_light = (s as i32 - 2 - self.config.pre_rr_bounces as i32).max(0);
+                pdf_light *= prob.powi(extra_light);
+                let extra_camera = (t as i32 - 2 - self.config.pre_rr_bounces as i32).max(0);
+                pdf_camera *= prob.powi(extra_camera);
+            }
+            RussianRoulette::Off => (),
         }
         Some(pdf_light * pdf_camera)
     }

@@ -44,15 +44,24 @@ pub fn path_trace<'a>(
             c += beta * le * bsdf * cos_t / light_pdf;
         }
         let mut pdf = 1.0;
-        let terminate = if bounce < config.bounces {
-            false
-        } else if config.russian_roulette {
-            // Survival probability
-            let prob = beta.luma().min(0.95);
-            pdf *= prob;
-            rand::random::<Float>() > prob
-        } else {
+        let terminate = if bounce >= config.max_bounces {
             true
+        } else if bounce >= config.pre_rr_bounces {
+            match config.russian_roulette {
+                RussianRoulette::Dynamic => {
+                    // Survival probability
+                    let prob = beta.luma().min(0.95);
+                    pdf *= prob;
+                    rand::random::<Float>() > prob
+                }
+                RussianRoulette::Static(prob) => {
+                    pdf *= prob;
+                    rand::random::<Float>() > prob
+                }
+                RussianRoulette::Off => false,
+            }
+        } else {
+            false
         };
         if !terminate {
             if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir, PathType::Camera) {

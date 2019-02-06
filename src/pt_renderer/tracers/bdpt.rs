@@ -42,8 +42,9 @@ pub fn bdpt<'a>(
     for s in (0..light_path.len() + 2).rev() {
         // Light path can't hit camera so start t from 1
         for t in (1..camera_path.len() + 2).rev() {
-            // TODO: handle rr
-            if s + t < 2 || s + t - 2 > config.bounces {
+            let length = s + t;
+            let bounces = length - 2;
+            if length < 2 || bounces > config.max_bounces {
                 continue;
             }
             let mut splat = None;
@@ -52,7 +53,7 @@ pub fn bdpt<'a>(
                 if let Some(vertex) = camera_path.get(t - 2) {
                     if let Some(light_vertex) = vertex.to_light_vertex(&scene) {
                         let path =
-                            BDPath::new(light_vertex, &[], &camera_vertex, &camera_path[0..t - 2]);
+                            BDPath::new(light_vertex, &[], &camera_vertex, &camera_path[0..t - 2], config);
                         (vertex.path_radiance(), path)
                     } else {
                         continue;
@@ -91,6 +92,7 @@ pub fn bdpt<'a>(
                         &light_path[0..li],
                         &camera_vertex,
                         &camera_path[0..ci],
+                        config,
                     );
                     (radiance, path)
                 } else {
@@ -99,14 +101,14 @@ pub fn bdpt<'a>(
             };
             let radiance = if config.mis {
                 // MIS
-                let weight = if s + t == 2 {
+                let weight = if length == 2 {
                     1.0
                 } else {
                     let power = 2;
                     let pdf_strat = path.pdf(s, t).unwrap().powi(power);
                     let mut sum_pdf = 0.0;
-                    for ti in 1..=s + t {
-                        if let Some(pdf) = path.pdf(s + t - ti, ti) {
+                    for ti in 1..=length {
+                        if let Some(pdf) = path.pdf(length - ti, ti) {
                             sum_pdf += pdf.powi(power);
                         }
                     }
@@ -115,8 +117,7 @@ pub fn bdpt<'a>(
                 weight * radiance
             } else {
                 // uniform scale
-                let n_scatter = s + t - 2;
-                radiance / (n_scatter + 2).to_float()
+                radiance / (bounces + 2).to_float()
             };
             if let Some(clip_p) = splat.take() {
                 splats.push((clip_p, radiance));
@@ -147,15 +148,21 @@ fn generate_path<'a>(
         ));
         let isect = &path.last().unwrap().isect;
         let mut pdf = 1.0;
-        let terminate = if bounce < config.bounces {
-            false
-        } else if config.russian_roulette {
-            // Survival probability
-            let prob = beta.luma().min(0.95);
-            pdf *= prob;
-            rand::random::<Float>() > prob
-        } else {
+        let terminate = if bounce >= config.max_bounces {
             true
+        } else if bounce >= config.pre_rr_bounces {
+            match config.russian_roulette {
+                RussianRoulette::Dynamic => {
+                    panic!("BDPT does not support dynamic RR")
+                }
+                RussianRoulette::Static(prob) => {
+                    pdf *= prob;
+                    rand::random::<Float>() > prob
+                }
+                RussianRoulette::Off => false
+            }
+        } else {
+            false
         };
         if !terminate {
             if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir, path_type) {

@@ -52,7 +52,7 @@ fn main() {
 
 fn high_quality() {
     // TODO: Add command line switches to select scenes and config settings
-    let scenes = ["cornell-sphere"];
+    let scenes = ["cornell-glossy"];
     let tag = "hq";
     let config = RenderConfig::high_quality();
     let output_dir = PathBuf::from("results").join("hq");

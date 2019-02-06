@@ -1,8 +1,8 @@
 use glium::glutin::{dpi::LogicalSize, VirtualKeyCode};
 
 use crate::bvh::SplitMode;
+use crate::float::*;
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum RenderMode {
     /// Standard path tracing
@@ -13,7 +13,6 @@ pub enum RenderMode {
     Debug(DebugMode),
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum DebugMode {
     /// Normals
@@ -22,13 +21,22 @@ pub enum DebugMode {
     ForwardNormals,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum LightMode {
     /// Use scene lights only (will still fall back to camera if there are none)
     Scene,
     /// Use camera flash as the light source
     Camera,
+}
+
+#[derive(Clone, Debug)]
+pub enum RussianRoulette {
+    /// Select survival probability based on path throughput
+    Dynamic,
+    /// Constant survival probability
+    Static(Float),
+    /// No russian roulette
+    Off,
 }
 
 #[derive(Clone, Debug)]
@@ -47,12 +55,16 @@ pub struct RenderConfig {
     pub light_mode: LightMode,
     /// Maximum number of iterations. None corresponds to manual stop.
     pub max_iterations: Option<usize>,
-    /// Russian roulette on or off
-    pub russian_roulette: bool,
+    /// Type of russian roulette
+    pub russian_roulette: RussianRoulette,
     /// Multiple importance sampling on or off
     pub mis: bool,
-    /// Number of bounces before starting russian roulette or terminating the path.
-    pub bounces: usize,
+    /// Number of bounces before starting russian roulette.
+    /// Won't have effect is russian roulette is off.
+    pub pre_rr_bounces: usize,
+    /// Maximum number of bounces allowed before path is terminated.
+    // std::usize::MAX should suffice for "unlimited" bounces
+    pub max_bounces: usize,
     /// Samples per pixel per direction. Squared to get the total samples per pixel.
     pub samples_per_dir: usize,
     /// Should tone mapping be used
@@ -71,9 +83,10 @@ impl RenderConfig {
             render_mode: RenderMode::PathTracing,
             light_mode: LightMode::Scene,
             max_iterations: None,
-            russian_roulette: true,
+            russian_roulette: RussianRoulette::Dynamic,
             mis: true,
-            bounces: 5,
+            pre_rr_bounces: 5,
+            max_bounces: std::usize::MAX,
             samples_per_dir: 2,
             tone_map: true,
             bvh_split: SplitMode::SAH,
@@ -83,7 +96,9 @@ impl RenderConfig {
     pub fn bdpt() -> Self {
         Self {
             render_mode: RenderMode::BDPT,
-            russian_roulette: false,
+            pre_rr_bounces: 2,
+            max_bounces: std::usize::MAX,
+            russian_roulette: RussianRoulette::Static(0.5),
             ..Self::path_trace()
         }
     }
@@ -97,9 +112,10 @@ impl RenderConfig {
             render_mode: RenderMode::PathTracing,
             light_mode: LightMode::Scene,
             max_iterations: Some(1),
-            russian_roulette: false,
+            russian_roulette: RussianRoulette::Off,
             mis: true,
-            bounces: 5,
+            pre_rr_bounces: 5,
+            max_bounces: 5,
             samples_per_dir: 3,
             tone_map: true,
             bvh_split: SplitMode::SAH,
@@ -128,8 +144,9 @@ impl RenderConfig {
         Self {
             normal_mapping: true,
             render_mode: RenderMode::Debug(DebugMode::Normals),
-            russian_roulette: false,
-            bounces: 0,
+            russian_roulette: RussianRoulette::Off,
+            pre_rr_bounces: 0,
+            max_bounces: 0,
             samples_per_dir: 1,
             tone_map: false,
             ..Self::path_trace()
