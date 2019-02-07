@@ -150,6 +150,7 @@ impl BVH {
             "Scene can contain maximum of 2^32 triangles! This scene has {} triangles.",
             triangles.len()
         );
+        assert!(triangles.len() > 0, "Scene doesn't contain any triangles!");
         stats::start_bvh();
         let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();

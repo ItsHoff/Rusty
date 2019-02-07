@@ -103,6 +103,7 @@ impl Scene {
         let scene = Arc::get_mut(&mut arc_scene).unwrap();
         let mut vertex_map = HashMap::new();
         let mut material_map = HashMap::new();
+        // TODO: handle scenes with no materials
         for range in &obj.material_ranges {
             if range.is_empty() {
                 continue;
