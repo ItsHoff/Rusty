@@ -200,6 +200,7 @@ fn online_render() {
                     ..
                 } => {
                     if pt_renderer.is_none() {
+                        // TODO: don't crash on bad scenes
                         if let Some(res) = load::gpu_scene_from_path(&display, &path, &config) {
                             scene = res.0;
                             gpu_scene = res.1;

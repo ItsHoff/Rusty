@@ -24,6 +24,7 @@ pub struct GPUMaterial {
     pub is_emissive: bool,
 }
 
+// TODO: handle opaqueness_texture
 impl Material {
     /// Create a new material based on a material loaded from the scene file
     pub fn new(obj_mat: &obj_load::Material) -> Material {

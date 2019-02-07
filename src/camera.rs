@@ -42,6 +42,7 @@ pub struct PTCamera {
 
 impl PTCamera {
     pub fn new(camera: Camera) -> Self {
+        // TODO: allow dynamic intensity and speed
         let intensity = 10.0 * camera.scale.powf(1.4) * Color::white();
         let flash = PointLight::new(camera.pos, intensity);
         Self { camera, flash }
