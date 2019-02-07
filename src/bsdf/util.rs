@@ -46,7 +46,11 @@ pub fn refract_n(w: Vector3<Float>, eta_mat: Float) -> Option<Vector3<Float>> {
 
 /// Compute the total index of refraction for incident direction w.
 pub fn eta(w: Vector3<Float>, eta_mat: Float) -> Float {
-    if w.z > 0.0 { 1.0 / eta_mat } else { eta_mat }
+    if w.z > 0.0 {
+        1.0 / eta_mat
+    } else {
+        eta_mat
+    }
 }
 
 // Trigonometric functions

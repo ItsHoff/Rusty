@@ -162,7 +162,12 @@ impl Interaction<'_> {
     }
 
     /// Evaluate the bsdf for directions in local coordinates without normal correction
-    fn bsdf_local(&self, wo_local: Vector3<Float>, wi_local: Vector3<Float>, path_type: PathType) -> Color {
+    fn bsdf_local(
+        &self,
+        wo_local: Vector3<Float>,
+        wi_local: Vector3<Float>,
+        path_type: PathType,
+    ) -> Color {
         let ng_local = self.to_local * self.ng;
         // Check if the interaction is geometrically transmitted or reflected
         if ng_local.dot(wo_local) * ng_local.dot(wi_local) < 0.0 {
@@ -174,7 +179,11 @@ impl Interaction<'_> {
 
     /// Sample the bsdf for outgoing world dir wo.
     /// Return the value of the bsdf, continuation ray and sampling pdf.
-    pub fn sample_bsdf(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Ray, Float)> {
+    pub fn sample_bsdf(
+        &self,
+        wo: Vector3<Float>,
+        path_type: PathType,
+    ) -> Option<(Color, Ray, Float)> {
         let wo_local = self.to_local * wo;
         let (mut bsdf, wi_local, pdf) = self.bsdf.sample(wo_local, path_type)?;
         let wi = self.to_local.transpose() * wi_local;
@@ -182,12 +191,21 @@ impl Interaction<'_> {
         if !self.bsdf.is_specular() {
             bsdf = self.bsdf_local(wo_local, wi_local, path_type);
         }
-        Some((self.normal_correction(wo, wi, path_type) * bsdf, self.ray(wi), pdf))
+        Some((
+            self.normal_correction(wo, wi, path_type) * bsdf,
+            self.ray(wi),
+            pdf,
+        ))
     }
 
     /// Compute the correction factor resulting from use of shading normals
     /// for paths starting from a light.
-    fn normal_correction(&self, wo: Vector3<Float>, wi: Vector3<Float>, path_type: PathType) -> Float {
+    fn normal_correction(
+        &self,
+        wo: Vector3<Float>,
+        wi: Vector3<Float>,
+        path_type: PathType,
+    ) -> Float {
         if path_type.is_light() {
             (self.cos_s(wo) * self.cos_g(wi) / (self.cos_g(wo) * self.cos_s(wi))).abs()
         } else {

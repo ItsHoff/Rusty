@@ -32,10 +32,11 @@ impl<'a> BDPath<'a> {
         for v in camera_path.iter().rev() {
             path.push(v.clone());
         }
-        assert!(path.len() <= config.max_bounces,
-                "Path contains {} bounces but it can't contain more than {} bounces!",
-                path.len(),
-                config.max_bounces,
+        assert!(
+            path.len() <= config.max_bounces,
+            "Path contains {} bounces but it can't contain more than {} bounces!",
+            path.len(),
+            config.max_bounces,
         );
         Self {
             camera_vertex,
@@ -309,7 +310,12 @@ pub struct SurfaceVertex<'a> {
 
 impl<'a> SurfaceVertex<'a> {
     pub fn new(ray: Ray, beta: Color, path_type: PathType, isect: Interaction<'a>) -> Self {
-        Self { ray, beta, isect, path_type }
+        Self {
+            ray,
+            beta,
+            isect,
+            path_type,
+        }
     }
 
     /// Radiance along the path ending at this vertex

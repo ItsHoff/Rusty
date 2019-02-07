@@ -29,7 +29,11 @@ pub trait BSDFT {
     /// Evaluate the pdf
     fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float;
     /// Sample the distribution
-    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)>;
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)>;
 }
 
 #[derive(Clone, Debug)]

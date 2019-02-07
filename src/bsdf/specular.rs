@@ -47,7 +47,11 @@ impl BSDFT for SpecularBRDF {
         0.0
     }
 
-    fn sample(&self, wo: Vector3<Float>, _path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        _path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::reflect_n(wo);
         let color = if self.use_schlick {
             fresnel::schlick(wo, self.color)
@@ -87,7 +91,11 @@ impl BSDFT for SpecularBTDF {
         0.0
     }
 
-    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = util::refract_n(wo, self.eta)?;
         let mut color = self.color / util::cos_t(wi).abs();
         // Account for non-symmetry

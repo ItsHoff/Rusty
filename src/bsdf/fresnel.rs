@@ -65,7 +65,11 @@ impl<R: BSDFT, T: BSDFT> BSDFT for FresnelBSDF<R, T> {
         }
     }
 
-    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)> {
         let fr = dielectric(wo, self.eta);
         if rand::random::<Float>() < fr {
             let (color, wi, pdf) = self.brdf.sample(wo, path_type)?;

@@ -52,8 +52,13 @@ pub fn bdpt<'a>(
             let (radiance, path) = if s == 0 {
                 if let Some(vertex) = camera_path.get(t - 2) {
                     if let Some(light_vertex) = vertex.to_light_vertex(&scene) {
-                        let path =
-                            BDPath::new(light_vertex, &[], &camera_vertex, &camera_path[0..t - 2], config);
+                        let path = BDPath::new(
+                            light_vertex,
+                            &[],
+                            &camera_vertex,
+                            &camera_path[0..t - 2],
+                            config,
+                        );
                         (vertex.path_radiance(), path)
                     } else {
                         continue;
@@ -80,8 +85,7 @@ pub fn bdpt<'a>(
                 // Connect camera vertex to light vertex since shadow rays
                 // from the camera are simpler than those from the light
                 let (mut connection_ray, radiance) = c_vertex.connect_to(l_vertex);
-                if !radiance.is_black()
-                    && !scene.intersect_shadow(&mut connection_ray, node_stack)
+                if !radiance.is_black() && !scene.intersect_shadow(&mut connection_ray, node_stack)
                 {
                     if t == 1 {
                         // Splat is always valid if radiance is not black
@@ -152,14 +156,12 @@ fn generate_path<'a>(
             true
         } else if bounce >= config.pre_rr_bounces {
             match config.russian_roulette {
-                RussianRoulette::Dynamic => {
-                    panic!("BDPT does not support dynamic RR")
-                }
+                RussianRoulette::Dynamic => panic!("BDPT does not support dynamic RR"),
                 RussianRoulette::Static(prob) => {
                     pdf *= prob;
                     rand::random::<Float>() > prob
                 }
-                RussianRoulette::Off => false
+                RussianRoulette::Off => false,
             }
         } else {
             false

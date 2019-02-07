@@ -4,8 +4,8 @@ use cgmath::Vector3;
 use crate::color::Color;
 use crate::consts;
 use crate::float::*;
-use crate::sample;
 use crate::pt_renderer::PathType;
+use crate::sample;
 
 use super::fresnel::{self, FresnelBSDF};
 use super::util;
@@ -125,7 +125,11 @@ impl BSDFT for MicrofacetBRDF {
         self.microfacets.pdf_wh(wo, wh) / (4.0 * wo.dot(wh).abs())
     }
 
-    fn sample(&self, wo: Vector3<Float>, _path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        _path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)> {
         let wh = self.microfacets.sample_wh(wo);
         let wi = util::reflect(wo, wh);
         if !util::same_hemisphere(wo, wi) {
@@ -187,7 +191,11 @@ impl BSDFT for FresnelBlendBRDF {
         (d_pdf + mf_pdf) / 2.0
     }
 
-    fn sample(&self, wo: Vector3<Float>, _path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        _path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)> {
         let wi = if rand::random::<Float>() < 0.5 {
             let wh = self.microfacets.sample_wh(wo);
             let wi = util::reflect(wo, wh);
@@ -277,7 +285,11 @@ impl BSDFT for MicrofacetBTDF {
         self.microfacets.pdf_wh(wo, wh) * cov
     }
 
-    fn sample(&self, wo: Vector3<Float>, path_type: PathType) -> Option<(Color, Vector3<Float>, Float)> {
+    fn sample(
+        &self,
+        wo: Vector3<Float>,
+        path_type: PathType,
+    ) -> Option<(Color, Vector3<Float>, Float)> {
         let wh = self.microfacets.sample_wh(wo);
         let wi = util::refract(wo, wh, self.eta)?;
         let val = self.btdf(wo, wi, path_type);
