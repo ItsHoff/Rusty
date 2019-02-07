@@ -28,14 +28,14 @@ impl Material {
     /// Create a new material based on a material loaded from the scene file
     pub fn new(obj_mat: &obj_load::Material) -> Material {
         let scattering = Scattering::from_obj(obj_mat);
-        let emissive = obj_mat.c_emissive.and_then(|e| {
+        let emissive = obj_mat.emissive_color.and_then(|e| {
             if e == [0.0, 0.0, 0.0] {
                 None
             } else {
                 Some(Color::from(e))
             }
         });
-        let normal_map = if let Some(path) = &obj_mat.tex_bump {
+        let normal_map = if let Some(path) = &obj_mat.bump_map {
             Some(texture::load_normal_map(path))
         } else {
             None

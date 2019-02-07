@@ -36,20 +36,20 @@ pub enum Scattering {
 }
 
 fn diffuse_texture(obj_mat: &obj_load::Material) -> Texture {
-    match &obj_mat.tex_diffuse {
+    match &obj_mat.diffuse_texture {
         Some(path) => Texture::from_image_path(path),
         None => {
-            let color = Color::from(obj_mat.c_diffuse.unwrap_or([0.0, 0.0, 0.0]));
+            let color = Color::from(obj_mat.diffuse_color.unwrap_or([0.0, 0.0, 0.0]));
             Texture::from_color(color)
         }
     }
 }
 
 fn specular_texture(obj_mat: &obj_load::Material) -> Texture {
-    match &obj_mat.tex_specular {
+    match &obj_mat.specular_texture {
         Some(path) => Texture::from_image_path(path),
         None => {
-            let color = Color::from(obj_mat.c_specular.unwrap_or([0.0, 0.0, 0.0]));
+            let color = Color::from(obj_mat.specular_color.unwrap_or([0.0, 0.0, 0.0]));
             Texture::from_color(color)
         }
     }
@@ -58,8 +58,8 @@ fn specular_texture(obj_mat: &obj_load::Material) -> Texture {
 fn transmissive_texture(obj_mat: &obj_load::Material) -> Texture {
     let color = Color::from(
         obj_mat
-            .c_translucency
-            .expect("No translucent color for translucent material"),
+            .transmission_color
+            .expect("No transmission color for transmissive material"),
     );
     // MTL spec states that transmissive color defines light that is able to pass through
     // but some scenes seem to interpret it as a filter that removes light
@@ -75,13 +75,13 @@ impl Scattering {
         let specular = specular_texture(obj_mat);
         match obj_mat.illumination_model.unwrap_or(0) {
             2 => {
-                let shininess = obj_mat.shininess.unwrap().to_float();
+                let exponent = obj_mat.specular_exponent.unwrap().to_float();
                 if diffuse.is_black() {
-                    GR(GlossyReflection::new(specular, shininess))
+                    GR(GlossyReflection::new(specular, exponent))
                 } else if specular.is_black() {
                     DR(DiffuseReflection::new(diffuse))
                 } else {
-                    GB(GlossyBlend::new(diffuse, specular, shininess))
+                    GB(GlossyBlend::new(diffuse, specular, exponent))
                 }
             }
             5 => {
@@ -90,9 +90,9 @@ impl Scattering {
             }
             4 | 6 | 7 => {
                 let transmissive = transmissive_texture(obj_mat);
-                let shininess = obj_mat.shininess.unwrap().to_float();
+                let exponent = obj_mat.specular_exponent.unwrap().to_float();
                 let eta = obj_mat
-                    .refraction_i
+                    .index_of_refraction
                     .expect("No index of refraction for translucent material")
                     .to_float();
                 if (eta - 1.0).abs() < crate::consts::EPSILON {
@@ -103,7 +103,7 @@ impl Scattering {
                     GT(GlossyTransmission::new(
                         specular,
                         transmissive,
-                        shininess,
+                        exponent,
                         eta,
                     ))
                 }
@@ -111,7 +111,10 @@ impl Scattering {
             i => {
                 if i > 10 {
                     println!("Illumination model {} is not defined in the mtl spec!", i);
-                    println!("Defaulting to diffuse BSDF.");
+                    println!("Defaulting to diffuse reflection.");
+                } else {
+                    println!("Unimplemented illumination model {}!", i);
+                    println!("Defaulting to diffuse reflection.");
                 }
                 DR(DiffuseReflection::new(diffuse))
             }

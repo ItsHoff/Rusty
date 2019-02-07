@@ -22,9 +22,9 @@ use self::specular::*;
 /// where (0, 0, 1) is the normal pointing outwards
 pub trait BSDFT {
     fn is_specular(&self) -> bool;
-    /// Evaluate reflected irradiance
+    /// Evaluate reflected radiance
     fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
-    /// Evaluate transmitted irradiance
+    /// Evaluate transmitted radiance
     fn btdf(&self, wo: Vector3<Float>, wi: Vector3<Float>, path_type: PathType) -> Color;
     /// Evaluate the pdf
     fn pdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Float;

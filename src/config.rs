@@ -96,7 +96,7 @@ impl RenderConfig {
     pub fn bdpt() -> Self {
         Self {
             render_mode: RenderMode::BDPT,
-            pre_rr_bounces: 2,
+            pre_rr_bounces: 5,
             max_bounces: std::usize::MAX,
             russian_roulette: RussianRoulette::Static(0.5),
             ..Self::path_trace()

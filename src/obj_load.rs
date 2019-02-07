@@ -128,44 +128,32 @@ impl Range {
 /// Representation of a loaded material
 #[derive(Debug, Default, Clone)]
 pub struct Material {
-    /// Name of the material
     pub name: String,
-    /// Ambient color
-    pub c_ambient: Option<[f32; 3]>,
-    /// Diffuse color
-    pub c_diffuse: Option<[f32; 3]>,
-    /// Specular color
-    pub c_specular: Option<[f32; 3]>,
-    /// Translucent color
-    pub c_translucency: Option<[f32; 3]>,
-    /// Emissive color
-    pub c_emissive: Option<[f32; 3]>,
-    /// Illumination model
+    pub ambient_color: Option<[f32; 3]>,
+    pub ambient_texture: Option<PathBuf>,
+    pub diffuse_color: Option<[f32; 3]>,
+    pub diffuse_texture: Option<PathBuf>,
+    pub specular_color: Option<[f32; 3]>,
+    pub specular_texture: Option<PathBuf>,
+    pub transmission_color: Option<[f32; 3]>,
+    pub transmission_texture: Option<PathBuf>,
+    pub emissive_color: Option<[f32; 3]>,
+    pub emissive_texture: Option<PathBuf>,
     pub illumination_model: Option<u32>,
-    /// Opacity
-    pub opacity: Option<f32>,
-    /// Specular shininess
-    pub shininess: Option<f32>,
+    /// 1.0 is fully opaque (1.0 - transparency)
+    pub opaqueness: Option<f32>,
+    pub opaqueness_texture: Option<PathBuf>,
+    /// 1.0 is fully transparent (1.0 - opaqueness)
+    pub transparency: Option<f32>,
+    pub transparency_texture: Option<PathBuf>,
+    pub specular_exponent: Option<f32>,
+    pub specular_exponent_texture: Option<PathBuf>,
     /// Sharpness of reflections
     pub sharpness: Option<f32>,
-    /// Index of refraction
-    pub refraction_i: Option<f32>,
-    /// Ambient color texture
-    pub tex_ambient: Option<PathBuf>,
-    /// Diffuse color texture
-    pub tex_diffuse: Option<PathBuf>,
-    /// Specular color texture
-    pub tex_specular: Option<PathBuf>,
-    /// Specular shininess texture
-    pub tex_shininess: Option<PathBuf>,
-    /// Opacity texture
-    pub tex_opacity: Option<PathBuf>,
-    /// Displacement texture
-    pub tex_disp: Option<PathBuf>,
-    /// Decal texture
-    pub tex_decal: Option<PathBuf>,
-    /// Bump texture
-    pub tex_bump: Option<PathBuf>,
+    pub index_of_refraction: Option<f32>,
+    pub displacement_texture: Option<PathBuf>,
+    pub decal_texture: Option<PathBuf>,
+    pub bump_map: Option<PathBuf>,
 }
 
 impl Material {
@@ -434,7 +422,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
         let line = line.unwrap();
         let mut split_line = line.split_whitespace();
         // Find the keyword of the line
-        if let Some(key) = split_line.next() {
+        if let Some(key) = split_line.next().map(|s| s.to_lowercase()) {
             if key == "newmtl" {
                 if let Some(material) = current_material {
                     materials.insert(material.name.clone(), material);
@@ -446,67 +434,74 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                 let material = current_material
                     .as_mut()
                     .ok_or("Found material properties before newmtl!")?;
-                match key {
-                    "Ka" => {
-                        material.c_ambient = parse_float3(&mut split_line);
+                match key.as_str() {
+                    "ka" => {
+                        material.ambient_color = parse_float3(&mut split_line);
                     }
-                    "Kd" => {
-                        material.c_diffuse = parse_float3(&mut split_line);
+                    "kd" => {
+                        material.diffuse_color = parse_float3(&mut split_line);
                     }
-                    "Ks" => {
-                        material.c_specular = parse_float3(&mut split_line);
+                    "ks" => {
+                        material.specular_color = parse_float3(&mut split_line);
                     }
-                    "Tf" => {
-                        material.c_translucency = parse_float3(&mut split_line);
+                    "tf" => {
+                        material.transmission_color = parse_float3(&mut split_line);
                     }
-                    "Ke" => {
-                        material.c_emissive = parse_float3(&mut split_line);
+                    "ke" => {
+                        material.emissive_color = parse_float3(&mut split_line);
                     }
                     "illum" => {
                         material.illumination_model = parse_int(&mut split_line);
                     }
-                    "d" | "Tr" => {
-                        material.opacity = parse_float(&mut split_line);
+                    "d" => {
+                        material.opaqueness = parse_float(&mut split_line);
                     }
-                    "Ns" => {
-                        material.shininess = parse_float(&mut split_line);
+                    "tr" => {
+                        material.transparency = parse_float(&mut split_line);
+                    }
+                    "ns" => {
+                        material.specular_exponent = parse_float(&mut split_line);
                     }
                     "sharpness" => {
                         material.sharpness = parse_float(&mut split_line);
                     }
-                    "Ni" => {
-                        material.refraction_i = parse_float(&mut split_line);
+                    "ni" => {
+                        material.index_of_refraction = parse_float(&mut split_line);
                     }
-                    "map_Ka" | "map_kA" => {
-                        material.tex_ambient =
+                    "map_ka" => {
+                        material.ambient_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
-                    "map_Kd" => {
-                        material.tex_diffuse =
+                    "map_kd" => {
+                        material.diffuse_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
-                    "map_Ks" | "map_kS" => {
-                        material.tex_specular =
+                    "map_ks" => {
+                        material.specular_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
-                    "map_Ns" => {
-                        material.tex_shininess =
+                    "map_ns" => {
+                        material.specular_exponent_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
-                    "map_d" | "map_Tr" | "map_opacity" => {
-                        material.tex_opacity =
+                    "map_d" | "map_opacity" => {
+                        material.opaqueness_texture =
+                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
+                    "map_tr" => {
+                        material.transparency_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "disp" => {
-                        material.tex_disp =
+                        material.displacement_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "decal" => {
-                        material.tex_decal =
+                        material.decal_texture =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
-                    "bump" | "map_Bump" | "map_bump" => {
-                        material.tex_bump =
+                    "bump" | "map_bump" => {
+                        material.bump_map =
                             parse_path(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "refl" => {} // TODO: reflection maps

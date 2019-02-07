@@ -19,11 +19,11 @@ struct GGX {
 
 // TODO: maybe just keep alpha^2
 impl GGX {
-    fn from_shininess(shininess: Float) -> Self {
-        // Shininess to alpha conversion from
+    fn from_exponent(exponent: Float) -> Self {
+        // Specular exponent to alpha conversion from
         // http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
         Self {
-            alpha: (2.0 / (shininess + 2.0)).sqrt(),
+            alpha: (2.0 / (exponent + 2.0)).sqrt(),
         }
     }
 
@@ -78,18 +78,18 @@ pub struct MicrofacetBRDF {
 }
 
 impl MicrofacetBRDF {
-    pub fn with_schlick(color: Color, shininess: Float) -> Self {
+    pub fn with_schlick(color: Color, exponent: Float) -> Self {
         Self {
             color,
-            microfacets: GGX::from_shininess(shininess),
+            microfacets: GGX::from_exponent(exponent),
             use_schlick: true,
         }
     }
 
-    pub fn without_schlick(color: Color, shininess: Float) -> Self {
+    pub fn without_schlick(color: Color, exponent: Float) -> Self {
         Self {
             color,
-            microfacets: GGX::from_shininess(shininess),
+            microfacets: GGX::from_exponent(exponent),
             use_schlick: false,
         }
     }
@@ -146,11 +146,11 @@ pub struct FresnelBlendBRDF {
 }
 
 impl FresnelBlendBRDF {
-    pub fn new(diffuse: Color, specular: Color, shininess: Float) -> Self {
+    pub fn new(diffuse: Color, specular: Color, exponent: Float) -> Self {
         Self {
             diffuse,
             specular,
-            microfacets: GGX::from_shininess(shininess),
+            microfacets: GGX::from_exponent(exponent),
         }
     }
 }
@@ -212,10 +212,10 @@ pub struct MicrofacetBTDF {
 }
 
 impl MicrofacetBTDF {
-    pub fn new(color: Color, shininess: Float, eta: Float) -> Self {
+    pub fn new(color: Color, exponent: Float, eta: Float) -> Self {
         Self {
             color,
-            microfacets: GGX::from_shininess(shininess),
+            microfacets: GGX::from_exponent(exponent),
             eta,
         }
     }
@@ -289,9 +289,9 @@ impl BSDFT for MicrofacetBTDF {
 pub type MicrofacetBSDF = FresnelBSDF<MicrofacetBRDF, MicrofacetBTDF>;
 
 impl MicrofacetBSDF {
-    pub fn new(reflect: Color, transmit: Color, shininess: Float, eta: Float) -> Self {
-        let brdf = MicrofacetBRDF::without_schlick(reflect, shininess);
-        let btdf = MicrofacetBTDF::new(transmit, shininess, eta);
+    pub fn new(reflect: Color, transmit: Color, exponent: Float, eta: Float) -> Self {
+        let brdf = MicrofacetBRDF::without_schlick(reflect, exponent);
+        let btdf = MicrofacetBTDF::new(transmit, exponent, eta);
         Self { brdf, btdf, eta }
     }
 }
