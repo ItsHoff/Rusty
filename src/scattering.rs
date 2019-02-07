@@ -75,13 +75,13 @@ impl Scattering {
         let specular = specular_texture(obj_mat);
         match obj_mat.illumination_model {
             Some(2) => {
-                let exponent = obj_mat.specular_exponent.unwrap().to_float();
+                let exponent = obj_mat.specular_exponent.map(|e| e.to_float());
                 if diffuse.is_black() {
-                    GR(GlossyReflection::new(specular, exponent))
+                    GR(GlossyReflection::new(specular, exponent.unwrap()))
                 } else if specular.is_black() {
                     DR(DiffuseReflection::new(diffuse))
                 } else {
-                    GB(GlossyBlend::new(diffuse, specular, exponent))
+                    GB(GlossyBlend::new(diffuse, specular, exponent.unwrap()))
                 }
             }
             Some(5) => {
@@ -90,7 +90,6 @@ impl Scattering {
             }
             Some(4) | Some(6) | Some(7) => {
                 let transmissive = transmissive_texture(obj_mat);
-                let exponent = obj_mat.specular_exponent.unwrap().to_float();
                 let eta = obj_mat
                     .index_of_refraction
                     .expect("No index of refraction for translucent material")
@@ -100,6 +99,7 @@ impl Scattering {
                     // and the distribution would be the same anyways
                     ST(SpecularTransmission::new(specular, transmissive, eta))
                 } else {
+                    let exponent = obj_mat.specular_exponent.unwrap().to_float();
                     GT(GlossyTransmission::new(
                         specular,
                         transmissive,
