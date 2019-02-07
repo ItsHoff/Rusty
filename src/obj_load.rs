@@ -454,9 +454,11 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                     .ok_or("Tried to define a material with no name")?;
                 current_material = Some(Material::new(&material_name));
             } else if !key.starts_with('#') {
-                let material = current_material
-                    .as_mut()
-                    .ok_or("Found material properties before newmtl!")?;
+                if current_material.is_none() {
+                    println!("Statement: '{}' found before any material was defined!", line);
+                    continue;
+                }
+                let material = current_material.as_mut().unwrap();
                 match key.as_str() {
                     "ka" => {
                         material.ambient_color = parse_float3(&mut split_line);
