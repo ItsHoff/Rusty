@@ -264,12 +264,31 @@ fn parse_string(split_line: &mut SplitWhitespace) -> Option<String> {
 
 /// Parse a path from the split input line
 fn parse_path(split_line: &mut SplitWhitespace) -> Option<PathBuf> {
-    let path_str = parse_string(split_line)?;
+    let path_str = split_line.next()?;
+    Some(str_to_path(path_str))
+}
+
+fn str_to_path(string: &str) -> PathBuf {
     let mut path = PathBuf::new();
-    for part in path_str.split(|c| c == '/' || c == '\\') {
+    for part in string.split(|c| c == '/' || c == '\\') {
         path.push(part);
     }
-    Some(path)
+    path
+}
+
+/// Parse a texture ignoring the potential options
+fn parse_texture(split_line: &mut SplitWhitespace) -> Option<PathBuf> {
+    let mut next_item = split_line.next();
+    while let Some(next) = next_item {
+        // Ignore potential switches
+        // TODO: handle more switches
+        // TODO: handle switches properly
+        match next {
+            "-bm" => next_item = split_line.nth(1),
+            path_str => return Some(str_to_path(path_str)),
+        }
+    }
+    None
 }
 
 /// Parse a polygon from the split input line
@@ -474,39 +493,43 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                     }
                     "map_ka" => {
                         material.ambient_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "map_kd" => {
                         material.diffuse_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "map_ks" => {
                         material.specular_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
+                    }
+                    "map_ke" => {
+                        material.emissive_texture =
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "map_ns" => {
                         material.specular_exponent_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "map_d" | "map_opacity" => {
                         material.opaqueness_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "map_tr" => {
                         material.transparency_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "disp" => {
                         material.displacement_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "decal" => {
                         material.decal_texture =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "bump" | "map_bump" => {
                         material.bump_map =
-                            parse_path(&mut split_line).map(|path| matlib_dir.join(path));
+                            parse_texture(&mut split_line).map(|path| matlib_dir.join(path));
                     }
                     "refl" => {} // TODO: reflection maps
                     _ => {

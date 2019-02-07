@@ -28,6 +28,7 @@ impl Material {
     /// Create a new material based on a material loaded from the scene file
     pub fn new(obj_mat: &obj_load::Material) -> Material {
         let scattering = Scattering::from_obj(obj_mat);
+        // TODO: handle emissive textures
         let emissive = obj_mat.emissive_color.and_then(|e| {
             if e == [0.0, 0.0, 0.0] {
                 None
