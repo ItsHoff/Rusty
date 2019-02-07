@@ -55,15 +55,19 @@ fn specular_texture(obj_mat: &obj_load::Material) -> Texture {
     }
 }
 
-fn transmissive_texture(obj_mat: &obj_load::Material) -> Texture {
-    let color = Color::from(
+fn transmission_filter(obj_mat: &obj_load::Material) -> Texture {
+    let mut color = Color::from(
         obj_mat
-            .transmission_color
-            .expect("No transmission color for transmissive material"),
+            .transmission_filter
+            .expect("No transmission filter for transmissive material"),
     );
-    // MTL spec states that transmissive color defines light that is able to pass through
-    // but some scenes seem to interpret it as a filter that removes light
-    let color = Color::white() - color;
+    // MTL spec states that transmission filter defines the fraction of light
+    // that is able to pass through the surface, but some scenes seem to interpret
+    // it as the opposite. So we flip all low valued filters.
+    if color.r() < 0.4 && color.g() < 0.4 && color.b() < 0.4 {
+        println!("Flipped transmission filter!");
+        color = Color::white() - color;
+    }
     Texture::from_color(color)
 }
 
@@ -89,7 +93,7 @@ impl Scattering {
                 SR(SpecularReflection::new(texture))
             }
             Some(4) | Some(6) | Some(7) => {
-                let transmissive = transmissive_texture(obj_mat);
+                let filter = transmission_filter(obj_mat);
                 let eta = obj_mat
                     .index_of_refraction
                     .expect("No index of refraction for translucent material")
@@ -97,12 +101,12 @@ impl Scattering {
                 if (eta - 1.0).abs() < crate::consts::EPSILON {
                     // Glossy does not handle eta = 1 properly
                     // and the distribution would be the same anyways
-                    ST(SpecularTransmission::new(specular, transmissive, eta))
+                    ST(SpecularTransmission::new(specular, filter, eta))
                 } else {
                     let exponent = obj_mat.specular_exponent.unwrap().to_float();
                     GT(GlossyTransmission::new(
                         specular,
-                        transmissive,
+                        filter,
                         exponent,
                         eta,
                     ))

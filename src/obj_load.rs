@@ -139,7 +139,7 @@ pub struct Material {
     pub diffuse_texture: Option<PathBuf>,
     pub specular_color: Option<[f32; 3]>,
     pub specular_texture: Option<PathBuf>,
-    pub transmission_color: Option<[f32; 3]>,
+    pub transmission_filter: Option<[f32; 3]>,
     pub transmission_texture: Option<PathBuf>,
     pub emissive_color: Option<[f32; 3]>,
     pub emissive_texture: Option<PathBuf>,
@@ -470,7 +470,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                         material.specular_color = parse_float3(&mut split_line);
                     }
                     "tf" => {
-                        material.transmission_color = parse_float3(&mut split_line);
+                        material.transmission_filter = parse_float3(&mut split_line);
                     }
                     "ke" => {
                         material.emissive_color = parse_float3(&mut split_line);
