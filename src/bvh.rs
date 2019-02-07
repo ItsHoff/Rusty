@@ -146,11 +146,14 @@ pub struct BVH {
 impl BVH {
     pub fn build(triangles: &[Triangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
         assert!(
+            !triangles.is_empty(),
+            "Scene doesn't contain any triangles!"
+        );
+        assert!(
             triangles.len() <= 2usize.pow(32),
             "Scene can contain maximum of 2^32 triangles! This scene has {} triangles.",
             triangles.len()
         );
-        assert!(triangles.len() > 0, "Scene doesn't contain any triangles!");
         stats::start_bvh();
         let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();

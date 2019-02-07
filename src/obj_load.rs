@@ -455,7 +455,10 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
                 current_material = Some(Material::new(&material_name));
             } else if !key.starts_with('#') {
                 if current_material.is_none() {
-                    println!("Statement: '{}' found before any material was defined!", line);
+                    println!(
+                        "Statement: '{}' found before any material was defined!",
+                        line
+                    );
                     continue;
                 }
                 let material = current_material.as_mut().unwrap();

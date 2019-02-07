@@ -104,12 +104,7 @@ impl Scattering {
                     ST(SpecularTransmission::new(specular, filter, eta))
                 } else {
                     let exponent = obj_mat.specular_exponent.unwrap().to_float();
-                    GT(GlossyTransmission::new(
-                        specular,
-                        filter,
-                        exponent,
-                        eta,
-                    ))
+                    GT(GlossyTransmission::new(specular, filter, exponent, eta))
                 }
             }
             Some(i) => {
