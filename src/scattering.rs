@@ -73,8 +73,8 @@ impl Scattering {
 
         let diffuse = diffuse_texture(obj_mat);
         let specular = specular_texture(obj_mat);
-        match obj_mat.illumination_model.unwrap_or(0) {
-            2 => {
+        match obj_mat.illumination_model {
+            Some(2) => {
                 let exponent = obj_mat.specular_exponent.unwrap().to_float();
                 if diffuse.is_black() {
                     GR(GlossyReflection::new(specular, exponent))
@@ -84,11 +84,11 @@ impl Scattering {
                     GB(GlossyBlend::new(diffuse, specular, exponent))
                 }
             }
-            5 => {
+            Some(5) => {
                 let texture = specular_texture(obj_mat);
                 SR(SpecularReflection::new(texture))
             }
-            4 | 6 | 7 => {
+            Some(4) | Some(6) | Some(7) => {
                 let transmissive = transmissive_texture(obj_mat);
                 let exponent = obj_mat.specular_exponent.unwrap().to_float();
                 let eta = obj_mat
@@ -108,7 +108,7 @@ impl Scattering {
                     ))
                 }
             }
-            i => {
+            Some(i) => {
                 if i > 10 {
                     println!("Illumination model {} is not defined in the mtl spec!", i);
                     println!("Defaulting to diffuse reflection.");
@@ -116,6 +116,9 @@ impl Scattering {
                     println!("Unimplemented illumination model {}!", i);
                     println!("Defaulting to diffuse reflection.");
                 }
+                DR(DiffuseReflection::new(diffuse))
+            }
+            None => {
                 DR(DiffuseReflection::new(diffuse))
             }
         }
