@@ -104,6 +104,9 @@ impl Scene {
         let mut vertex_map = HashMap::new();
         let mut material_map = HashMap::new();
         for range in &obj.material_ranges {
+            if range.is_empty() {
+                continue;
+            }
             let material_i = match material_map.get(&range.name) {
                 Some(&i) => i,
                 None => {

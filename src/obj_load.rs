@@ -123,6 +123,10 @@ impl Range {
             end_i: start,
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.start_i >= self.end_i
+    }
 }
 
 /// Representation of a loaded material
