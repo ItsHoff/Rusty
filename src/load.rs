@@ -14,6 +14,7 @@ use crate::config::RenderConfig;
 use crate::float::*;
 use crate::scene::{GPUScene, Scene, SceneBuilder};
 use crate::stats;
+use crate::util;
 
 lazy_static::lazy_static! {
     static ref SCENE_LIBRARY: SceneLibrary = {
@@ -160,7 +161,7 @@ pub fn gpu_scene_from_path<F: Facade>(
     path: &Path,
     config: &RenderConfig,
 ) -> Option<(Arc<Scene>, GPUScene, Camera)> {
-    if let Some("obj") = path.extension().and_then(OsStr::to_str) {
+    if let Some("obj") = util::lowercase_extension(path).as_ref().map(|s| s.as_str()) {
         stats::new_scene(path.to_str().unwrap());
         let res = gpu_scene(facade, path, CameraPos::Offset, config);
         println!("Loaded scene from {:?}", path);

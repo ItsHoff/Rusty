@@ -13,6 +13,7 @@ use image::{DynamicImage, GenericImage, GrayImage, ImageFormat, RgbImage};
 
 use crate::color::{self, Color, SrgbColor};
 use crate::float::*;
+use crate::util;
 
 mod normal_map;
 
@@ -130,28 +131,25 @@ where
 
 /// Load an image from path
 fn load_image(path: &Path) -> Result<DynamicImage, Box<dyn Error>> {
-    let image_format = match path
-        .extension()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_lowercase()
-        .as_str()
-    {
-        "png" => ImageFormat::PNG,
-        "jpg" | "jpeg" => ImageFormat::JPEG,
-        "gif" => ImageFormat::GIF,
-        "webp" => ImageFormat::WEBP,
-        "pnm" => ImageFormat::PNM,
-        "tiff" => ImageFormat::TIFF,
-        "tga" => ImageFormat::TGA,
-        "bmp" => ImageFormat::BMP,
-        "ico" => ImageFormat::ICO,
-        "hdr" => ImageFormat::HDR,
-        ext => {
-            return Err(format!("Unknown image extension {}", ext).into());
-        }
-    };
-    let reader = BufReader::new(File::open(path)?);
-    image::load(reader, image_format).map_err(|e| e.into())
+    if let Some(ext) = util::lowercase_extension(path) {
+        let image_format = match ext.as_str() {
+            "png" => ImageFormat::PNG,
+            "jpg" | "jpeg" => ImageFormat::JPEG,
+            "gif" => ImageFormat::GIF,
+            "webp" => ImageFormat::WEBP,
+            "pnm" => ImageFormat::PNM,
+            "tiff" => ImageFormat::TIFF,
+            "tga" => ImageFormat::TGA,
+            "bmp" => ImageFormat::BMP,
+            "ico" => ImageFormat::ICO,
+            "hdr" => ImageFormat::HDR,
+            ext => {
+                return Err(format!("Unknown image extension {}", ext).into());
+            }
+        };
+        let reader = BufReader::new(File::open(path)?);
+        image::load(reader, image_format).map_err(|e| e.into())
+    } else {
+        Err(format!("Image does not have an extension: {:?}", path).into())
+    }
 }

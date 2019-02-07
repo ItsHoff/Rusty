@@ -34,6 +34,7 @@ mod scene;
 mod stats;
 mod texture;
 mod triangle;
+mod util;
 mod vertex;
 
 use self::config::RenderConfig;
