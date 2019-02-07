@@ -130,7 +130,14 @@ where
 
 /// Load an image from path
 fn load_image(path: &Path) -> Result<DynamicImage, Box<dyn Error>> {
-    let image_format = match path.extension().unwrap().to_str().unwrap() {
+    let image_format = match path
+        .extension()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_lowercase()
+        .as_str()
+    {
         "png" => ImageFormat::PNG,
         "jpg" | "jpeg" => ImageFormat::JPEG,
         "gif" => ImageFormat::GIF,
