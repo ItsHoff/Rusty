@@ -42,6 +42,7 @@ use self::gl_renderer::GLRenderer;
 use self::input::InputState;
 use self::pt_renderer::PTRenderer;
 
+// TODO: add comparison mode
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
         Some("hq") => high_quality(),
@@ -53,7 +54,14 @@ fn main() {
 
 fn high_quality() {
     // TODO: Add command line switches to select scenes and config settings
-    let scenes = ["cornell-glossy"];
+    let scenes = [
+        // "cornell-sphere",
+        // "cornell-glossy",
+        // "cornell-water",
+        // "indirect",
+        // "conference",
+        "sponza",
+    ];
     let tag = "hq";
     let config = RenderConfig::high_quality();
     let output_dir = PathBuf::from("results").join("hq");
@@ -221,8 +229,9 @@ fn online_render() {
         }
         // Limit frame rate
         let frame_time = Duration::from_millis(5);
-        if last_frame.elapsed() < frame_time {
-            std::thread::park_timeout(frame_time - last_frame.elapsed());
+        let elapsed = last_frame.elapsed();
+        if elapsed < frame_time {
+            std::thread::park_timeout(frame_time - elapsed);
         }
         last_frame = Instant::now();
     }
