@@ -105,6 +105,7 @@ impl Scene {
         let mut material_map = HashMap::new();
         // TODO: handle scenes with no materials
         for range in &obj.material_ranges {
+            // No need to load unused materials
             if range.is_empty() {
                 continue;
             }

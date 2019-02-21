@@ -162,6 +162,7 @@ impl RenderConfig {
 
     #[allow(dead_code)]
     pub fn single_threaded(self) -> Self {
+        println!("Running single threaded!");
         Self {
             max_threads: 1,
             ..self

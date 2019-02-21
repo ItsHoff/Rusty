@@ -13,8 +13,7 @@ mod vertex;
 
 use self::vertex::*;
 
-// TODO: avoid allocations and unnecessary pdf computations
-#[allow(clippy::if_same_then_else)]
+// TODO: avoid allocations
 pub fn bdpt<'a>(
     camera_ray: Ray,
     scene: &'a Scene,
@@ -34,32 +33,34 @@ pub fn bdpt<'a>(
     let light_vertex = LightVertex::new(light, light_pos, light_pdf * pos_pdf);
     let (beta, ray) = light_vertex.sample_next();
     let light_path = generate_path(beta, ray, PathType::Light, scene, config, node_stack);
+    let bd_path = BDPath::new(
+        &light_vertex,
+        &light_path,
+        &camera_vertex,
+        &camera_path,
+        config,
+    );
     let mut c = Color::black();
     // Paths contain vertices after the light / camera
     // 0 corresponds to no vertices from that subpath,
     // 1 is the starting vertex
     // 2+ are regular path vertices
-    for s in (0..light_path.len() + 2).rev() {
+    for s in (0..=light_path.len() + 1).rev() {
         // Light path can't hit camera so start t from 1
-        for t in (1..camera_path.len() + 2).rev() {
+        for t in (1..=camera_path.len() + 1).rev() {
             let length = s + t;
-            let bounces = length - 2;
-            if length < 2 || bounces > config.max_bounces {
+            if length < 2 || length - 2 > config.max_bounces {
                 continue;
             }
             let mut splat = None;
             // No light vertices
-            let (radiance, path) = if s == 0 {
+            let (mut radiance, path) = if s == 0 {
                 if let Some(vertex) = camera_path.get(t - 2) {
                     if let Some(light_vertex) = vertex.to_light_vertex(&scene) {
-                        let path = BDPath::new(
-                            light_vertex,
-                            &[],
-                            &camera_vertex,
-                            &camera_path[0..t - 2],
-                            config,
-                        );
-                        (vertex.path_radiance(), path)
+                        (
+                            vertex.path_radiance(),
+                            bd_path.subpath_with_light(light_vertex, t),
+                        )
                     } else {
                         continue;
                     }
@@ -72,15 +73,15 @@ pub fn bdpt<'a>(
                 continue;
             // Everything else
             } else {
-                let (l_vertex, li): (&dyn Vertex, usize) = if s == 1 {
-                    (&light_vertex, 0)
+                let l_vertex: &dyn Vertex = if s == 1 {
+                    &light_vertex
                 } else {
-                    (&light_path[s - 2], s - 1)
+                    &light_path[s - 2]
                 };
-                let (c_vertex, ci): (&dyn Vertex, usize) = if t == 1 {
-                    (&camera_vertex, 0)
+                let c_vertex: &dyn Vertex = if t == 1 {
+                    &camera_vertex
                 } else {
-                    (&camera_path[t - 2], t - 1)
+                    &camera_path[t - 2]
                 };
                 // Connect camera vertex to light vertex since shadow rays
                 // from the camera are simpler than those from the light
@@ -91,38 +92,12 @@ pub fn bdpt<'a>(
                         // Splat is always valid if radiance is not black
                         splat = camera_vertex.camera.clip_pos(connection_ray.dir);
                     }
-                    let path = BDPath::new(
-                        light_vertex.clone(),
-                        &light_path[0..li],
-                        &camera_vertex,
-                        &camera_path[0..ci],
-                        config,
-                    );
-                    (radiance, path)
+                    (radiance, bd_path.subpath(s, t))
                 } else {
                     continue;
                 }
             };
-            let radiance = if config.mis {
-                // MIS
-                let weight = if length == 2 {
-                    1.0
-                } else {
-                    let power = 2;
-                    let pdf_strat = path.pdf(s, t).unwrap().powi(power);
-                    let mut sum_pdf = 0.0;
-                    for ti in 1..=length {
-                        if let Some(pdf) = path.pdf(length - ti, ti) {
-                            sum_pdf += pdf.powi(power);
-                        }
-                    }
-                    pdf_strat / sum_pdf
-                };
-                weight * radiance
-            } else {
-                // uniform scale
-                radiance / (bounces + 2).to_float()
-            };
+            radiance *= path.weight();
             if let Some(clip_p) = splat.take() {
                 splats.push((clip_p, radiance));
             } else {
