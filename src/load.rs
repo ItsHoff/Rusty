@@ -64,6 +64,9 @@ lazy_static::lazy_static! {
                       CameraPos::Defined(Point3::new(-783.01, 184.23, 173.92),
                                          Quaternion::new(0.89, -0.06, 0.44, 0.03)),
                       Some(VirtualKeyCode::Minus));
+        lib.add_scene("cornell-original".to_string(),
+                      scene_dir.join("cornell-box").join("CornellBox-Original.obj"),
+                      CameraPos::Offset, Some(VirtualKeyCode::Equals));
         lib
     };
 }
