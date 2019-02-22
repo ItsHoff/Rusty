@@ -139,7 +139,7 @@ impl Triangle {
 
         let b1 = 1.0 - u - v;
         let p = b1 * p1 + u * p2.to_vec() + v * p3.to_vec();
-        let n = b1 * n1 + u * n2 + v * n3;
+        let n = (b1 * n1 + u * n2 + v * n3).normalize();
         let t = b1 * t1 + u * t2.to_vec() + v * t3.to_vec();
         (p, n, t)
     }
