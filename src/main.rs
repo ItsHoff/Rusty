@@ -46,20 +46,40 @@ use self::pt_renderer::PTRenderer;
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
         Some("hq") => high_quality(),
+        Some("rr") => rr_test(),
         Some("b") => benchmark("bdpt", RenderConfig::bdpt_benchmark()),
         Some(_) => benchmark("", RenderConfig::benchmark()),
         None => online_render(),
     }
 }
 
+fn rr_test() {
+    let scenes = [
+        "cornell-sphere",
+        "cornell-glossy",
+        "cornell-water",
+        "indirect",
+        "conference",
+        "sponza",
+    ];
+    let mut config = RenderConfig::high_quality();
+    config.max_bounces = 3;
+    config.pre_rr_bounces = 1;
+    config.russian_roulette = config::RussianRoulette::Static(0.01);
+    let output_dir = PathBuf::from("results").join("rr");
+    offline_render(&scenes, "rr", &output_dir, config.clone());
+    config.russian_roulette = config::RussianRoulette::Off;
+    offline_render(&scenes, "norr", &output_dir, config);
+}
+
 fn high_quality() {
     // TODO: Add command line switches to select scenes and config settings
     let scenes = [
-        // "cornell-sphere",
-        // "cornell-glossy",
-        // "cornell-water",
-        // "indirect",
-        // "conference",
+        "cornell-sphere",
+        "cornell-glossy",
+        "cornell-water",
+        "indirect",
+        "conference",
         "sponza",
     ];
     let tag = "hq";
