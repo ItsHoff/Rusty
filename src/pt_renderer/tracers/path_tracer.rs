@@ -65,17 +65,17 @@ pub fn path_trace<'a>(
         };
         if !terminate {
             if let Some((bsdf, new_ray, bsdf_pdf)) = isect.sample_bsdf(-ray.dir, PathType::Camera) {
-                ray = new_ray;
                 pdf *= bsdf_pdf;
-                beta *= isect.cos_s(ray.dir).abs() * bsdf / pdf;
+                beta *= isect.cos_s(new_ray.dir).abs() * bsdf / pdf;
+                ray = new_ray;
                 bounce += 1;
                 specular_bounce = isect.is_specular();
-            } else {
-                break;
+                if !beta.is_black() {
+                    continue;
+                }
             }
-        } else {
-            break;
         }
+        break;
     }
     c
 }

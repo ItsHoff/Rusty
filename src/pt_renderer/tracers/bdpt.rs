@@ -147,12 +147,12 @@ fn generate_path<'a>(
                 beta *= isect.cos_s(new_ray.dir).abs() * bsdf / pdf;
                 ray = new_ray;
                 bounce += 1;
-            } else {
-                break;
+                if !beta.is_black() {
+                    continue;
+                }
             }
-        } else {
-            break;
         }
+        break;
     }
     path
 }
