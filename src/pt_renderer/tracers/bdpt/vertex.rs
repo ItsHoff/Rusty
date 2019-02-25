@@ -28,7 +28,11 @@ pub fn pdf_scatter(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &dyn Vertex) -> Opti
     let (wo, _) = dir_and_dist(v2, v1);
     let (wi, dist) = dir_and_dist(v2, v3);
     let pdf_dir = v2.isect.pdf(wo, wi);
-    Some(sample::to_area_pdf(pdf_dir, dist.powi(2), v3.cos_g(wi).abs()))
+    Some(sample::to_area_pdf(
+        pdf_dir,
+        dist.powi(2),
+        v3.cos_g(wi).abs(),
+    ))
 }
 
 /// Get the area pdf of forward and backward scattering v1 -> v2 -> v3
@@ -42,8 +46,11 @@ pub fn pdf_scatter(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &dyn Vertex) -> Opti
 /// exaggerated   | \_
 /// visualization |   \_      !=  x -----> o
 ///               x     \-> o
-pub fn pdf_precompute(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &SurfaceVertex)
-                      -> (Option<Float>, Option<Float>) {
+pub fn pdf_precompute(
+    v1: &dyn Vertex,
+    v2: &SurfaceVertex,
+    v3: &SurfaceVertex,
+) -> (Option<Float>, Option<Float>) {
     if v2.delta_dir() {
         return (None, None);
     }
@@ -211,9 +218,9 @@ impl SubPath<'_> {
             let mut sum = 1.0;
             let mut light_ratio = 1.0;
             for si in (0..self.s).rev() {
-                light_ratio *=
-                    (self.camera_pdf(si + 1).unwrap_or(1.0) /
-                    self.light_pdf(si + 1).unwrap_or(1.0)).powi(power);
+                light_ratio *= (self.camera_pdf(si + 1).unwrap_or(1.0)
+                    / self.light_pdf(si + 1).unwrap_or(1.0))
+                .powi(power);
                 let delta_light = if si == 0 {
                     // No need to care about the tmp_light_vertex, since if it exists
                     // then self.s is always 0, and this branch is not evaluated.
@@ -228,8 +235,9 @@ impl SubPath<'_> {
             let mut camera_ratio = 1.0;
             for ti in (2..=self.t).rev() {
                 let si = self.t_to_s(ti);
-                camera_ratio *=
-                    (self.light_pdf(si).unwrap_or(1.0) / self.camera_pdf(si).unwrap_or(1.0)).powi(power);
+                camera_ratio *= (self.light_pdf(si).unwrap_or(1.0)
+                    / self.camera_pdf(si).unwrap_or(1.0))
+                .powi(power);
                 if !self.get_vertex(si).delta_dir() && !self.get_vertex(si + 1).delta_dir() {
                     sum += camera_ratio;
                 }
