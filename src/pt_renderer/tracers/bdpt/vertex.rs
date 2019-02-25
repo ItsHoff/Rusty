@@ -12,6 +12,50 @@ use crate::pt_renderer::PathType;
 use crate::sample;
 use crate::scene::Scene;
 
+fn dir_and_dist(from: &dyn Vertex, to: &dyn Vertex) -> (Vector3<Float>, Float) {
+    let to_next = to.pos() - from.pos();
+    let dist = to_next.magnitude();
+    let dir = to_next / dist;
+    (dir, dist)
+}
+
+/// Get the area pdf of scattering v1 -> v2 -> v3
+/// Return None if pdf is a delta distribution
+pub fn pdf_scatter(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &dyn Vertex) -> Option<Float> {
+    if v2.delta_dir() {
+        return None;
+    }
+    let (wo, _) = dir_and_dist(v2, v1);
+    let (wi, dist) = dir_and_dist(v2, v3);
+    let pdf_dir = v2.isect.pdf(wo, wi);
+    Some(sample::to_area_pdf(pdf_dir, dist.powi(2), v3.cos_g(wi).abs()))
+}
+
+/// Get the area pdf of forward and backward scattering v1 -> v2 -> v3
+/// Return None if pdf is a delta distribution
+/// This used for scatterings along pure paths (only camera or light and not mixed),
+/// which means that the rays that generated v2 and v3 contain the correct direction
+/// and lengths. This is more efficient that computing them again, but more importantly
+/// recomputing the direction will cause subtle errors since the computed direction won't
+/// match the real sampled direction due to ray origin shift.
+///               r_
+/// exaggerated   | \_
+/// visualization |   \_      !=  x -----> o
+///               x     \-> o
+pub fn pdf_precompute(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &SurfaceVertex)
+                      -> (Option<Float>, Option<Float>) {
+    if v2.delta_dir() {
+        return (None, None);
+    }
+    let wo = -v2.ray.dir;
+    let wi = v3.ray.dir;
+    let mut pdf_fwd = v2.isect.pdf(wo, wi);
+    let mut pdf_rev = v2.isect.pdf(wi, wo);
+    pdf_fwd = sample::to_area_pdf(pdf_fwd, v3.ray.length.powi(2), v3.cos_g(wi).abs());
+    pdf_rev = sample::to_area_pdf(pdf_rev, v2.ray.length.powi(2), v1.cos_g(wo).abs());
+    (Some(pdf_fwd), Some(pdf_rev))
+}
+
 pub struct BDPath<'a> {
     light_vertex: &'a LightVertex<'a>,
     light_path: &'a [SurfaceVertex<'a>],
@@ -35,7 +79,6 @@ impl<'a> BDPath<'a> {
         // Precompute fwd and rev pdfs
         // None pdf corresponds to a delta distribution
         // TODO: handle delta distributions already in primitives and not just here
-        // TODO: handle zeros in precomputed pdfs
         let mut light_pdf_fwd = Vec::new();
         let mut light_pdf_rev = Vec::new();
         for i in 0..=light_path.len() {
@@ -59,9 +102,7 @@ impl<'a> BDPath<'a> {
                 };
                 let v_mid = &light_path[i - 2];
                 let v_next = &light_path[i - 1];
-                // TODO: fwd and rev could be computed simultaneously
-                let pdf_fwd = pdf_scatter(v_prev, v_mid, v_next);
-                let pdf_rev = pdf_scatter(v_next, v_mid, v_prev);
+                let (pdf_fwd, pdf_rev) = pdf_precompute(v_prev, v_mid, v_next);
                 light_pdf_fwd.push(pdf_fwd);
                 light_pdf_rev.push(pdf_rev);
             }
@@ -87,8 +128,7 @@ impl<'a> BDPath<'a> {
                 };
                 let v_mid = &camera_path[i - 2];
                 let v_next = &camera_path[i - 1];
-                let pdf_fwd = pdf_scatter(v_prev, v_mid, v_next);
-                let pdf_rev = pdf_scatter(v_next, v_mid, v_prev);
+                let (pdf_fwd, pdf_rev) = pdf_precompute(v_prev, v_mid, v_next);
                 camera_pdf_fwd.push(pdf_fwd);
                 camera_pdf_rev.push(pdf_rev);
             }
@@ -336,25 +376,6 @@ pub trait Vertex: std::fmt::Debug {
         let g = (self.cos_s(ray.dir) * other.cos_s(ray.dir) / ray.length.powi(2)).abs();
         (ray, g * beta)
     }
-}
-
-fn dir_and_dist(from: &dyn Vertex, to: &dyn Vertex) -> (Vector3<Float>, Float) {
-    let to_next = to.pos() - from.pos();
-    let dist = to_next.magnitude();
-    let dir = to_next / dist;
-    (dir, dist)
-}
-
-/// Get the area pdf of scattering v1 -> v2 -> v3;
-/// Return None if pdf is a delta distribution
-pub fn pdf_scatter(v1: &dyn Vertex, v2: &SurfaceVertex, v3: &dyn Vertex) -> Option<Float> {
-    if v2.delta_dir() {
-        return None;
-    }
-    let (dir_prev, _) = dir_and_dist(v2, v1);
-    let (dir_next, dist) = dir_and_dist(v2, v3);
-    let pdf_dir = v2.isect.pdf(dir_prev, dir_next);
-    Some(sample::to_area_pdf(pdf_dir, dist.powi(2), v3.cos_g(dir_next).abs()))
 }
 
 #[derive(Debug)]
