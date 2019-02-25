@@ -3,6 +3,8 @@
 
 use cgmath::{Matrix4, Point2, Point3, Vector3, Vector4};
 
+use crate::consts;
+
 #[cfg(not(feature = "single_precision"))]
 pub use self::double::*;
 #[cfg(feature = "single_precision")]
@@ -46,6 +48,39 @@ mod single {
             self as Float
         }
     }
+}
+
+/// Evaluate gamma for floating point errors
+#[allow(dead_code)]
+pub fn gamma(n: u32) -> Float {
+    let n = n.to_float();
+    n * consts::MACHINE_EPSILON / (1.0 - n * consts::MACHINE_EPSILON)
+}
+
+#[allow(dead_code)]
+pub fn next_ulp(mut x: Float) -> Float {
+    if x.is_infinite() && x > 0.0 {
+        return x;
+    }
+    if x == -0.0 {
+        x = 0.0
+    }
+    let mut bits = x.to_bits();
+    bits = if x >= 0.0 { bits + 1 } else { bits - 1 };
+    Float::from_bits(bits)
+}
+
+#[allow(dead_code)]
+pub fn previous_ulp(mut x: Float) -> Float {
+    if x.is_infinite() && x < 0.0 {
+        return x;
+    }
+    if x == 0.0 {
+        x = -0.0
+    }
+    let mut bits = x.to_bits();
+    bits = if x >= 0.0 { bits - 1 } else { bits + 1 };
+    Float::from_bits(bits)
 }
 
 impl ToFloat for u8 {

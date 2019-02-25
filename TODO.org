@@ -38,6 +38,7 @@
    * PBRT 621
 *** Better filtering and reconstruction
 *** More robust floating point error handling
+    * Need to figure out (u, v) error or switch to pbrt intersections
 ** Refactoring
 *** Statistics api
     * Stat prints for online rendering

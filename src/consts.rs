@@ -10,6 +10,8 @@ mod double {
     use super::*;
 
     pub const EPSILON: Float = 1e-10;
+    #[allow(dead_code)]
+    pub const MACHINE_EPSILON: Float = std::f64::EPSILON / 2.0;
     pub const INFINITY: Float = std::f64::INFINITY;
     pub const MAX: Float = std::f64::MAX;
     pub const MIN: Float = std::f64::MIN;
@@ -21,6 +23,8 @@ mod single {
     use super::*;
 
     pub const EPSILON: Float = 1e-5;
+    #[allow(dead_code)]
+    pub const MACHINE_EPSILON: Float = std::f32::EPSILON / 2.0;
     pub const INFINITY: Float = std::f32::INFINITY;
     pub const MAX: Float = std::f32::MAX;
     pub const MIN: Float = std::f32::MIN;
