@@ -3,24 +3,48 @@
 
 use cgmath::{Matrix4, Point2, Point3, Vector3, Vector4};
 
-/// Alias for the float type used by the renderer
-pub type Float = f64;
+#[cfg(not(feature = "single_precision"))]
+pub use self::double::*;
+#[cfg(feature = "single_precision")]
+pub use self::single::*;
 
 pub trait ToFloat {
     fn to_float(self) -> Float;
 }
 
-impl ToFloat for f64 {
-    #[allow(clippy::identity_conversion)]
-    fn to_float(self) -> Float {
-        self as Float
+#[cfg(not(feature = "single_precision"))]
+mod double {
+    pub type Float = f64;
+    use super::*;
+
+    impl ToFloat for f32 {
+        fn to_float(self) -> Float {
+            self.into()
+        }
+    }
+
+    impl ToFloat for f64 {
+        fn to_float(self) -> Float {
+            self
+        }
     }
 }
 
-impl ToFloat for f32 {
-    #[allow(clippy::identity_conversion)]
-    fn to_float(self) -> Float {
-        self.into()
+#[cfg(feature = "single_precision")]
+mod single {
+    pub type Float = f32;
+    use super::*;
+
+    impl ToFloat for f32 {
+        fn to_float(self) -> Float {
+            self
+        }
+    }
+
+    impl ToFloat for f64 {
+        fn to_float(self) -> Float {
+            self as Float
+        }
     }
 }
 

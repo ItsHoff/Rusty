@@ -14,5 +14,9 @@ num_cpus = "1.8.0"
 prettytable-rs = "0.8.0"
 rand = "0.5.5"
 
+[features]
+default = []
+single_precision = []
+
 [profile.release]
 debug = true
