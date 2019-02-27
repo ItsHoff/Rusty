@@ -92,7 +92,15 @@ impl Scattering {
                 let texture = specular_texture(obj_mat);
                 SR(SpecularReflection::new(texture))
             }
-            Some(4) | Some(6) | Some(7) => {
+            Some(4) | Some(9) => {
+                let filter = transmission_filter(obj_mat);
+                let eta = obj_mat
+                    .index_of_refraction
+                    .expect("No index of refraction for translucent material")
+                    .to_float();
+                ST(SpecularTransmission::new(specular, filter, eta))
+            }
+            Some(6) | Some(7) => {
                 let filter = transmission_filter(obj_mat);
                 let eta = obj_mat
                     .index_of_refraction
