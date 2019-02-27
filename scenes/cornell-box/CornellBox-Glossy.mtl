@@ -2,7 +2,7 @@
 # File Created: 05.12.2012 22:05:26
 
 newmtl sphere
-	Ns 40.0000
+	Ns 400.0000
 	Ni 1.5000
 	d 1.0000
 	Tr 0.0000

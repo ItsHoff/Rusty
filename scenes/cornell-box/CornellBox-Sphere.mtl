@@ -25,8 +25,8 @@ newmtl rightSphere
     Ks 0.30 0.30 0.30
     Tf 0.10 0.10 0.10
     Ns 200
-    Ni 2.5
-    illum 7
+    Ni 1.5
+    illum 4
    
 newmtl floor
     Ns 10.0000
