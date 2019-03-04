@@ -140,6 +140,16 @@ impl RenderConfig {
         }
     }
 
+    pub fn high_quality_pt() -> Self {
+        Self {
+            width: 600,
+            height: 400,
+            samples_per_dir: 79,
+            max_iterations: Some(1),
+            ..Self::path_trace()
+        }
+    }
+
     pub fn debug_normals() -> Self {
         Self {
             normal_mapping: true,

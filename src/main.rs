@@ -46,6 +46,7 @@ use self::pt_renderer::PTRenderer;
 fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
         Some("hq") => high_quality(),
+        Some("pt") => high_quality_pt(),
         Some("rr") => rr_test(),
         Some("b") => benchmark("bdpt", RenderConfig::bdpt_benchmark()),
         Some(_) => benchmark("", RenderConfig::benchmark()),
@@ -72,15 +73,31 @@ fn rr_test() {
     offline_render(&scenes, "norr", &output_dir, config);
 }
 
-fn high_quality() {
+fn high_quality_pt() {
     // TODO: Add command line switches to select scenes and config settings
     let scenes = [
         "cornell-sphere",
         "cornell-glossy",
         "cornell-water",
-        "indirect",
-        "conference",
-        "sponza",
+        // "indirect",
+        // "conference",
+        // "sponza",
+    ];
+    let tag = "pt_hq";
+    let config = RenderConfig::high_quality_pt();
+    let output_dir = PathBuf::from("results").join("hq");
+    offline_render(&scenes, tag, &output_dir, config);
+}
+
+fn high_quality() {
+    // TODO: Add command line switches to select scenes and config settings
+    let scenes = [
+        "cornell-sphere",
+        "cornell-glossy",
+        // "cornell-water",
+        // "indirect",
+        // "conference",
+        // "sponza",
     ];
     let tag = "hq";
     let config = RenderConfig::high_quality();
@@ -145,6 +162,7 @@ fn offline_render(scenes: &[&str], tag: &str, output_dir: &Path, config: RenderC
     let stats_dir = output_dir.join(format!("stats{}", tag));
     std::fs::create_dir_all(stats_dir.clone()).unwrap();
     let stats_file = stats_dir.join(format!("stats{}_{}.txt", tag, time_stamp));
+    // TODO: add config to stats
     stats::print_and_save(&stats_file);
 }
 
