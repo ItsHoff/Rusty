@@ -118,10 +118,11 @@ impl Scattering {
             Some(i) => {
                 if i > 10 {
                     println!("Illumination model {} is not defined in the mtl spec!", i);
-                } else {
+                    println!("Defaulting to diffuse reflection.");
+                } else if i != 1 {
                     println!("Unimplemented illumination model {}!", i);
+                    println!("Defaulting to diffuse reflection.");
                 }
-                println!("Defaulting to diffuse reflection.");
                 DR(DiffuseReflection::new(diffuse))
             }
             None => DR(DiffuseReflection::new(diffuse)),
