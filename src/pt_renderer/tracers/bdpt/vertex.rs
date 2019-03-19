@@ -370,6 +370,7 @@ pub trait Vertex: std::fmt::Debug {
     /// Shading cosine
     fn cos_s(&self, dir: Vector3<Float>) -> Float;
 
+    /// Is the directional distribution a delta distribution
     fn delta_dir(&self) -> bool;
 
     /// Evaluate the throughput for a path continuing in dir

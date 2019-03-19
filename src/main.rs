@@ -47,14 +47,14 @@ fn main() {
     match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
         Some("hq") => high_quality(),
         Some("pt") => high_quality_pt(),
-        Some("rr") => rr_test(),
+        Some("comp") => compare(),
         Some("b") => benchmark("bdpt", RenderConfig::bdpt_benchmark()),
         Some(_) => benchmark("", RenderConfig::benchmark()),
         None => online_render(),
     }
 }
 
-fn rr_test() {
+fn compare() {
     let scenes = [
         "cornell-sphere",
         "cornell-glossy",
@@ -63,24 +63,29 @@ fn rr_test() {
         "conference",
         "sponza",
     ];
-    let mut config = RenderConfig::high_quality();
-    config.max_bounces = 3;
-    config.pre_rr_bounces = 1;
-    config.russian_roulette = config::RussianRoulette::Static(0.01);
-    let output_dir = PathBuf::from("results").join("rr");
-    offline_render(&scenes, "rr", &output_dir, config.clone());
-    config.russian_roulette = config::RussianRoulette::Off;
-    offline_render(&scenes, "norr", &output_dir, config);
+    let mut config = RenderConfig::benchmark();
+    config.samples_per_dir *= 4;
+    config.width /= 2;
+    config.height /= 2;
+    let output_dir = PathBuf::from("results").join("compare");
+    offline_render(&scenes, "pt", &output_dir, config);
+    config = RenderConfig::bdpt_benchmark();
+    config.samples_per_dir *= 4;
+    config.width /= 2;
+    config.height /= 2;
+    offline_render(&scenes, "bdpt", &output_dir, config.clone());
+    config.mis = false;
+    offline_render(&scenes, "no_mis", &output_dir, config);
 }
 
 fn high_quality_pt() {
     // TODO: Add command line switches to select scenes and config settings
     let scenes = [
-        "cornell-sphere",
-        "cornell-glossy",
-        "cornell-water",
+        // "cornell-sphere",
+        // "cornell-glossy",
+        // "cornell-water",
         // "indirect",
-        // "conference",
+        "conference",
         // "sponza",
     ];
     let tag = "pt_hq";
@@ -92,11 +97,11 @@ fn high_quality_pt() {
 fn high_quality() {
     // TODO: Add command line switches to select scenes and config settings
     let scenes = [
-        "cornell-sphere",
-        "cornell-glossy",
+        // "cornell-sphere",
+        // "cornell-glossy",
         // "cornell-water",
         // "indirect",
-        // "conference",
+        "conference",
         // "sponza",
     ];
     let tag = "hq";

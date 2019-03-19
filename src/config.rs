@@ -132,9 +132,9 @@ impl RenderConfig {
 
     pub fn high_quality() -> Self {
         Self {
-            width: 600,
-            height: 400,
-            samples_per_dir: 10,
+            width: 300,
+            height: 200,
+            samples_per_dir: 50,
             max_iterations: Some(1),
             ..Self::bdpt()
         }
@@ -142,9 +142,9 @@ impl RenderConfig {
 
     pub fn high_quality_pt() -> Self {
         Self {
-            width: 600,
-            height: 400,
-            samples_per_dir: 79,
+            width: 300,
+            height: 200,
+            samples_per_dir: 160, //148,
             max_iterations: Some(1),
             ..Self::path_trace()
         }
