@@ -1,5 +1,4 @@
 target
-*.lock
 .vs/
 results/
 .DS_Store
