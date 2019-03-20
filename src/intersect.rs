@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Point3, Vector3};
@@ -13,7 +13,7 @@ use crate::pt_renderer::PathType;
 use crate::sample;
 use crate::triangle::Triangle;
 
-static RAY_COUNT: AtomicUsize = ATOMIC_USIZE_INIT;
+static RAY_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 pub trait Intersect<'a, H> {
     fn intersect(&'a self, ray: &Ray) -> Option<H>;

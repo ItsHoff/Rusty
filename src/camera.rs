@@ -178,7 +178,7 @@ impl Camera {
     /// Get the speed of the camera based on the duration of the input
     fn get_speed(dt: Duration) -> Float {
         // Use tanh acceleration curve
-        let x = dt.as_float_secs().to_float() - 2.0;
+        let x = dt.as_secs_f64().to_float() - 2.0;
         x.tanh() + 1.05
     }
 
@@ -211,7 +211,7 @@ impl Camera {
     /// Move camera based on input event
     pub fn process_input(&mut self, input: &InputState) {
         let dt = input.last_reset.elapsed();
-        let time_scale = 10.0 * dt.as_float_secs().to_float();
+        let time_scale = 10.0 * dt.as_secs_f64().to_float();
         for (key, t) in &input.key_presses {
             let t_press = t.elapsed(); // Length of the key press
             let d_pos = time_scale * self.scale.sqrt().min(self.scale) * Self::get_speed(t_press);

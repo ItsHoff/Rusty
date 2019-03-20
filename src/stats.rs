@@ -200,7 +200,7 @@ impl SceneStatistics {
     fn mrps(&self) -> String {
         let render_timer = self.get_timer("Render").unwrap();
         let render_duration = render_timer.duration.unwrap();
-        let float_time = render_duration.as_float_secs();
+        let float_time = render_duration.as_secs_f64();
         let mrps = self.ray_count as f64 / float_time / 1_000_000.0;
         format!("{:#.2?}", mrps)
     }

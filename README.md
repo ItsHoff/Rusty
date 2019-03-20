@@ -15,7 +15,7 @@ WIP physically based renderer.
 
 ## Installation
 
-Requires nightly [Rust](https://www.rust-lang.org/en-US/install.html)
+Requires recent nightly [Rust](https://www.rust-lang.org/en-US/install.html) (tested on 1.35 2019-03-19)
 ```
 git clone https://github.com/ItsHoff/Rusty.git
 cd Rusty
