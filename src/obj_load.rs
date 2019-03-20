@@ -445,7 +445,7 @@ pub fn load_matlib(matlib_path: &Path) -> Result<HashMap<String, Material>, Box<
         let line = line.unwrap();
         let mut split_line = line.split_whitespace();
         // Find the keyword of the line
-        if let Some(key) = split_line.next().map(|s| s.to_lowercase()) {
+        if let Some(key) = split_line.next().map(str::to_lowercase) {
             if key == "newmtl" {
                 if let Some(material) = current_material {
                     materials.insert(material.name.clone(), material);

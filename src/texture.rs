@@ -148,7 +148,7 @@ fn load_image(path: &Path) -> Result<DynamicImage, Box<dyn Error>> {
             }
         };
         let reader = BufReader::new(File::open(path)?);
-        image::load(reader, image_format).map_err(|e| e.into())
+        image::load(reader, image_format).map_err(std::convert::Into::into)
     } else {
         Err(format!("Image does not have an extension: {:?}", path).into())
     }

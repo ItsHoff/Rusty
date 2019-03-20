@@ -79,7 +79,7 @@ impl Scattering {
         let specular = specular_texture(obj_mat);
         match obj_mat.illumination_model {
             Some(2) => {
-                let exponent = obj_mat.specular_exponent.map(|e| e.to_float());
+                let exponent = obj_mat.specular_exponent.map(ToFloat::to_float);
                 if diffuse.is_black() {
                     GR(GlossyReflection::new(specular, exponent.unwrap()))
                 } else if specular.is_black() {

@@ -44,7 +44,7 @@ use self::pt_renderer::PTRenderer;
 
 // TODO: add comparison mode
 fn main() {
-    match std::env::args().nth(1).as_ref().map(|s| s.as_str()) {
+    match std::env::args().nth(1).as_ref().map(std::string::String::as_str) {
         Some("hq") => high_quality(),
         Some("pt") => high_quality_pt(),
         Some("comp") => compare(),
