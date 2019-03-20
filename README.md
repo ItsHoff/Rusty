@@ -30,6 +30,8 @@ cargo run --release
 | Arrow Keys | Rotate camera |
 | Space | Start & stop path tracing |
 | Number Keys | Change scene |
+| F1 | Use path tracing |
+| F2 | Use bidirectional path tracing |
 
 ## Loading scenes
 Number keys change between the default scenes. Alternate scenes can be loaded by dragging and dropping a scene file into the window. Currently only .obj scenes are supported. Most scenes should render properly, but not all quirks will be supported.
