@@ -42,3 +42,5 @@
 ** Refactoring
 *** Statistics api
     * Stat prints for online rendering
+*** Shrinkwraprs
+  * https://crates.io/crates/shrinkwraprs
