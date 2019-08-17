@@ -171,7 +171,6 @@ impl SceneStatistics {
             let (timer, _) = &mut self.timers[i];
             if timer.name == name {
                 timer.stop();
-                return;
             } else {
                 panic!("Timer '{}' not on top of timer stack", name);
             }

@@ -1,5 +1,3 @@
-#![feature(duration_float)]
-#![feature(euclidean_division)]
 #![feature(try_trait)]
 
 use std::path::{Path, PathBuf};

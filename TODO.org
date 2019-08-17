@@ -3,8 +3,6 @@
   * floating point error
   * not present with f64
 * Features
-** Primary
-*** Bidirectional tracing
 ** Nice to have
 *** Dynamic lights
 *** Participating media

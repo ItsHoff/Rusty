@@ -2,7 +2,6 @@
 
 ![Example render](example_render.png)
 
-
 WIP physically based renderer.
 
 ## Features
@@ -15,7 +14,7 @@ WIP physically based renderer.
 
 ## Installation
 
-Requires recent nightly [Rust](https://www.rust-lang.org/en-US/install.html) (tested on 1.35 2019-03-19)
+Requires recent nightly [Rust](https://www.rust-lang.org/en-US/install.html) (tested on 1.38 2019-08-09)
 ```
 git clone https://github.com/ItsHoff/Rusty.git
 cd Rusty
