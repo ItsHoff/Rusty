@@ -1,7 +1,7 @@
 use cgmath::Point2;
 
 use crate::bvh::BvhNode;
-use crate::camera::PTCamera;
+use crate::camera::PtCamera;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
@@ -17,7 +17,7 @@ use self::vertex::*;
 pub fn bdpt<'a>(
     camera_ray: Ray,
     scene: &'a Scene,
-    camera: &'a PTCamera,
+    camera: &'a PtCamera,
     config: &RenderConfig,
     node_stack: &mut Vec<(&'a BvhNode, Float)>,
     splats: &mut Vec<(Point2<Float>, Color)>,
@@ -33,7 +33,7 @@ pub fn bdpt<'a>(
     let light_vertex = LightVertex::new(light, light_pos, light_pdf * pos_pdf);
     let (beta, ray) = light_vertex.sample_next();
     let light_path = generate_path(beta, ray, PathType::Light, scene, config, node_stack);
-    let bd_path = BDPath::new(
+    let bd_path = BdPath::new(
         &light_vertex,
         &light_path,
         &camera_vertex,

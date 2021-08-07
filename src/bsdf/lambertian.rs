@@ -7,20 +7,20 @@ use crate::pt_renderer::PathType;
 use crate::sample;
 
 use super::util;
-use super::BsdfTrait;
+use super::BsdfT;
 
 #[derive(Clone, Debug)]
-pub struct LambertianBRDF {
+pub struct LambertianBrdf {
     color: Color,
 }
 
-impl LambertianBRDF {
+impl LambertianBrdf {
     pub fn new(color: Color) -> Self {
         Self { color }
     }
 }
 
-impl BsdfTrait for LambertianBRDF {
+impl BsdfT for LambertianBrdf {
     fn is_specular(&self) -> bool {
         false
     }

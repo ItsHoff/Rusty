@@ -7,9 +7,9 @@ use crate::float::*;
 use crate::pt_renderer::PathType;
 use crate::sample;
 
-use super::fresnel::{self, FresnelBSDF};
+use super::fresnel::{self, FresnelBsdf};
 use super::util;
-use super::BsdfTrait;
+use super::BsdfT;
 
 /// Ggx (Trowbridge-Reitz) microfacet distribution
 #[derive(Clone, Debug)]
@@ -71,13 +71,13 @@ impl Ggx {
 }
 
 #[derive(Clone, Debug)]
-pub struct MicrofacetBRDF {
+pub struct MicrofacetBrdf {
     color: Color,
     microfacets: Ggx,
     use_schlick: bool,
 }
 
-impl MicrofacetBRDF {
+impl MicrofacetBrdf {
     pub fn with_schlick(color: Color, exponent: Float) -> Self {
         Self {
             color,
@@ -95,7 +95,7 @@ impl MicrofacetBRDF {
     }
 }
 
-impl BsdfTrait for MicrofacetBRDF {
+impl BsdfT for MicrofacetBrdf {
     fn is_specular(&self) -> bool {
         false
     }
@@ -143,13 +143,13 @@ impl BsdfTrait for MicrofacetBRDF {
 
 /// Combines microfacet reflection with diffuse reflection using fresnel schlick.
 #[derive(Clone, Debug)]
-pub struct FresnelBlendBRDF {
+pub struct FresnelBlendBrdf {
     diffuse: Color,
     specular: Color,
     microfacets: Ggx,
 }
 
-impl FresnelBlendBRDF {
+impl FresnelBlendBrdf {
     pub fn new(diffuse: Color, specular: Color, exponent: Float) -> Self {
         Self {
             diffuse,
@@ -159,7 +159,7 @@ impl FresnelBlendBRDF {
     }
 }
 
-impl BsdfTrait for FresnelBlendBRDF {
+impl BsdfT for FresnelBlendBrdf {
     fn is_specular(&self) -> bool {
         false
     }
@@ -213,13 +213,13 @@ impl BsdfTrait for FresnelBlendBRDF {
 }
 
 #[derive(Clone, Debug)]
-pub struct MicrofacetBTDF {
+pub struct MicrofacetBtdf {
     color: Color,
     microfacets: Ggx,
     eta: Float,
 }
 
-impl MicrofacetBTDF {
+impl MicrofacetBtdf {
     pub fn new(color: Color, exponent: Float, eta: Float) -> Self {
         Self {
             color,
@@ -240,7 +240,7 @@ impl MicrofacetBTDF {
     }
 }
 
-impl BsdfTrait for MicrofacetBTDF {
+impl BsdfT for MicrofacetBtdf {
     fn is_specular(&self) -> bool {
         false
     }
@@ -298,12 +298,12 @@ impl BsdfTrait for MicrofacetBTDF {
     }
 }
 
-pub type MicrofacetBSDF = FresnelBSDF<MicrofacetBRDF, MicrofacetBTDF>;
+pub type MicrofacetBsdf = FresnelBsdf<MicrofacetBrdf, MicrofacetBtdf>;
 
-impl MicrofacetBSDF {
+impl MicrofacetBsdf {
     pub fn new(reflect: Color, transmit: Color, exponent: Float, eta: Float) -> Self {
-        let brdf = MicrofacetBRDF::without_schlick(reflect, exponent);
-        let btdf = MicrofacetBTDF::new(transmit, exponent, eta);
+        let brdf = MicrofacetBrdf::without_schlick(reflect, exponent);
+        let btdf = MicrofacetBtdf::new(transmit, exponent, eta);
         Self { brdf, btdf, eta }
     }
 }

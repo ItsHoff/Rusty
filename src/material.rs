@@ -3,7 +3,7 @@ use cgmath::{Point2, Vector3};
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 
-use crate::bsdf::BSDF;
+use crate::bsdf::Bsdf;
 use crate::color::Color;
 use crate::float::*;
 use crate::obj_load;
@@ -19,7 +19,7 @@ pub struct Material {
 }
 
 /// Material for GPU rendering
-pub struct GPUMaterial {
+pub struct GpuMaterial {
     pub texture: SrgbTexture2d, // Texture on the GPU
     pub is_emissive: bool,
 }
@@ -49,16 +49,16 @@ impl Material {
     }
 
     /// Upload textures to the GPU
-    pub fn upload<F: Facade>(&self, facade: &F) -> GPUMaterial {
+    pub fn upload<F: Facade>(&self, facade: &F) -> GpuMaterial {
         let preview = self.scattering.preview_texture();
         let texture = preview.upload(facade);
-        GPUMaterial {
+        GpuMaterial {
             texture,
             is_emissive: self.emissive.is_some(),
         }
     }
 
-    pub fn bsdf(&self, tex_coords: Point2<Float>) -> BSDF {
+    pub fn bsdf(&self, tex_coords: Point2<Float>) -> Bsdf {
         self.scattering.local(tex_coords)
     }
 

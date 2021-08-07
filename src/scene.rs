@@ -15,8 +15,8 @@ use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
 use crate::light::Light;
-use crate::material::{GPUMaterial, Material};
-use crate::mesh::{GPUMesh, Mesh};
+use crate::material::{GpuMaterial, Material};
+use crate::mesh::{GpuMesh, Mesh};
 use crate::obj_load;
 use crate::stats;
 use crate::triangle::{Triangle, TriangleBuilder};
@@ -60,9 +60,9 @@ pub struct Scene {
 
 /// Scene containing resources for GPU rendering
 // Separate from Scene because GPU resources are not thread safe
-pub struct GPUScene {
-    pub meshes: Vec<GPUMesh>,
-    pub materials: Vec<GPUMaterial>,
+pub struct GpuScene {
+    pub meshes: Vec<GpuMesh>,
+    pub materials: Vec<GpuMaterial>,
     pub vertex_buffer: VertexBuffer<RawVertex>,
 }
 
@@ -245,7 +245,7 @@ impl Scene {
     }
 
     /// Load the textures + vertex and index buffers to the GPU
-    pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUScene {
+    pub fn upload_data<F: Facade>(&self, facade: &F) -> GpuScene {
         let _t = stats::time("Upload data");
         let raw_vertices: Vec<RawVertex> = self.vertices.iter().map(|v| v.into()).collect();
         let vertex_buffer =
@@ -258,7 +258,7 @@ impl Scene {
         for material in &self.materials {
             materials.push(material.upload(facade));
         }
-        GPUScene {
+        GpuScene {
             meshes,
             materials,
             vertex_buffer,

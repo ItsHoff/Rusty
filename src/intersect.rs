@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Point3, Vector3};
 
-use crate::bsdf::BSDF;
+use crate::bsdf::Bsdf;
 use crate::color::Color;
 use crate::config::RenderConfig;
 use crate::consts;
@@ -110,7 +110,7 @@ pub struct Interaction<'a> {
     pub p: Point3<Float>,
     pub ns: Vector3<Float>,
     ng: Vector3<Float>,
-    bsdf: BSDF,
+    bsdf: Bsdf,
 }
 
 impl Interaction<'_> {

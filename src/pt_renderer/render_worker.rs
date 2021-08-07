@@ -6,7 +6,7 @@ use std::sync::{
 use cgmath::prelude::*;
 use cgmath::{Point2, Point3, Vector4};
 
-use crate::camera::PTCamera;
+use crate::camera::PtCamera;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
@@ -18,7 +18,7 @@ use super::{PTResult, RenderCoordinator};
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
-    camera: PTCamera,
+    camera: PtCamera,
     config: RenderConfig,
     coordinator: Arc<RenderCoordinator>,
     message_rx: Receiver<()>,
@@ -28,7 +28,7 @@ pub struct RenderWorker {
 impl RenderWorker {
     pub(super) fn new(
         scene: Arc<Scene>,
-        camera: PTCamera,
+        camera: PtCamera,
         config: RenderConfig,
         coordinator: Arc<RenderCoordinator>,
         message_rx: Receiver<()>,

@@ -1,6 +1,6 @@
 use cgmath::Point2;
 
-use crate::bsdf::BSDF;
+use crate::bsdf::Bsdf;
 use crate::float::*;
 use crate::texture::Texture;
 
@@ -18,8 +18,8 @@ impl DiffuseReflection {
 }
 
 impl ScatteringT for DiffuseReflection {
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
-        BSDF::lambertian_brdf(self.texture.color(tex_coords))
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf {
+        Bsdf::lambertian_brdf(self.texture.color(tex_coords))
     }
 
     fn preview_texture(&self) -> &Texture {

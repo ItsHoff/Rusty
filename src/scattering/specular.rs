@@ -1,6 +1,6 @@
 use cgmath::Point2;
 
-use crate::bsdf::BSDF;
+use crate::bsdf::Bsdf;
 use crate::float::*;
 use crate::texture::Texture;
 
@@ -18,8 +18,8 @@ impl SpecularReflection {
 }
 
 impl ScatteringT for SpecularReflection {
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
-        BSDF::specular_brdf(self.texture.color(tex_coords))
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf {
+        Bsdf::specular_brdf(self.texture.color(tex_coords))
     }
 
     fn preview_texture(&self) -> &Texture {
@@ -46,11 +46,11 @@ impl SpecularTransmission {
 }
 
 impl ScatteringT for SpecularTransmission {
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf {
         let reflect = self.reflective.color(tex_coords);
         let transmit = self.transmissive.color(tex_coords);
         let eta = self.eta;
-        BSDF::specular_bsdf(reflect, transmit, eta)
+        Bsdf::specular_bsdf(reflect, transmit, eta)
     }
 
     fn preview_texture(&self) -> &Texture {

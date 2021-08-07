@@ -34,9 +34,9 @@ mod util;
 mod vertex;
 
 use self::config::RenderConfig;
-use self::gl_renderer::GLRenderer;
+use self::gl_renderer::GlRenderer;
 use self::input::InputState;
-use self::pt_renderer::PTRenderer;
+use self::pt_renderer::PtRenderer;
 
 // TODO: add comparison mode
 fn main() {
@@ -148,7 +148,7 @@ fn offline_render(scenes: &[&str], tag: &str, output_dir: &Path, config: RenderC
         let _t = stats::time("Total");
         println!("{}...", scene_name);
         let (scene, camera) = load::cpu_scene_from_name(scene_name, &config);
-        let pt_renderer = PTRenderer::offline_render(&display, &scene, &camera, &config);
+        let pt_renderer = PtRenderer::offline_render(&display, &scene, &camera, &config);
 
         stats::time("Post-process");
         let scene_prefix = format!("{}{}", scene_name, tag);
@@ -179,8 +179,8 @@ fn online_render() {
 
     let (mut scene, mut gpu_scene, mut camera) =
         load::gpu_scene_from_key(&display, VirtualKeyCode::Key1, &config).unwrap();
-    let gl_renderer = GLRenderer::new(&display);
-    let mut pt_renderer: Option<PTRenderer> = None;
+    let gl_renderer = GlRenderer::new(&display);
+    let mut pt_renderer: Option<PtRenderer> = None;
 
     let mut input = InputState::new();
     let mut last_frame = Instant::now();
@@ -211,7 +211,7 @@ fn online_render() {
                         pt_renderer = None;
                     } else {
                         pt_renderer =
-                            Some(PTRenderer::start_render(&display, &scene, &camera, &config));
+                            Some(PtRenderer::start_render(&display, &scene, &camera, &config));
                     }
                 }
                 KeyboardInput {

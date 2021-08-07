@@ -34,12 +34,12 @@ pub struct Camera {
 
 /// Extended camera for path tracing
 #[derive(Debug)]
-pub struct PTCamera {
+pub struct PtCamera {
     camera: Camera,
     flash: PointLight,
 }
 
-impl PTCamera {
+impl PtCamera {
     pub fn new(camera: Camera) -> Self {
         // TODO: allow dynamic intensity and speed
         let intensity = 10.0 * camera.scale.powf(1.4) * Color::white();
@@ -109,7 +109,7 @@ impl PTCamera {
     }
 }
 
-impl Deref for PTCamera {
+impl Deref for PtCamera {
     type Target = Camera;
 
     fn deref(&self) -> &Self::Target {

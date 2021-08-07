@@ -10,7 +10,7 @@ use cgmath::Point2;
 use glium::backend::Facade;
 use glium::{Rect, Surface};
 
-use crate::camera::{Camera, PTCamera};
+use crate::camera::{Camera, PtCamera};
 use crate::config::RenderConfig;
 use crate::scene::Scene;
 use crate::stats;
@@ -49,14 +49,14 @@ enum PTResult {
     Splat(Point2<u32>, [f32; 3]),
 }
 
-pub struct PTRenderer {
+pub struct PtRenderer {
     image: TracedImage,
     result_rx: Receiver<PTResult>,
     message_txs: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
 }
 
-impl PTRenderer {
+impl PtRenderer {
     pub fn start_render<F: Facade>(
         facade: &F,
         scene: &Arc<Scene>,
@@ -75,7 +75,7 @@ impl PTRenderer {
             let (message_tx, message_rx) = mpsc::channel();
             message_txs.push(message_tx);
             let coordinator = coordinator.clone();
-            let camera = PTCamera::new(camera.clone());
+            let camera = PtCamera::new(camera.clone());
             let config = config.clone();
             let scene = scene.clone();
             let handle = thread::spawn(move || {
@@ -137,7 +137,7 @@ impl PTRenderer {
     }
 }
 
-impl Drop for PTRenderer {
+impl Drop for PtRenderer {
     fn drop(&mut self) {
         // Send stop message to workers
         for sender in &self.message_txs {

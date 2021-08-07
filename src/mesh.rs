@@ -9,7 +9,7 @@ pub struct Mesh {
 }
 
 /// Mesh for GPU rendering
-pub struct GPUMesh {
+pub struct GpuMesh {
     pub material_i: usize,
     pub index_buffer: IndexBuffer<u32>,
 }
@@ -23,10 +23,10 @@ impl Mesh {
     }
 
     /// Load the index buffer to the GPU
-    pub fn upload_data<F: Facade>(&self, facade: &F) -> GPUMesh {
+    pub fn upload_data<F: Facade>(&self, facade: &F) -> GpuMesh {
         let index_buffer = IndexBuffer::new(facade, PrimitiveType::TrianglesList, &self.indices)
             .expect("Failed to create index buffer!");
-        GPUMesh {
+        GpuMesh {
             material_i: self.material_i,
             index_buffer,
         }

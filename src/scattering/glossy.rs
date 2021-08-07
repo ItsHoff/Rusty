@@ -1,6 +1,6 @@
 use cgmath::Point2;
 
-use crate::bsdf::BSDF;
+use crate::bsdf::Bsdf;
 use crate::float::*;
 use crate::texture::Texture;
 
@@ -19,8 +19,8 @@ impl GlossyReflection {
 }
 
 impl ScatteringT for GlossyReflection {
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
-        BSDF::microfacet_brdf(self.texture.color(tex_coords), self.shininess)
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf {
+        Bsdf::microfacet_brdf(self.texture.color(tex_coords), self.shininess)
     }
 
     fn preview_texture(&self) -> &Texture {
@@ -46,10 +46,10 @@ impl GlossyBlend {
 }
 
 impl ScatteringT for GlossyBlend {
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf {
         let diffuse = self.diffuse.color(tex_coords);
         let specular = self.specular.color(tex_coords);
-        BSDF::fresnel_blend_brdf(diffuse, specular, self.shininess)
+        Bsdf::fresnel_blend_brdf(diffuse, specular, self.shininess)
     }
 
     fn preview_texture(&self) -> &Texture {
@@ -83,10 +83,10 @@ impl GlossyTransmission {
 }
 
 impl ScatteringT for GlossyTransmission {
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF {
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf {
         let reflect = self.reflective.color(tex_coords);
         let transmit = self.transmissive.color(tex_coords);
-        BSDF::microfacet_bsdf(reflect, transmit, self.shininess, self.eta)
+        Bsdf::microfacet_bsdf(reflect, transmit, self.shininess, self.eta)
     }
 
     fn preview_texture(&self) -> &Texture {

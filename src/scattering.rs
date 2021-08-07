@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use cgmath::Point2;
 
-use crate::bsdf::BSDF;
+use crate::bsdf::Bsdf;
 use crate::color::Color;
 use crate::float::*;
 use crate::obj_load;
@@ -19,7 +19,7 @@ use self::specular::*;
 /// Scattering model over the whole surface
 pub trait ScatteringT {
     /// Get the local scattering functions
-    fn local(&self, tex_coords: Point2<Float>) -> BSDF;
+    fn local(&self, tex_coords: Point2<Float>) -> Bsdf;
     /// The texture to use for preview rendering
     fn preview_texture(&self) -> &Texture;
 }
@@ -27,12 +27,12 @@ pub trait ScatteringT {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum Scattering {
-    DR(DiffuseReflection),
-    GB(GlossyBlend),
-    GR(GlossyReflection),
-    GT(GlossyTransmission),
-    SR(SpecularReflection),
-    ST(SpecularTransmission),
+    Dr(DiffuseReflection),
+    Gb(GlossyBlend),
+    Gr(GlossyReflection),
+    Gt(GlossyTransmission),
+    Sr(SpecularReflection),
+    St(SpecularTransmission),
 }
 
 fn diffuse_texture(obj_mat: &obj_load::Material) -> Texture {
@@ -81,16 +81,16 @@ impl Scattering {
             Some(2) => {
                 let exponent = obj_mat.specular_exponent.map(ToFloat::to_float);
                 if diffuse.is_black() {
-                    GR(GlossyReflection::new(specular, exponent.unwrap()))
+                    Gr(GlossyReflection::new(specular, exponent.unwrap()))
                 } else if specular.is_black() {
-                    DR(DiffuseReflection::new(diffuse))
+                    Dr(DiffuseReflection::new(diffuse))
                 } else {
-                    GB(GlossyBlend::new(diffuse, specular, exponent.unwrap()))
+                    Gb(GlossyBlend::new(diffuse, specular, exponent.unwrap()))
                 }
             }
             Some(5) => {
                 let texture = specular_texture(obj_mat);
-                SR(SpecularReflection::new(texture))
+                Sr(SpecularReflection::new(texture))
             }
             Some(4) | Some(9) => {
                 let filter = transmission_filter(obj_mat);
@@ -98,7 +98,7 @@ impl Scattering {
                     .index_of_refraction
                     .expect("No index of refraction for translucent material")
                     .to_float();
-                ST(SpecularTransmission::new(specular, filter, eta))
+                St(SpecularTransmission::new(specular, filter, eta))
             }
             Some(6) | Some(7) => {
                 let filter = transmission_filter(obj_mat);
@@ -109,10 +109,10 @@ impl Scattering {
                 if (eta - 1.0).abs() < crate::consts::EPSILON {
                     // Glossy does not handle eta = 1 properly
                     // and the distribution would be the same anyways
-                    ST(SpecularTransmission::new(specular, filter, eta))
+                    St(SpecularTransmission::new(specular, filter, eta))
                 } else {
                     let exponent = obj_mat.specular_exponent.unwrap().to_float();
-                    GT(GlossyTransmission::new(specular, filter, exponent, eta))
+                    Gt(GlossyTransmission::new(specular, filter, exponent, eta))
                 }
             }
             Some(i) => {
@@ -123,9 +123,9 @@ impl Scattering {
                     println!("Unimplemented illumination model {}!", i);
                     println!("Defaulting to diffuse reflection.");
                 }
-                DR(DiffuseReflection::new(diffuse))
+                Dr(DiffuseReflection::new(diffuse))
             }
-            None => DR(DiffuseReflection::new(diffuse)),
+            None => Dr(DiffuseReflection::new(diffuse)),
         }
     }
 }
@@ -136,12 +136,12 @@ impl Deref for Scattering {
     fn deref(&self) -> &Self::Target {
         use self::Scattering::*;
         match self {
-            DR(inner) => inner,
-            GB(inner) => inner,
-            GR(inner) => inner,
-            GT(inner) => inner,
-            SR(inner) => inner,
-            ST(inner) => inner,
+            Dr(inner) => inner,
+            Gb(inner) => inner,
+            Gr(inner) => inner,
+            Gt(inner) => inner,
+            Sr(inner) => inner,
+            St(inner) => inner,
         }
     }
 }

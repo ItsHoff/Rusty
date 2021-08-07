@@ -11,7 +11,7 @@ use glium::glutin::event::VirtualKeyCode;
 use crate::camera::Camera;
 use crate::config::RenderConfig;
 use crate::float::*;
-use crate::scene::{GPUScene, Scene, SceneBuilder};
+use crate::scene::{GpuScene, Scene, SceneBuilder};
 use crate::stats;
 use crate::util;
 
@@ -146,7 +146,7 @@ fn gpu_scene<F: Facade>(
     path: &Path,
     camera_pos: CameraPos,
     config: &RenderConfig,
-) -> (Arc<Scene>, GPUScene, Camera) {
+) -> (Arc<Scene>, GpuScene, Camera) {
     let (scene, camera) = cpu_scene(path, camera_pos, config);
     let gpu_scene = scene.upload_data(facade);
     (scene, gpu_scene, camera)
@@ -162,7 +162,7 @@ pub fn gpu_scene_from_path<F: Facade>(
     facade: &F,
     path: &Path,
     config: &RenderConfig,
-) -> Option<(Arc<Scene>, GPUScene, Camera)> {
+) -> Option<(Arc<Scene>, GpuScene, Camera)> {
     if let Some("obj") = util::lowercase_extension(path).as_deref() {
         stats::new_scene(path.to_str().unwrap());
         let res = gpu_scene(facade, path, CameraPos::Offset, config);
@@ -178,7 +178,7 @@ pub fn gpu_scene_from_key<F: Facade>(
     facade: &F,
     key: VirtualKeyCode,
     config: &RenderConfig,
-) -> Option<(Arc<Scene>, GPUScene, Camera)> {
+) -> Option<(Arc<Scene>, GpuScene, Camera)> {
     let name = SCENE_LIBRARY.key_to_name(key)?;
     stats::new_scene(name);
     let info = SCENE_LIBRARY.get(name).unwrap();

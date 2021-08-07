@@ -3,23 +3,23 @@ use glium::{uniform, DrawParameters, Surface};
 
 use crate::camera::Camera;
 use crate::float::IntoArray;
-use crate::scene::GPUScene;
+use crate::scene::GpuScene;
 
-pub struct GLRenderer {
+pub struct GlRenderer {
     shader: glium::Program,
 }
 
-impl GLRenderer {
-    pub fn new<F: Facade>(facade: &F) -> GLRenderer {
+impl GlRenderer {
+    pub fn new<F: Facade>(facade: &F) -> GlRenderer {
         let vertex_shader_src = include_str!("shaders/preview.vert");
         let fragment_shader_src = include_str!("shaders/preview.frag");
         let shader =
             glium::Program::from_source(facade, vertex_shader_src, fragment_shader_src, None)
                 .expect("Failed to create program!");
-        GLRenderer { shader }
+        GlRenderer { shader }
     }
 
-    pub fn render<S: Surface>(&self, target: &mut S, scene: &GPUScene, camera: &Camera) {
+    pub fn render<S: Surface>(&self, target: &mut S, scene: &GpuScene, camera: &Camera) {
         let draw_parameters = DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,

@@ -1,7 +1,7 @@
 use cgmath::prelude::*;
 use cgmath::{Point3, Vector3};
 
-use crate::camera::PTCamera;
+use crate::camera::PtCamera;
 use crate::color::Color;
 use crate::config::*;
 use crate::consts;
@@ -63,7 +63,7 @@ pub fn pdf_precompute(
     (Some(pdf_fwd), Some(pdf_rev))
 }
 
-pub struct BDPath<'a> {
+pub struct BdPath<'a> {
     light_vertex: &'a LightVertex<'a>,
     light_path: &'a [SurfaceVertex<'a>],
     light_pdf_fwd: Vec<Option<Float>>,
@@ -75,7 +75,7 @@ pub struct BDPath<'a> {
     config: &'a RenderConfig,
 }
 
-impl<'a> BDPath<'a> {
+impl<'a> BdPath<'a> {
     pub fn new(
         light_vertex: &'a LightVertex<'a>,
         light_path: &'a [SurfaceVertex<'a>],
@@ -199,7 +199,7 @@ impl<'a> BDPath<'a> {
 }
 
 pub struct SubPath<'a> {
-    path: &'a BDPath<'a>,
+    path: &'a BdPath<'a>,
     s: usize,
     t: usize,
     tmp_light_vertex: Option<LightVertex<'a>>,
@@ -389,12 +389,12 @@ pub trait Vertex: std::fmt::Debug {
 
 #[derive(Debug)]
 pub struct CameraVertex<'a> {
-    pub camera: &'a PTCamera,
+    pub camera: &'a PtCamera,
     ray: Ray,
 }
 
 impl<'a> CameraVertex<'a> {
-    pub fn new(camera: &'a PTCamera, ray: Ray) -> Self {
+    pub fn new(camera: &'a PtCamera, ray: Ray) -> Self {
         Self { camera, ray }
     }
 

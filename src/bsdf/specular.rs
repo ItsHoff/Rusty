@@ -4,17 +4,17 @@ use crate::color::Color;
 use crate::float::*;
 use crate::pt_renderer::PathType;
 
-use super::fresnel::{self, FresnelBSDF};
+use super::fresnel::{self, FresnelBsdf};
 use super::util;
-use super::BsdfTrait;
+use super::BsdfT;
 
 #[derive(Clone, Debug)]
-pub struct SpecularBRDF {
+pub struct SpecularBrdf {
     color: Color,
     use_schlick: bool,
 }
 
-impl SpecularBRDF {
+impl SpecularBrdf {
     pub fn with_schlick(color: Color) -> Self {
         Self {
             color,
@@ -30,7 +30,7 @@ impl SpecularBRDF {
     }
 }
 
-impl BsdfTrait for SpecularBRDF {
+impl BsdfT for SpecularBrdf {
     fn is_specular(&self) -> bool {
         true
     }
@@ -63,18 +63,18 @@ impl BsdfTrait for SpecularBRDF {
 }
 
 #[derive(Clone, Debug)]
-pub struct SpecularBTDF {
+pub struct SpecularBtdf {
     color: Color,
     eta: Float,
 }
 
-impl SpecularBTDF {
+impl SpecularBtdf {
     pub fn new(color: Color, eta: Float) -> Self {
         Self { color, eta }
     }
 }
 
-impl BsdfTrait for SpecularBTDF {
+impl BsdfT for SpecularBtdf {
     fn is_specular(&self) -> bool {
         true
     }
@@ -107,12 +107,12 @@ impl BsdfTrait for SpecularBTDF {
     }
 }
 
-pub type SpecularBSDF = FresnelBSDF<SpecularBRDF, SpecularBTDF>;
+pub type SpecularBsdf = FresnelBsdf<SpecularBrdf, SpecularBtdf>;
 
-impl SpecularBSDF {
+impl SpecularBsdf {
     pub fn new(reflect: Color, transmit: Color, eta: Float) -> Self {
-        let brdf = SpecularBRDF::without_schlick(reflect);
-        let btdf = SpecularBTDF::new(transmit, eta);
+        let brdf = SpecularBrdf::without_schlick(reflect);
+        let btdf = SpecularBtdf::new(transmit, eta);
         Self { brdf, btdf, eta }
     }
 }
