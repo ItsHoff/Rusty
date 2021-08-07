@@ -20,7 +20,7 @@ use self::specular::*;
 /// Directions should both point away from the intersection.
 /// Directions should be given in a surface local coordinate system,
 /// where (0, 0, 1) is the normal pointing outwards
-pub trait BSDFT {
+pub trait BsdfTrait {
     fn is_specular(&self) -> bool;
     /// Evaluate reflected radiance
     fn brdf(&self, wo: Vector3<Float>, wi: Vector3<Float>) -> Color;
@@ -38,52 +38,52 @@ pub trait BSDFT {
 
 #[derive(Clone, Debug)]
 pub enum BSDF {
-    FBR(FresnelBlendBRDF),
-    LR(LambertianBRDF),
-    MR(MicrofacetBRDF),
-    MS(MicrofacetBSDF),
-    SR(SpecularBRDF),
-    SS(SpecularBSDF),
+    Fbr(FresnelBlendBRDF),
+    Lr(LambertianBRDF),
+    Mr(MicrofacetBRDF),
+    Ms(MicrofacetBSDF),
+    Sr(SpecularBRDF),
+    Ss(SpecularBSDF),
 }
 
 impl BSDF {
     pub fn fresnel_blend_brdf(diffuse: Color, specular: Color, shininess: Float) -> Self {
-        BSDF::FBR(FresnelBlendBRDF::new(diffuse, specular, shininess))
+        BSDF::Fbr(FresnelBlendBRDF::new(diffuse, specular, shininess))
     }
 
     pub fn lambertian_brdf(color: Color) -> Self {
-        BSDF::LR(LambertianBRDF::new(color))
+        BSDF::Lr(LambertianBRDF::new(color))
     }
 
     pub fn microfacet_brdf(color: Color, shininess: Float) -> Self {
-        BSDF::MR(MicrofacetBRDF::with_schlick(color, shininess))
+        BSDF::Mr(MicrofacetBRDF::with_schlick(color, shininess))
     }
 
     pub fn microfacet_bsdf(reflect: Color, transmit: Color, shininess: Float, eta: Float) -> Self {
-        BSDF::MS(MicrofacetBSDF::new(reflect, transmit, shininess, eta))
+        BSDF::Ms(MicrofacetBSDF::new(reflect, transmit, shininess, eta))
     }
 
     pub fn specular_brdf(color: Color) -> Self {
-        BSDF::SR(SpecularBRDF::with_schlick(color))
+        BSDF::Sr(SpecularBRDF::with_schlick(color))
     }
 
     pub fn specular_bsdf(reflect: Color, transmit: Color, eta: Float) -> Self {
-        BSDF::SS(SpecularBSDF::new(reflect, transmit, eta))
+        BSDF::Ss(SpecularBSDF::new(reflect, transmit, eta))
     }
 }
 
 impl Deref for BSDF {
-    type Target = dyn BSDFT;
+    type Target = dyn BsdfTrait;
 
     fn deref(&self) -> &Self::Target {
         use self::BSDF::*;
         match self {
-            FBR(inner) => inner,
-            LR(inner) => inner,
-            MR(inner) => inner,
-            MS(inner) => inner,
-            SR(inner) => inner,
-            SS(inner) => inner,
+            Fbr(inner) => inner,
+            Lr(inner) => inner,
+            Mr(inner) => inner,
+            Ms(inner) => inner,
+            Sr(inner) => inner,
+            Ss(inner) => inner,
         }
     }
 }

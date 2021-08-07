@@ -3,9 +3,7 @@ use std::cmp::PartialEq;
 use cgmath::prelude::*;
 use cgmath::{Matrix3, Matrix4, Point2, Point3, Vector3};
 
-use rand;
-
-use crate::aabb::{self, AABB};
+use crate::aabb::{self, Aabb};
 use crate::float::*;
 use crate::index_ptr::IndexPtr;
 use crate::intersect::{Hit, Intersect, Ray};
@@ -144,14 +142,14 @@ impl Triangle {
         (p, n, t)
     }
 
-    pub fn aabb(&self) -> AABB {
+    pub fn aabb(&self) -> Aabb {
         let mut min = self.v1.p;
         min = aabb::min_point(&min, &self.v2.p);
         min = aabb::min_point(&min, &self.v3.p);
         let mut max = self.v1.p;
         max = aabb::max_point(&max, &self.v2.p);
         max = aabb::max_point(&max, &self.v3.p);
-        AABB { min, max }
+        Aabb { min, max }
     }
 
     pub fn center(&self) -> Point3<Float> {

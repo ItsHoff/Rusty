@@ -2,7 +2,7 @@ use std::ops::{Index, Range};
 
 use cgmath::Point3;
 
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::consts;
 use crate::float::*;
 use crate::intersect::{Intersect, Ray};
@@ -16,7 +16,7 @@ const MAX_LEAF_SIZE: usize = 8;
 pub enum SplitMode {
     Object,
     Spatial,
-    SAH,
+    Sah,
 }
 
 enum Indices {
@@ -25,16 +25,16 @@ enum Indices {
 }
 
 #[repr(align(64))]
-pub struct BVHNode {
-    aabb: AABB,
+pub struct BvhNode {
+    aabb: Aabb,
     indices: Indices,
 }
 
-impl BVHNode {
-    fn new(triangles: &Triangles) -> BVHNode {
+impl BvhNode {
+    fn new(triangles: &Triangles) -> BvhNode {
         let start_i = triangles.start_i as u32;
         let end_i = start_i + triangles.len() as u32;
-        BVHNode {
+        BvhNode {
             aabb: triangles.aabb.clone(),
             indices: Indices::Leaf(start_i, end_i),
         }
@@ -52,7 +52,7 @@ impl BVHNode {
     }
 }
 
-impl Intersect<'_, Float> for BVHNode {
+impl Intersect<'_, Float> for BvhNode {
     fn intersect(&self, ray: &Ray) -> Option<Float> {
         self.aabb.intersect(ray)
     }
@@ -62,7 +62,7 @@ struct Triangles<'a> {
     triangles: &'a [Triangle],
     centers: &'a [Point3<Float>],
     indices: &'a mut [usize],
-    aabb: AABB,
+    aabb: Aabb,
     /// Node contains indices [start_i, start_i + len) from the main indices array
     start_i: usize,
     /// Axis along which the indices have been sorted
@@ -76,7 +76,7 @@ impl<'a> Triangles<'a> {
         indices: &'a mut [usize],
         start_i: usize,
     ) -> Triangles<'a> {
-        let mut aabb = AABB::empty();
+        let mut aabb = Aabb::empty();
         for &i in indices.iter() {
             let tri = &triangles[i];
             aabb.add_aabb(&tri.aabb());
@@ -139,12 +139,12 @@ impl Index<usize> for Triangles<'_> {
     }
 }
 
-pub struct BVH {
-    nodes: Vec<BVHNode>,
+pub struct Bvh {
+    nodes: Vec<BvhNode>,
 }
 
-impl BVH {
-    pub fn build(triangles: &[Triangle], split_mode: SplitMode) -> (BVH, Vec<usize>) {
+impl Bvh {
+    pub fn build(triangles: &[Triangle], split_mode: SplitMode) -> (Bvh, Vec<usize>) {
         assert!(
             !triangles.is_empty(),
             "Scene doesn't contain any triangles!"
@@ -155,18 +155,18 @@ impl BVH {
             triangles.len()
         );
         stats::start_bvh();
-        let centers: Vec<Point3<Float>> = triangles.iter().map(|ref tri| tri.center()).collect();
+        let centers: Vec<Point3<Float>> = triangles.iter().map(|tri| tri.center()).collect();
         let mut permutation: Vec<usize> = (0..triangles.len()).collect();
         let tris = Triangles::new(triangles, &centers, &mut permutation, 0);
         let mut nodes = Vec::with_capacity(Float::log2(triangles.len().to_float()) as usize);
-        nodes.push(BVHNode::new(&tris));
+        nodes.push(BvhNode::new(&tris));
         let mut split_stack = vec![(0usize, tris)];
 
         while let Some((node_i, mut tris)) = split_stack.pop() {
             let mid_offset = match split_mode {
                 SplitMode::Object => object_split(&mut tris),
                 SplitMode::Spatial => spatial_split(&mut tris),
-                SplitMode::SAH => sah_split(&mut tris),
+                SplitMode::Sah => sah_split(&mut tris),
             };
             let (t1, t2) = if let Some(offset) = mid_offset {
                 tris.split(offset)
@@ -174,14 +174,14 @@ impl BVH {
                 continue;
             };
 
-            let left_child = BVHNode::new(&t1);
+            let left_child = BvhNode::new(&t1);
             let left_child_i = nodes.len();
             if t1.len() > MAX_LEAF_SIZE {
                 split_stack.push((nodes.len(), t1));
             }
             nodes.push(left_child);
 
-            let right_child = BVHNode::new(&t2);
+            let right_child = BvhNode::new(&t2);
             let right_child_i = nodes.len();
             if t2.len() > MAX_LEAF_SIZE {
                 split_stack.push((nodes.len(), t2));
@@ -190,12 +190,12 @@ impl BVH {
             nodes[node_i].convert_to_inner(left_child_i, right_child_i);
         }
         nodes.shrink_to_fit();
-        let bvh = BVH { nodes };
+        let bvh = Bvh { nodes };
         stats::stop_bvh(&bvh, triangles.len());
         (bvh, permutation)
     }
 
-    pub fn get_children(&self, node: &BVHNode) -> Option<(&BVHNode, &BVHNode)> {
+    pub fn get_children(&self, node: &BvhNode) -> Option<(&BvhNode, &BvhNode)> {
         match node.indices {
             Indices::Leaf(_, _) => None,
             Indices::Inner(left_i, right_i) => {
@@ -204,7 +204,7 @@ impl BVH {
         }
     }
 
-    pub fn root(&self) -> &BVHNode {
+    pub fn root(&self) -> &BvhNode {
         &self.nodes[0]
     }
 
@@ -256,7 +256,7 @@ fn sah_split(triangles: &mut Triangles) -> Option<usize> {
             new_bb.add_aabb(&triangles[triangles.len() - 1 - i].aabb());
             right_bbs.push(new_bb);
         }
-        let mut left_bb = AABB::empty();
+        let mut left_bb = Aabb::empty();
         // Go through the possible splits
         for i in 0..triangles.len() {
             left_bb.add_aabb(&triangles[i].aabb());

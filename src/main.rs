@@ -1,11 +1,9 @@
-#![feature(try_trait)]
-
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use chrono::Local;
 
-use glium::glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use glium::glutin::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use glium::Surface;
 
 mod aabb;
@@ -42,7 +40,7 @@ use self::pt_renderer::PTRenderer;
 
 // TODO: add comparison mode
 fn main() {
-    match std::env::args().nth(1).as_ref().map(std::string::String::as_str) {
+    match std::env::args().nth(1).as_deref() {
         Some("hq") => high_quality(),
         Some("pt") => high_quality_pt(),
         Some("comp") => compare(),
@@ -133,13 +131,13 @@ fn offline_render(scenes: &[&str], tag: &str, output_dir: &Path, config: RenderC
     let time_stamp = Local::now().format("%F_%H%M%S").to_string();
 
     // Initialize an OpenGL context that is needed for post-processing
-    let events_loop = glium::glutin::EventsLoop::new();
+    let events_loop = glium::glutin::event_loop::EventLoop::new();
     // Preferably this wouldn't need use a window at all but alas this is the closest I have gotten.
     // There exists HeadlessContext but that still pops up a window (atleast on Windows).
     // TODO: Maybe change this such that the window displays the current render?
-    let window = glium::glutin::WindowBuilder::new()
-        .with_dimensions(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
-        .with_visibility(false)
+    let window = glium::glutin::window::WindowBuilder::new()
+        .with_inner_size(glium::glutin::dpi::LogicalSize::new(0.0, 0.0))
+        .with_visible(false)
         .with_decorations(false)
         .with_title("Rusty");
     let context = glium::glutin::ContextBuilder::new();
@@ -171,9 +169,9 @@ fn offline_render(scenes: &[&str], tag: &str, output_dir: &Path, config: RenderC
 
 fn online_render() {
     let mut config = RenderConfig::bdpt();
-    let mut events_loop = glium::glutin::EventsLoop::new();
-    let window = glium::glutin::WindowBuilder::new()
-        .with_dimensions(config.dimensions())
+    let events_loop = glium::glutin::event_loop::EventLoop::new();
+    let window = glium::glutin::window::WindowBuilder::new()
+        .with_inner_size(config.dimensions())
         .with_resizable(false); // TODO: enable resizing
     let context = glium::glutin::ContextBuilder::new().with_depth_buffer(24);
     let display =
@@ -185,10 +183,9 @@ fn online_render() {
     let mut pt_renderer: Option<PTRenderer> = None;
 
     let mut input = InputState::new();
-    let mut quit = false;
     let mut last_frame = Instant::now();
 
-    loop {
+    events_loop.run(move |event, _window_target, control_flow| {
         let mut target = display.draw();
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
         if let Some(renderer) = &mut pt_renderer {
@@ -199,81 +196,76 @@ fn online_render() {
         }
         target.finish().unwrap();
 
-        events_loop.poll_events(|event| {
-            input.update(&event);
-            match event {
-                Event::WindowEvent {
-                    event: WindowEvent::KeyboardInput { input, .. },
+        input.update(&event);
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::KeyboardInput { input, .. },
+                ..
+            } => match input {
+                KeyboardInput {
+                    state: ElementState::Pressed,
+                    virtual_keycode: Some(VirtualKeyCode::Space),
                     ..
-                } => match input {
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::Space),
-                        ..
-                    } => {
-                        if pt_renderer.is_some() {
-                            pt_renderer = None;
-                        } else {
-                            pt_renderer =
-                                Some(PTRenderer::start_render(&display, &scene, &camera, &config));
-                        }
+                } => {
+                    if pt_renderer.is_some() {
+                        pt_renderer = None;
+                    } else {
+                        pt_renderer =
+                            Some(PTRenderer::start_render(&display, &scene, &camera, &config));
                     }
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::C),
-                        ..
-                    } => println!("camera: {:?}", camera.pos),
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(keycode),
-                        ..
-                    } => {
-                        if pt_renderer.is_none() {
-                            if let Some(res) = load::gpu_scene_from_key(&display, keycode, &config)
-                            {
-                                scene = res.0;
-                                gpu_scene = res.1;
-                                camera = res.2;
-                            }
-                            config.handle_key(keycode);
-                        }
-                    }
-                    _ => (),
-                },
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
+                }
+                KeyboardInput {
+                    state: ElementState::Pressed,
+                    virtual_keycode: Some(VirtualKeyCode::C),
                     ..
-                } => quit = true,
-                Event::WindowEvent {
-                    event: WindowEvent::DroppedFile(path),
+                } => println!("camera: {:?}", camera.pos),
+                KeyboardInput {
+                    state: ElementState::Pressed,
+                    virtual_keycode: Some(keycode),
                     ..
                 } => {
                     if pt_renderer.is_none() {
-                        // TODO: don't crash on bad scenes
-                        if let Some(res) = load::gpu_scene_from_path(&display, &path, &config) {
+                        if let Some(res) = load::gpu_scene_from_key(&display, keycode, &config) {
                             scene = res.0;
                             gpu_scene = res.1;
                             camera = res.2;
-                            // TODO: would be nice if this grabbed the focus
                         }
+                        config.handle_key(keycode);
                     }
                 }
                 _ => (),
+            },
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => *control_flow = glium::glutin::event_loop::ControlFlow::Exit,
+            Event::WindowEvent {
+                event: WindowEvent::DroppedFile(path),
+                ..
+            } => {
+                if pt_renderer.is_none() {
+                    // TODO: don't crash on bad scenes
+                    if let Some(res) = load::gpu_scene_from_path(&display, &path, &config) {
+                        scene = res.0;
+                        gpu_scene = res.1;
+                        camera = res.2;
+                        // TODO: would be nice if this grabbed the focus
+                    }
+                }
             }
-        });
+            _ => (),
+        }
         if pt_renderer.is_none() {
             camera.process_input(&input);
         }
         input.reset_deltas();
-        if quit {
-            return;
-        }
         // Limit frame rate
         let frame_time = Duration::from_millis(5);
         let elapsed = last_frame.elapsed();
         if elapsed < frame_time {
-            std::thread::park_timeout(frame_time - elapsed);
+            *control_flow =
+                glium::glutin::event_loop::ControlFlow::WaitUntil(last_frame + frame_time);
         }
         last_frame = Instant::now();
-    }
+    });
 }

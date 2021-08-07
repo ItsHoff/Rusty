@@ -9,16 +9,16 @@ use crate::sample;
 
 use super::fresnel::{self, FresnelBSDF};
 use super::util;
-use super::BSDFT;
+use super::BsdfTrait;
 
-/// GGX (Trowbridge-Reitz) microfacet distribution
+/// Ggx (Trowbridge-Reitz) microfacet distribution
 #[derive(Clone, Debug)]
-struct GGX {
+struct Ggx {
     alpha: Float,
 }
 
 // TODO: maybe just keep alpha^2
-impl GGX {
+impl Ggx {
     fn from_exponent(exponent: Float) -> Self {
         // Specular exponent to alpha conversion from
         // http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
@@ -73,7 +73,7 @@ impl GGX {
 #[derive(Clone, Debug)]
 pub struct MicrofacetBRDF {
     color: Color,
-    microfacets: GGX,
+    microfacets: Ggx,
     use_schlick: bool,
 }
 
@@ -81,7 +81,7 @@ impl MicrofacetBRDF {
     pub fn with_schlick(color: Color, exponent: Float) -> Self {
         Self {
             color,
-            microfacets: GGX::from_exponent(exponent),
+            microfacets: Ggx::from_exponent(exponent),
             use_schlick: true,
         }
     }
@@ -89,13 +89,13 @@ impl MicrofacetBRDF {
     pub fn without_schlick(color: Color, exponent: Float) -> Self {
         Self {
             color,
-            microfacets: GGX::from_exponent(exponent),
+            microfacets: Ggx::from_exponent(exponent),
             use_schlick: false,
         }
     }
 }
 
-impl BSDFT for MicrofacetBRDF {
+impl BsdfTrait for MicrofacetBRDF {
     fn is_specular(&self) -> bool {
         false
     }
@@ -146,7 +146,7 @@ impl BSDFT for MicrofacetBRDF {
 pub struct FresnelBlendBRDF {
     diffuse: Color,
     specular: Color,
-    microfacets: GGX,
+    microfacets: Ggx,
 }
 
 impl FresnelBlendBRDF {
@@ -154,12 +154,12 @@ impl FresnelBlendBRDF {
         Self {
             diffuse,
             specular,
-            microfacets: GGX::from_exponent(exponent),
+            microfacets: Ggx::from_exponent(exponent),
         }
     }
 }
 
-impl BSDFT for FresnelBlendBRDF {
+impl BsdfTrait for FresnelBlendBRDF {
     fn is_specular(&self) -> bool {
         false
     }
@@ -215,7 +215,7 @@ impl BSDFT for FresnelBlendBRDF {
 #[derive(Clone, Debug)]
 pub struct MicrofacetBTDF {
     color: Color,
-    microfacets: GGX,
+    microfacets: Ggx,
     eta: Float,
 }
 
@@ -223,7 +223,7 @@ impl MicrofacetBTDF {
     pub fn new(color: Color, exponent: Float, eta: Float) -> Self {
         Self {
             color,
-            microfacets: GGX::from_exponent(exponent),
+            microfacets: Ggx::from_exponent(exponent),
             eta,
         }
     }
@@ -240,7 +240,7 @@ impl MicrofacetBTDF {
     }
 }
 
-impl BSDFT for MicrofacetBTDF {
+impl BsdfTrait for MicrofacetBTDF {
     fn is_specular(&self) -> bool {
         false
     }

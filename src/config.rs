@@ -1,4 +1,4 @@
-use glium::glutin::{dpi::LogicalSize, VirtualKeyCode};
+use glium::glutin::{dpi::LogicalSize, event::VirtualKeyCode};
 
 use crate::bvh::SplitMode;
 use crate::float::*;
@@ -8,7 +8,7 @@ pub enum RenderMode {
     /// Standard path tracing
     PathTracing,
     /// Bidirectional path tracing
-    BDPT,
+    Bdpt,
     /// Debug
     Debug(DebugMode),
 }
@@ -89,13 +89,13 @@ impl RenderConfig {
             max_bounces: std::usize::MAX,
             samples_per_dir: 2,
             tone_map: true,
-            bvh_split: SplitMode::SAH,
+            bvh_split: SplitMode::Sah,
         }
     }
 
     pub fn bdpt() -> Self {
         Self {
-            render_mode: RenderMode::BDPT,
+            render_mode: RenderMode::Bdpt,
             pre_rr_bounces: 3,
             max_bounces: std::usize::MAX,
             russian_roulette: RussianRoulette::Static(0.5),
@@ -118,13 +118,13 @@ impl RenderConfig {
             max_bounces: 5,
             samples_per_dir: 3,
             tone_map: true,
-            bvh_split: SplitMode::SAH,
+            bvh_split: SplitMode::Sah,
         }
     }
 
     pub fn bdpt_benchmark() -> Self {
         Self {
-            render_mode: RenderMode::BDPT,
+            render_mode: RenderMode::Bdpt,
             samples_per_dir: 2,
             ..Self::benchmark()
         }
@@ -179,7 +179,7 @@ impl RenderConfig {
         }
     }
 
-    pub fn dimensions(&self) -> LogicalSize {
+    pub fn dimensions(&self) -> LogicalSize<Float> {
         LogicalSize::from((self.width, self.height))
     }
 
@@ -210,7 +210,7 @@ impl RenderConfig {
                 *self = Self::path_trace();
             }
             VirtualKeyCode::F2 => {
-                println!("Config: BDPT");
+                println!("Config: Bdpt");
                 *self = Self::bdpt();
             }
             VirtualKeyCode::F3 => {

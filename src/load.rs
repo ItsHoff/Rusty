@@ -6,7 +6,7 @@ use cgmath::prelude::*;
 use cgmath::{Point3, Quaternion, Vector3};
 
 use glium::backend::Facade;
-use glium::glutin::VirtualKeyCode;
+use glium::glutin::event::VirtualKeyCode;
 
 use crate::camera::Camera;
 use crate::config::RenderConfig;
@@ -163,7 +163,7 @@ pub fn gpu_scene_from_path<F: Facade>(
     path: &Path,
     config: &RenderConfig,
 ) -> Option<(Arc<Scene>, GPUScene, Camera)> {
-    if let Some("obj") = util::lowercase_extension(path).as_ref().map(std::string::String::as_str) {
+    if let Some("obj") = util::lowercase_extension(path).as_deref() {
         stats::new_scene(path.to_str().unwrap());
         let res = gpu_scene(facade, path, CameraPos::Offset, config);
         println!("Loaded scene from {:?}", path);

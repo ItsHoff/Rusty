@@ -37,11 +37,10 @@ impl Material {
                 Some(Color::from(e))
             }
         });
-        let normal_map = if let Some(path) = &obj_mat.bump_map {
-            Some(texture::load_normal_map(path))
-        } else {
-            None
-        };
+        let normal_map = obj_mat
+            .bump_map
+            .as_ref()
+            .map(|path| texture::load_normal_map(path));
         Material {
             scattering,
             normal_map,
@@ -64,10 +63,6 @@ impl Material {
     }
 
     pub fn normal(&self, tex_coords: Point2<Float>) -> Option<Vector3<Float>> {
-        if let Some(map) = &self.normal_map {
-            Some(map.normal(tex_coords))
-        } else {
-            None
-        }
+        self.normal_map.as_ref().map(|map| map.normal(tex_coords))
     }
 }

@@ -104,7 +104,7 @@ impl ToFloat for usize {
 
 pub trait IntoArray {
     type Array;
-    fn into_array(&self) -> Self::Array;
+    fn into_array(self) -> Self::Array;
 }
 
 pub trait FromArray: IntoArray {
@@ -114,7 +114,7 @@ pub trait FromArray: IntoArray {
 impl IntoArray for Matrix4<Float> {
     type Array = [[f32; 4]; 4];
 
-    fn into_array(&self) -> Self::Array {
+    fn into_array(self) -> Self::Array {
         [
             self.x.into_array(),
             self.y.into_array(),
@@ -127,7 +127,7 @@ impl IntoArray for Matrix4<Float> {
 impl IntoArray for Vector4<Float> {
     type Array = [f32; 4];
 
-    fn into_array(&self) -> Self::Array {
+    fn into_array(self) -> Self::Array {
         [self.x as f32, self.y as f32, self.z as f32, self.w as f32]
     }
 }
@@ -135,7 +135,7 @@ impl IntoArray for Vector4<Float> {
 impl IntoArray for Vector3<Float> {
     type Array = [f32; 3];
 
-    fn into_array(&self) -> Self::Array {
+    fn into_array(self) -> Self::Array {
         [self.x as f32, self.y as f32, self.z as f32]
     }
 }
@@ -153,7 +153,7 @@ impl FromArray for Vector3<Float> {
 impl IntoArray for Point3<Float> {
     type Array = [f32; 3];
 
-    fn into_array(&self) -> Self::Array {
+    fn into_array(self) -> Self::Array {
         [self.x as f32, self.y as f32, self.z as f32]
     }
 }
@@ -171,7 +171,7 @@ impl FromArray for Point3<Float> {
 impl IntoArray for Point2<Float> {
     type Array = [f32; 2];
 
-    fn into_array(&self) -> Self::Array {
+    fn into_array(self) -> Self::Array {
         [self.x as f32, self.y as f32]
     }
 }

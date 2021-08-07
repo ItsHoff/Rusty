@@ -3,6 +3,8 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, 
 use cgmath::prelude::*;
 use cgmath::Vector3;
 
+use image::Pixel;
+
 use crate::consts;
 use crate::float::*;
 
@@ -12,10 +14,11 @@ pub fn component_to_float(c: u8) -> Float {
 }
 
 pub fn pixel_to_vector(pixel: image::Rgb<u8>) -> Vector3<Float> {
+    let channels = pixel.channels();
     Vector3::new(
-        component_to_float(pixel.data[0]),
-        component_to_float(pixel.data[1]),
-        component_to_float(pixel.data[2]),
+        component_to_float(channels[0]),
+        component_to_float(channels[1]),
+        component_to_float(channels[2]),
     )
 }
 
@@ -205,9 +208,9 @@ impl From<[f32; 3]> for BaseColor {
     }
 }
 
-impl Into<[f32; 3]> for BaseColor {
-    fn into(self) -> [f32; 3] {
-        self.color.into_array()
+impl From<BaseColor> for [f32; 3] {
+    fn from(color: BaseColor) -> [f32; 3] {
+        color.color.into_array()
     }
 }
 
@@ -217,9 +220,9 @@ impl From<[f32; 3]> for Color {
     }
 }
 
-impl Into<[f32; 3]> for Color {
-    fn into(self) -> [f32; 3] {
-        self.0.into()
+impl From<Color> for [f32; 3] {
+    fn from(color: Color) -> [f32; 3] {
+        color.0.into()
     }
 }
 
@@ -250,6 +253,7 @@ impl Div<Float> for BaseColor {
 }
 
 impl DivAssign<Float> for BaseColor {
+    #[allow(clippy::suspicious_op_assign_impl)]
     fn div_assign(&mut self, rhs: Float) {
         let recip = rhs.recip();
         self.color *= recip;
@@ -337,6 +341,7 @@ impl Div<Float> for Color {
 }
 
 impl DivAssign<Float> for Color {
+    #[allow(clippy::suspicious_op_assign_impl)]
     fn div_assign(&mut self, rhs: Float) {
         let recip = rhs.recip();
         self.0 *= recip;
@@ -424,6 +429,7 @@ impl Div<Float> for SrgbColor {
 }
 
 impl DivAssign<Float> for SrgbColor {
+    #[allow(clippy::suspicious_op_assign_impl)]
     fn div_assign(&mut self, rhs: Float) {
         let recip = rhs.recip();
         self.0 *= recip;

@@ -8,10 +8,8 @@ use cgmath::{Point3, Vector3};
 use glium::backend::Facade;
 use glium::VertexBuffer;
 
-use rand;
-
-use crate::aabb::AABB;
-use crate::bvh::{BVHNode, SplitMode, BVH};
+use crate::aabb::Aabb;
+use crate::bvh::{BvhNode, Bvh, SplitMode};
 use crate::config::RenderConfig;
 use crate::float::*;
 use crate::index_ptr::IndexPtr;
@@ -56,8 +54,8 @@ pub struct Scene {
     /// Indices of emissive triangles
     lights: Vec<usize>,
     light_distribution: Vec<Float>,
-    aabb: AABB,
-    bvh: Option<BVH>,
+    aabb: Aabb,
+    bvh: Option<Bvh>,
 }
 
 /// Scene containing resources for GPU rendering
@@ -91,7 +89,7 @@ impl Scene {
             triangles: Vec::new(),
             lights: Vec::new(),
             light_distribution: Vec::new(),
-            aabb: AABB::empty(),
+            aabb: Aabb::empty(),
             bvh: None,
         })
     }
@@ -126,7 +124,7 @@ impl Scene {
             let mut mesh = Mesh::new(material_i);
             for tri in &obj.triangles[range.start_i..range.end_i] {
                 let mut tri_builder = TriangleBuilder::new();
-                let planar_normal = calculate_normal(tri, &obj);
+                let planar_normal = calculate_normal(tri, obj);
                 for index_vertex in &tri.index_vertices {
                     let vertex_i = match vertex_map.get(index_vertex) {
                         // Vertex has already been added
@@ -178,7 +176,7 @@ impl Scene {
 
     // Warning: this will reorder triangles!
     fn build_bvh(&mut self, split_mode: SplitMode) {
-        let (bvh, permutation) = BVH::build(&self.triangles, split_mode);
+        let (bvh, permutation) = Bvh::build(&self.triangles, split_mode);
         self.bvh = Some(bvh);
         // TODO: this could be done better
         self.triangles = permutation
@@ -187,7 +185,7 @@ impl Scene {
             .collect();
     }
 
-    // Should be called after BVH build
+    // Should be called after Bvh build
     fn construct_lights(&mut self) {
         let _t = stats::time("Lights");
         if self.bvh.is_none() {
@@ -292,7 +290,7 @@ impl Scene {
     pub fn intersect_shadow<'a>(
         &'a self,
         ray: &mut Ray,
-        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+        node_stack: &mut Vec<(&'a BvhNode, Float)>,
     ) -> bool {
         self.intersect_impl(ray, node_stack, true).is_some()
     }
@@ -301,7 +299,7 @@ impl Scene {
     pub fn intersect<'a>(
         &'a self,
         ray: &mut Ray,
-        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+        node_stack: &mut Vec<(&'a BvhNode, Float)>,
     ) -> Option<Hit> {
         self.intersect_impl(ray, node_stack, false)
     }
@@ -312,7 +310,7 @@ impl Scene {
     fn intersect_impl<'a>(
         &'a self,
         ray: &mut Ray,
-        node_stack: &mut Vec<(&'a BVHNode, Float)>,
+        node_stack: &mut Vec<(&'a BvhNode, Float)>,
         early_exit: bool,
     ) -> Option<Hit> {
         Ray::increment_count();
@@ -326,7 +324,7 @@ impl Scene {
             }
             if let Some(range) = node.range() {
                 for tri in &self.triangles[range] {
-                    if let Some(hit) = tri.intersect(&ray) {
+                    if let Some(hit) = tri.intersect(ray) {
                         ray.length = hit.t;
                         closest_hit = Some(hit);
                         if early_exit {
@@ -337,8 +335,8 @@ impl Scene {
             } else {
                 let (left, right) = bvh.get_children(node).unwrap();
                 // TODO: Could this work without pushing the next node to the stack
-                let left_intersect = left.intersect(&ray);
-                let right_intersect = right.intersect(&ray);
+                let left_intersect = left.intersect(ray);
+                let right_intersect = right.intersect(ray);
                 if let Some(t_left) = left_intersect {
                     if let Some(t_right) = right_intersect {
                         // Put the closer hit on top

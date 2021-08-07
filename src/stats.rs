@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use prettytable::{cell, Row, Table};
 
-use crate::bvh::BVH;
+use crate::bvh::Bvh;
 use crate::float::*;
 use crate::intersect::Ray;
 
@@ -62,12 +62,12 @@ fn stop_timer(name: &str) {
 }
 
 pub fn start_bvh() {
-    let mut handle = time("BVH");
+    let mut handle = time("Bvh");
     handle.deactivate();
 }
 
-pub fn stop_bvh(bvh: &BVH, n_tris: usize) {
-    stop_timer("BVH");
+pub fn stop_bvh(bvh: &Bvh, n_tris: usize) {
+    stop_timer("Bvh");
     current_scene!().analyze_bvh(bvh, n_tris);
 }
 
@@ -106,7 +106,7 @@ impl Statistics {
         let mut timer_rows = Vec::new();
         let mut mrps = vec![cell!("Mrays/s")];
         let mut n_tris = vec![cell!("Triangles")];
-        let mut bvh_size = vec![cell!("BVH Nodes")];
+        let mut bvh_size = vec![cell!("Bvh Nodes")];
         let mut n_rays = vec![cell!("Rays")];
         for (timer, l) in &self.scene_stats[0].timers {
             let mut row = Row::empty();
@@ -182,7 +182,7 @@ impl SceneStatistics {
         }
     }
 
-    fn analyze_bvh(&mut self, bvh: &BVH, n_tris: usize) {
+    fn analyze_bvh(&mut self, bvh: &Bvh, n_tris: usize) {
         self.n_tris = n_tris;
         self.bvh_size = bvh.size();
     }

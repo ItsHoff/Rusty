@@ -6,7 +6,7 @@ use crate::pt_renderer::PathType;
 
 use super::fresnel::{self, FresnelBSDF};
 use super::util;
-use super::BSDFT;
+use super::BsdfTrait;
 
 #[derive(Clone, Debug)]
 pub struct SpecularBRDF {
@@ -30,7 +30,7 @@ impl SpecularBRDF {
     }
 }
 
-impl BSDFT for SpecularBRDF {
+impl BsdfTrait for SpecularBRDF {
     fn is_specular(&self) -> bool {
         true
     }
@@ -74,7 +74,7 @@ impl SpecularBTDF {
     }
 }
 
-impl BSDFT for SpecularBTDF {
+impl BsdfTrait for SpecularBTDF {
     fn is_specular(&self) -> bool {
         true
     }

@@ -41,19 +41,12 @@ pub struct Polygon {
 impl Polygon {
     fn new(state: &ParseState) -> Polygon {
         Polygon {
-            group: {
-                match state.current_group {
-                    Some(ref range) => Some(range.name.clone()),
-                    None => None,
-                }
-            },
+            group: state.current_group.as_ref().map(|range| range.name.clone()),
             smoothing_group: state.current_smoothing_group,
-            material: {
-                match state.current_material {
-                    Some(ref range) => Some(range.name.clone()),
-                    None => None,
-                }
-            },
+            material: state
+                .current_material
+                .as_ref()
+                .map(|range| range.name.clone()),
             ..Default::default()
         }
     }
@@ -305,7 +298,7 @@ fn parse_polygon(
                 println!("Vertex with more than three properties");
                 break;
             }
-            if num != "" {
+            if !num.is_empty() {
                 let num: isize = num.parse().ok()?;
                 if num < 0 {
                     match i {

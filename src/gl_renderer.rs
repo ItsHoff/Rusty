@@ -1,4 +1,3 @@
-use glium;
 use glium::backend::Facade;
 use glium::{uniform, DrawParameters, Surface};
 

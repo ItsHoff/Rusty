@@ -1,6 +1,6 @@
 use cgmath::Point2;
 
-use crate::bvh::BVHNode;
+use crate::bvh::BvhNode;
 use crate::camera::PTCamera;
 use crate::color::Color;
 use crate::config::*;
@@ -19,7 +19,7 @@ pub fn bdpt<'a>(
     scene: &'a Scene,
     camera: &'a PTCamera,
     config: &RenderConfig,
-    node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    node_stack: &mut Vec<(&'a BvhNode, Float)>,
     splats: &mut Vec<(Point2<Float>, Color)>,
 ) -> Color {
     let camera_vertex = CameraVertex::new(camera, camera_ray);
@@ -56,7 +56,7 @@ pub fn bdpt<'a>(
             // No light vertices
             let (mut radiance, path) = if s == 0 {
                 if let Some(vertex) = camera_path.get(t - 2) {
-                    if let Some(light_vertex) = vertex.to_light_vertex(&scene) {
+                    if let Some(light_vertex) = vertex.to_light_vertex(scene) {
                         (
                             vertex.path_radiance(),
                             bd_path.subpath_with_light(light_vertex, t),
@@ -114,7 +114,7 @@ fn generate_path<'a>(
     path_type: PathType,
     scene: &'a Scene,
     config: &RenderConfig,
-    node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    node_stack: &mut Vec<(&'a BvhNode, Float)>,
 ) -> Vec<SurfaceVertex<'a>> {
     let mut bounce = 0;
     let mut path = Vec::new();
@@ -123,7 +123,7 @@ fn generate_path<'a>(
             ray.clone(),
             beta,
             path_type,
-            hit.interaction(&config),
+            hit.interaction(config),
         ));
         let isect = &path.last().unwrap().isect;
         let mut pdf = 1.0;
@@ -131,7 +131,7 @@ fn generate_path<'a>(
             true
         } else if bounce >= config.pre_rr_bounces {
             match config.russian_roulette {
-                RussianRoulette::Dynamic => panic!("BDPT does not support dynamic RR"),
+                RussianRoulette::Dynamic => panic!("Bdpt does not support dynamic RR"),
                 RussianRoulette::Static(prob) => {
                     pdf *= prob;
                     rand::random::<Float>() > prob

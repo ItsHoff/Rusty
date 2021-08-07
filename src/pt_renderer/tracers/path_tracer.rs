@@ -1,4 +1,4 @@
-use crate::bvh::BVHNode;
+use crate::bvh::BvhNode;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
@@ -26,14 +26,14 @@ pub fn path_trace<'a>(
     scene: &'a Scene,
     flash: &dyn Light,
     config: &RenderConfig,
-    node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    node_stack: &mut Vec<(&'a BvhNode, Float)>,
 ) -> Color {
     let mut c = Color::black();
     let mut beta = Color::white();
     let mut bounce = 0;
     let mut specular_bounce = false;
     while let Some(hit) = scene.intersect(&mut ray, node_stack) {
-        let isect = hit.interaction(&config);
+        let isect = hit.interaction(config);
         if bounce == 0 || specular_bounce {
             c += beta * isect.le(-ray.dir);
         }

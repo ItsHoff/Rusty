@@ -2,11 +2,10 @@
 use std::ops::Deref;
 use std::time::Duration;
 
-use cgmath;
 use cgmath::prelude::*;
 use cgmath::{Matrix4, Point2, Point3, Quaternion, Rad, Vector3};
 
-use glium::glutin::{dpi::LogicalSize, MouseButton, VirtualKeyCode};
+use glium::glutin::{dpi::LogicalSize, event::MouseButton, event::VirtualKeyCode};
 
 use crate::color::Color;
 use crate::consts;
@@ -141,8 +140,8 @@ impl Camera {
         }
     }
 
-    pub fn update_viewport(&mut self, size: LogicalSize) {
-        self.ratio = (size.width / size.height).to_float();
+    pub fn update_viewport(&mut self, size: LogicalSize<Float>) {
+        self.ratio = size.width / size.height;
     }
 
     pub fn set_scale(&mut self, scale: Float) {

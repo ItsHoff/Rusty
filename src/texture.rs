@@ -34,7 +34,7 @@ impl Texture {
     }
 
     pub fn from_image_path(path: &Path) -> Self {
-        Image(load_image(path).unwrap().to_rgb())
+        Image(load_image(path).unwrap().to_rgb8())
     }
 
     pub fn is_black(&self) -> bool {
@@ -133,16 +133,16 @@ where
 fn load_image(path: &Path) -> Result<DynamicImage, Box<dyn Error>> {
     if let Some(ext) = util::lowercase_extension(path) {
         let image_format = match ext.as_str() {
-            "png" => ImageFormat::PNG,
-            "jpg" | "jpeg" => ImageFormat::JPEG,
-            "gif" => ImageFormat::GIF,
-            "webp" => ImageFormat::WEBP,
-            "pnm" => ImageFormat::PNM,
-            "tiff" => ImageFormat::TIFF,
-            "tga" => ImageFormat::TGA,
-            "bmp" => ImageFormat::BMP,
-            "ico" => ImageFormat::ICO,
-            "hdr" => ImageFormat::HDR,
+            "png" => ImageFormat::Png,
+            "jpg" | "jpeg" => ImageFormat::Jpeg,
+            "gif" => ImageFormat::Gif,
+            "webp" => ImageFormat::WebP,
+            "pnm" => ImageFormat::Pnm,
+            "tiff" => ImageFormat::Tiff,
+            "tga" => ImageFormat::Tga,
+            "bmp" => ImageFormat::Bmp,
+            "ico" => ImageFormat::Ico,
+            "hdr" => ImageFormat::Hdr,
             ext => {
                 return Err(format!("Unknown image extension {}", ext).into());
             }

@@ -95,7 +95,7 @@ impl RenderWorker {
                                         &self.config,
                                         &mut node_stack,
                                     ),
-                                    RenderMode::BDPT => {
+                                    RenderMode::Bdpt => {
                                         let c = tracers::bdpt(
                                             ray,
                                             &self.scene,

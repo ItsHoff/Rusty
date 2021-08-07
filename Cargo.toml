@@ -5,14 +5,14 @@ version = "0.1.0"
 authors = ["ItsHoff <ItsHoff@users.noreply.github.com>"]
 
 [dependencies]
-cgmath = "0.16.1"
-chrono = "0.4.6"
-glium = "0.22.0"
-image = "0.19.0"
-lazy_static = "1.1.0"
-num_cpus = "1.8.0"
+cgmath = "0.18.0"
+chrono = "0.4.19"
+glium = "0.30.1"
+image = "0.23.14"
+lazy_static = "1.4.0"
+num_cpus = "1.13.0"
 prettytable-rs = "0.8.0"
-rand = "0.5.5"
+rand = "0.8.4"
 
 [features]
 default = []

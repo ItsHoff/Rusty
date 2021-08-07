@@ -6,21 +6,21 @@ use crate::float::*;
 use crate::intersect::{Intersect, Ray};
 
 #[derive(Clone, Debug)]
-pub struct AABB {
+pub struct Aabb {
     pub min: Point3<Float>,
     pub max: Point3<Float>,
 }
 
-impl AABB {
-    pub fn empty() -> AABB {
-        AABB {
+impl Aabb {
+    pub fn empty() -> Aabb {
+        Aabb {
             min: Point3::max_value(),
             max: Point3::min_value(),
         }
     }
 
     /// Update the bounding box to enclose other aswell
-    pub fn add_aabb(&mut self, other: &AABB) {
+    pub fn add_aabb(&mut self, other: &Aabb) {
         self.min = min_point(&self.min, &other.min);
         self.max = max_point(&self.max, &other.max);
     }
@@ -28,7 +28,7 @@ impl AABB {
     /// Get the center of the scene as defined by the bounding box
     pub fn center(&self) -> Point3<Float> {
         if self.max.x < self.min.x {
-            panic!("Tried to get center of an empty AABB");
+            panic!("Tried to get center of an empty Aabb");
         }
         Point3::midpoint(self.min, self.max)
     }
@@ -60,7 +60,7 @@ impl AABB {
     }
 }
 
-impl Intersect<'_, Float> for AABB {
+impl Intersect<'_, Float> for Aabb {
     fn intersect(&self, ray: &Ray) -> Option<Float> {
         let t1 = (self.min - ray.orig).mul_element_wise(ray.reciprocal_dir);
         let t2 = (self.max - ray.orig).mul_element_wise(ray.reciprocal_dir);

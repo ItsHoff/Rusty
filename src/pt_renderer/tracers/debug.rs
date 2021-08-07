@@ -1,6 +1,6 @@
 use cgmath::prelude::*;
 
-use crate::bvh::BVHNode;
+use crate::bvh::BvhNode;
 use crate::color::Color;
 use crate::config::*;
 use crate::float::*;
@@ -12,7 +12,7 @@ pub fn debug_trace<'a>(
     mode: &DebugMode,
     scene: &'a Scene,
     config: &RenderConfig,
-    node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    node_stack: &mut Vec<(&'a BvhNode, Float)>,
 ) -> Color {
     match mode {
         DebugMode::Normals => trace_normals(ray, scene, config, node_stack, false),
@@ -24,7 +24,7 @@ fn trace_normals<'a>(
     mut ray: Ray,
     scene: &'a Scene,
     config: &RenderConfig,
-    node_stack: &mut Vec<(&'a BVHNode, Float)>,
+    node_stack: &mut Vec<(&'a BvhNode, Float)>,
     forward_only: bool,
 ) -> Color {
     let mut c = Color::black();

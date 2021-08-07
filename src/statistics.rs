@@ -54,7 +54,7 @@ impl Statistics {
         let total = stats.add_stopwatch("Total", None);
         let load = stats.add_stopwatch("Load", Some(total));
         stats.add_stopwatch("Loab obj", Some(load));
-        stats.add_stopwatch("BVH", Some(load));
+        stats.add_stopwatch("Bvh", Some(load));
         stats.add_stopwatch("Render", Some(total));
         stats
     }

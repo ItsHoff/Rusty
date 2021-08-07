@@ -5,7 +5,7 @@ use crate::float::*;
 use crate::pt_renderer::PathType;
 
 use super::util;
-use super::BSDFT;
+use super::BsdfTrait;
 
 /// Fresnel reflection for w
 fn dielectric(w: Vector3<Float>, eta_mat: Float) -> Float {
@@ -34,13 +34,13 @@ pub fn schlick(w: Vector3<Float>, specular: Color) -> Color {
 }
 
 #[derive(Clone, Debug)]
-pub struct FresnelBSDF<R: BSDFT, T: BSDFT> {
+pub struct FresnelBSDF<R: BsdfTrait, T: BsdfTrait> {
     pub brdf: R,
     pub btdf: T,
     pub eta: Float,
 }
 
-impl<R: BSDFT, T: BSDFT> BSDFT for FresnelBSDF<R, T> {
+impl<R: BsdfTrait, T: BsdfTrait> BsdfTrait for FresnelBSDF<R, T> {
     fn is_specular(&self) -> bool {
         self.brdf.is_specular() || self.btdf.is_specular()
     }

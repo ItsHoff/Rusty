@@ -30,12 +30,12 @@ pub fn load_normal_map(path: &Path) -> NormalMap {
     let image = super::load_image(path).unwrap();
     let map = match image {
         ImageLuma8(map) => bump_to_normal(&map),
-        ImageLumaA8(_) => bump_to_normal(&image.to_luma()),
+        ImageLumaA8(_) => bump_to_normal(&image.to_luma8()),
         _ => {
-            let rgb_image = image.to_rgb();
+            let rgb_image = image.to_rgb8();
             if is_grayscale(&rgb_image) {
                 println!("Found non-grayscale bump map {:?}", path);
-                bump_to_normal(&image.to_luma())
+                bump_to_normal(&image.to_luma8())
             } else {
                 rgb_image
             }
