@@ -86,6 +86,7 @@ impl Polygon {
 
 /// Representation of loaded polygon
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct Triangle {
     pub index_vertices: [IndexVertex; 3],
     /// Name of triangles group
@@ -124,6 +125,7 @@ impl Range {
 
 /// Representation of a loaded material
 #[derive(Debug, Default, Clone)]
+#[allow(dead_code)]
 pub struct Material {
     pub name: String,
     pub ambient_color: Option<[f32; 3]>,

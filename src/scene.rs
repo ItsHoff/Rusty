@@ -9,7 +9,7 @@ use glium::backend::Facade;
 use glium::VertexBuffer;
 
 use crate::aabb::Aabb;
-use crate::bvh::{BvhNode, Bvh, SplitMode};
+use crate::bvh::{Bvh, BvhNode, SplitMode};
 use crate::config::RenderConfig;
 use crate::float::*;
 use crate::index_ptr::IndexPtr;
@@ -300,7 +300,7 @@ impl Scene {
         &'a self,
         ray: &mut Ray,
         node_stack: &mut Vec<(&'a BvhNode, Float)>,
-    ) -> Option<Hit> {
+    ) -> Option<Hit<'a>> {
         self.intersect_impl(ray, node_stack, false)
     }
 
@@ -312,7 +312,7 @@ impl Scene {
         ray: &mut Ray,
         node_stack: &mut Vec<(&'a BvhNode, Float)>,
         early_exit: bool,
-    ) -> Option<Hit> {
+    ) -> Option<Hit<'a>> {
         Ray::increment_count();
         let bvh = self.bvh.as_ref().unwrap();
         node_stack.push((bvh.root(), 0.0));
