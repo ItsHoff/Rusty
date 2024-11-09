@@ -86,7 +86,7 @@ impl RenderConfig {
             russian_roulette: RussianRoulette::Dynamic,
             mis: true,
             pre_rr_bounces: 5,
-            max_bounces: std::usize::MAX,
+            max_bounces: usize::MAX,
             samples_per_dir: 2,
             tone_map: true,
             bvh_split: SplitMode::Sah,
@@ -97,7 +97,7 @@ impl RenderConfig {
         Self {
             render_mode: RenderMode::Bdpt,
             pre_rr_bounces: 3,
-            max_bounces: std::usize::MAX,
+            max_bounces: usize::MAX,
             russian_roulette: RussianRoulette::Static(0.5),
             ..Self::path_trace()
         }

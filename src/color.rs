@@ -10,7 +10,7 @@ use crate::float::*;
 
 /// Convert u8 color to float color in range [0, 1]
 pub fn component_to_float(c: u8) -> Float {
-    c.to_float() / std::u8::MAX.to_float()
+    c.to_float() / u8::MAX.to_float()
 }
 
 pub fn pixel_to_vector(pixel: image::Rgb<u8>) -> Vector3<Float> {
@@ -23,7 +23,7 @@ pub fn pixel_to_vector(pixel: image::Rgb<u8>) -> Vector3<Float> {
 }
 
 pub fn vector_to_pixel(vec: Vector3<Float>) -> image::Rgb<u8> {
-    let conv = |f: Float| (f * std::u8::MAX.to_float()) as u8;
+    let conv = |f: Float| (f * u8::MAX.to_float()) as u8;
     image::Rgb([conv(vec.x), conv(vec.y), conv(vec.z)])
 }
 
