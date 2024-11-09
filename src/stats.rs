@@ -188,6 +188,7 @@ impl SceneStatistics {
     }
 
     fn get_timer(&self, name: &str) -> Option<&Timer> {
+        #[allow(clippy::manual_find)]
         for (timer, _) in &self.timers {
             if timer.name == name {
                 return Some(timer);

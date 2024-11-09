@@ -265,7 +265,7 @@ fn parse_path(split_line: &mut SplitWhitespace) -> Option<PathBuf> {
 
 fn str_to_path(string: &str) -> PathBuf {
     let mut path = PathBuf::new();
-    for part in string.split(|c| c == '/' || c == '\\') {
+    for part in string.split(['/', '\\']) {
         path.push(part);
     }
     path

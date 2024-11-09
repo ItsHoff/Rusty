@@ -1,6 +1,11 @@
 //! Floating point conversion that enable the support switching
 //! between f64 and f32 as the primary float type.
 
+#![allow(
+    clippy::unnecessary_cast,
+    // reason = "f32 casts are required for double precision but unnecessary for single precision."
+)]
+
 use cgmath::{Matrix4, Point2, Point3, Vector3, Vector4};
 
 use crate::consts;
