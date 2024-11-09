@@ -14,7 +14,7 @@ use crate::intersect::Ray;
 use crate::scene::Scene;
 
 use super::tracers;
-use super::{PTResult, RenderCoordinator};
+use super::{PtResult, RenderCoordinator};
 
 pub struct RenderWorker {
     scene: Arc<Scene>,
@@ -22,7 +22,7 @@ pub struct RenderWorker {
     config: RenderConfig,
     coordinator: Arc<RenderCoordinator>,
     message_rx: Receiver<()>,
-    result_tx: Sender<PTResult>,
+    result_tx: Sender<PtResult>,
 }
 
 impl RenderWorker {
@@ -32,7 +32,7 @@ impl RenderWorker {
         config: RenderConfig,
         coordinator: Arc<RenderCoordinator>,
         message_rx: Receiver<()>,
-        result_tx: Sender<PTResult>,
+        result_tx: Sender<PtResult>,
     ) -> RenderWorker {
         RenderWorker {
             scene,
@@ -114,7 +114,7 @@ impl RenderWorker {
                                             rad *= sample_weight;
                                             let arr: [f32; 3] = rad.into();
                                             self.result_tx
-                                                .send(PTResult::Splat(Point2::new(x, y), arr))
+                                                .send(PtResult::Splat(Point2::new(x, y), arr))
                                                 .expect("Receiver closed!");
                                         }
                                         c
@@ -129,7 +129,7 @@ impl RenderWorker {
                     }
                 }
                 self.result_tx
-                    .send(PTResult::Block(rect, block))
+                    .send(PtResult::Block(rect, block))
                     .expect("Receiver closed!");
             } else {
                 return;

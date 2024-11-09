@@ -44,14 +44,14 @@ impl PathType {
     }
 }
 
-enum PTResult {
+enum PtResult {
     Block(Rect, Vec<f32>),
     Splat(Point2<u32>, [f32; 3]),
 }
 
 pub struct PtRenderer {
     image: TracedImage,
-    result_rx: Receiver<PTResult>,
+    result_rx: Receiver<PtResult>,
     message_txs: Vec<Sender<()>>,
     thread_handles: Vec<JoinHandle<()>>,
 }
@@ -104,8 +104,8 @@ impl PtRenderer {
         // ie. all workers have finished
         for res in renderer.result_rx.iter() {
             match res {
-                PTResult::Block(rect, sample) => renderer.image.add_sample(rect, &sample),
-                PTResult::Splat(pixel, sample) => renderer.image.add_splat(pixel, sample),
+                PtResult::Block(rect, sample) => renderer.image.add_sample(rect, &sample),
+                PtResult::Splat(pixel, sample) => renderer.image.add_splat(pixel, sample),
             }
         }
         renderer
@@ -119,8 +119,8 @@ impl PtRenderer {
         for res in self.result_rx.try_iter().take(n_max) {
             n += 1;
             match res {
-                PTResult::Block(rect, sample) => self.image.add_sample(rect, &sample),
-                PTResult::Splat(pixel, sample) => self.image.add_splat(pixel, sample),
+                PtResult::Block(rect, sample) => self.image.add_sample(rect, &sample),
+                PtResult::Splat(pixel, sample) => self.image.add_splat(pixel, sample),
             }
         }
         if n == n_max {
