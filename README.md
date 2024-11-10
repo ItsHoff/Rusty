@@ -14,7 +14,7 @@ WIP physically based renderer.
 
 ## Installation
 
-Requires a recent [rust](https://www.rust-lang.org/en-US/install.html) compiler (tested on 1.79)
+Requires a recent [rust](https://www.rust-lang.org/en-US/install.html) compiler (tested on 1.83)
 ```
 git clone https://github.com/ItsHoff/Rusty.git
 cd Rusty
