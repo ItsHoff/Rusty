@@ -1,20 +1,24 @@
 * Fix
 ** Shadow acne in sponza
-  * floating point error
-  * not present with f64
+- floating point error
+- not present with f64
+
 * Features
 ** Nice to have
 *** Dynamic lights
 *** Participating media
 *** Additional camera models
-    * thin lenses
-    * thick lenses
-    * lens systems
+- thin lenses
+- thick lenses
+- lens systems
+
 *** Alternate input formats
-    * glTF
-    * pbrt
+- glTF
+- pbrt
+
 *** Other shapes
-    * Would need new format support
+- Would need new format support
+
 *** Procedural textures
 ** Extras
 *** DIY linear algebra
@@ -25,20 +29,25 @@
 ** Performance
 *** Parallel building of BVH
 *** Spatial curves for 2d vector ordering
-   * e.g. textures
-   * Hilbert / Morton
+- e.g. textures
+- Hilbert / Morton
+
 *** Examine cache effiency
-   * size
-   * organization (hot & cold)
-   * alignment
+- size
+- organization (hot & cold)
+- alignment
+
 ** Quality
 *** Proper sRGB gamma curve
-   * PBRT 621
+- PBRT page 621
+
 *** Better filtering and reconstruction
 *** More robust floating point error handling
-    * Need to figure out (u, v) error or switch to pbrt intersections
+- Need to figure out (u, v) error or switch to pbrt intersections
+
 ** Refactoring
 *** Statistics api
-    * Stat prints for online rendering
+- Stat prints for online rendering
+
 *** Shrinkwraprs
-  * https://crates.io/crates/shrinkwraprs
+- https://crates.io/crates/shrinkwraprs
